@@ -140,7 +140,13 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     });
 
     if (error) {
-      showToast(error.message, "error");
+      if (error.message.includes("Gender mismatch")) {
+        showToast(t("common.error"), "error");
+      } else if (error.message.includes("full") || error.message.includes("Room is full")) {
+        showToast(t("common.error"), "error");
+      } else {
+        showToast(t("common.error"), "error");
+      }
     } else {
       showToast(t("admin.assignRoom"), "success");
       setSelectedBooking(null);

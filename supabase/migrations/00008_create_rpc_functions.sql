@@ -150,3 +150,51 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- RPC: Book a bus seat with capacity check (atomic)
+CREATE OR REPLACE FUNCTION public.book_bus(
+  p_user_id uuid,
+  p_trip_id uuid,
+  p_bus_id uuid
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_capacity int;
+  v_current int;
+  v_booking_id uuid;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.trips WHERE id = p_trip_id AND is_open = true) THEN
+    RAISE EXCEPTION 'Trip is not open';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.bookings
+    WHERE user_id = p_user_id AND trip_id = p_trip_id AND cancelled_at IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Already booked this trip';
+  END IF;
+
+  SELECT capacity INTO v_capacity FROM public.buses WHERE id = p_bus_id FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Bus not found';
+  END IF;
+
+  SELECT COUNT(*) INTO v_current
+  FROM public.bookings
+  WHERE bus_id = p_bus_id AND cancelled_at IS NULL;
+
+  IF v_current >= v_capacity THEN
+    RAISE EXCEPTION 'Bus is full';
+  END IF;
+
+  INSERT INTO public.bookings (user_id, trip_id, bus_id)
+  VALUES (p_user_id, p_trip_id, p_bus_id)
+  RETURNING id INTO v_booking_id;
+
+  RETURN v_booking_id;
+END;
+$$;

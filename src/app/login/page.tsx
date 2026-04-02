@@ -20,11 +20,11 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
 
-    if (!phone.trim()) {
+    if (!phone.trim() || !/^\d{8,15}$/.test(phone.trim())) {
       setError(t("auth.phoneRequired"));
       return;
     }
-    if (!password.trim()) {
+    if (!password.trim() || password.length < 6) {
       setError(t("auth.passwordRequired"));
       return;
     }

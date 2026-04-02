@@ -72,15 +72,17 @@ export default function BusesPage({ params }: { params: Promise<{ tripId: string
       return;
     }
 
-    const { error } = await supabase.from("bookings").insert({
-      user_id: user.id,
-      trip_id: tripId,
-      bus_id: bus.id,
+    const { error } = await supabase.rpc("book_bus", {
+      p_user_id: user.id,
+      p_trip_id: tripId,
+      p_bus_id: bus.id,
     });
 
     if (error) {
-      if (error.message.includes("unique") || error.message.includes("duplicate")) {
+      if (error.message.includes("Already booked")) {
         showToast(t("trips.alreadyBooked"), "error");
+      } else if (error.message.includes("full") || error.message.includes("Full")) {
+        showToast(t("buses.full"), "error");
       } else {
         showToast(t("common.error"), "error");
       }

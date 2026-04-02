@@ -88,10 +88,10 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       return;
     }
 
-    const { error } = await supabase.from("bookings").insert({
-      user_id: bookingUser,
-      trip_id: tripId,
-      bus_id: selectedBus,
+    const { error } = await supabase.rpc("book_bus", {
+      p_user_id: bookingUser,
+      p_trip_id: tripId,
+      p_bus_id: selectedBus,
     });
 
     if (error) {
@@ -104,7 +104,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   }
 
   async function handleRegister() {
-    if (!form.phone || !form.full_name || !form.password) {
+    if (!form.phone || !/^\d{8,15}$/.test(form.phone) || !form.full_name || !form.password || form.password.length < 6) {
       showToast(t("common.error"), "error");
       return;
     }
