@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { I18nProvider } from "@/lib/i18n/context";
+import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
   title: "CTRMS - Church Trip Management",
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className="min-h-screen">
         <I18nProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </I18nProvider>
       </body>
     </html>
