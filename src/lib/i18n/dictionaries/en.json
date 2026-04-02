@@ -21,7 +21,7 @@
     "passwordRequired": "Password is required",
     "nameRequired": "Full name is required",
     "genderRequired": "Gender is required",
-    "phoneExists": "This phone number is already registered",
+    "phoneExists": "This phone number is already registered — you can book for them",
     "logout": "Logout",
     "welcome": "Welcome"
   },
@@ -31,7 +31,7 @@
     "myBookings": "My Bookings",
     "noTrips": "No trips available",
     "alreadyBooked": "Booked",
-    "full": "Full",
+    "full": "Bus is full — choose another bus",
     "available": "Available",
     "closed": "Closed",
     "date": "Date"
@@ -42,7 +42,7 @@
     "leader": "Leader",
     "seats": "Seats",
     "availableSeats": "Available seats",
-    "full": "Full",
+    "full": "Bus is full — choose another bus",
     "back": "Back"
   },
   "confirm": {
@@ -112,6 +112,11 @@
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
+    "busFull": "This bus is full — choose another one",
+    "alreadyBookedTrip": "You already booked this trip",
+    "tripClosed": "This trip is closed for booking",
+    "genderMismatch": "Gender mismatch — this room is not suitable",
+    "roomFull": "This room is full",
     "retry": "Retry",
     "save": "Save",
     "cancel": "Cancel",

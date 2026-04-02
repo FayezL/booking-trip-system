@@ -125,6 +125,9 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     if (error) {
       if (error.message.includes("already registered") || error.message.includes("unique")) {
         showToast(t("auth.phoneExists"), "error");
+        setShowRegister(false);
+        setForm(emptyForm);
+        loadData();
       } else {
         showToast(error.message, "error");
       }
