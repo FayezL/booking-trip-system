@@ -12,7 +12,7 @@ export default function TripsPage() {
   const supabase = createClient();
 
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [myBookings, setMyBookings] = useState<Booking[]>([]);
+  const [myBookings, setMyBookings] = useState<(Booking & { trips: Trip; buses: { area_name_ar: string; area_name_en: string } })[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,16 +23,16 @@ export default function TripsPage() {
       if (!user) return;
 
       const [tripsRes, bookingsRes] = await Promise.all([
-        supabase.from("trips").select("*").order("trip_date", { ascending: false }),
+        supabase.from("trips").select("*").eq("is_open", true).order("trip_date", { ascending: false }),
         supabase
           .from("bookings")
-          .select("*")
+          .select("*, trips(*), buses(area_name_ar, area_name_en)")
           .eq("user_id", user.id)
           .is("cancelled_at", null),
       ]);
 
       setTrips(tripsRes.data || []);
-      setMyBookings(bookingsRes.data || []);
+      setMyBookings((bookingsRes.data || []) as unknown as typeof myBookings);
       setLoading(false);
     }
 
@@ -74,11 +74,7 @@ export default function TripsPage() {
                   </div>
 
                   <div>
-                    {!trip.is_open ? (
-                      <span className="inline-block px-4 py-2 rounded-lg bg-gray-200 text-gray-600 text-lg font-semibold">
-                        {t("trips.closed")}
-                      </span>
-                    ) : booked ? (
+                    {booked ? (
                       <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-lg font-semibold">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -98,6 +94,29 @@ export default function TripsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {myBookings.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-xl font-bold mb-4">{t("trips.myBookings")}</h2>
+          <div className="space-y-3">
+            {myBookings.map((booking) => (
+              <div key={booking.id} className="card flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold">
+                    {booking.trips ? getTripTitle(booking.trips as Trip) : ""}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {t("confirm.bus")}: {lang === "ar" ? booking.buses.area_name_ar : booking.buses.area_name_en}
+                  </p>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

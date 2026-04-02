@@ -31,10 +31,13 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   const [buses, setBuses] = useState<Bus[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [genderFilter, setGenderFilter] = useState<"" | "Male" | "Female">("");
   const [showRegister, setShowRegister] = useState(false);
   const [form, setForm] = useState<RegisterForm>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [bookingUser, setBookingUser] = useState<string | null>(null);
+  const [selectedBus, setSelectedBus] = useState<string>("");
 
   useEffect(() => {
     loadData();
@@ -70,27 +73,28 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     setLoading(false);
   }
 
-  async function handleBookForUser(userId: string) {
-    const { data: busList } = await supabase
-      .from("buses")
-      .select("*")
-      .eq("trip_id", tripId);
+  function startBookForUser(userId: string) {
+    setBookingUser(userId);
+    setSelectedBus(buses.length > 0 ? buses[0].id : "");
+  }
 
-    if (!busList || busList.length === 0) {
+  async function confirmBookForUser() {
+    if (!bookingUser || !selectedBus) {
       showToast(t("common.error"), "error");
       return;
     }
 
     const { error } = await supabase.from("bookings").insert({
-      user_id: userId,
+      user_id: bookingUser,
       trip_id: tripId,
-      bus_id: busList[0].id,
+      bus_id: selectedBus,
     });
 
     if (error) {
       showToast(t("common.error"), "error");
     } else {
       showToast(t("admin.book"), "success");
+      setBookingUser(null);
       loadData();
     }
   }
@@ -134,6 +138,11 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     const matchesGender = !genderFilter || p.gender === genderFilter;
     return matchesSearch && matchesGender;
   });
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const maleCount = unbooked.filter((p) => p.gender === "Male").length;
   const femaleCount = unbooked.filter((p) => p.gender === "Female").length;
@@ -228,12 +237,40 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
         </div>
       )}
 
+      {bookingUser && (
+        <div className="card mb-4">
+          <h3 className="text-lg font-bold mb-3">{t("admin.book")}</h3>
+          <div>
+            <label className="label-text">{t("buses.chooseBus")}</label>
+            <select
+              className="input-field"
+              value={selectedBus}
+              onChange={(e) => setSelectedBus(e.target.value)}
+            >
+              {buses.map((bus) => (
+                <option key={bus.id} value={bus.id}>
+                  {lang === "ar" ? bus.area_name_ar : bus.area_name_en}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-3 mt-4">
+            <button onClick={confirmBookForUser} className="btn-primary">
+              {t("admin.book")}
+            </button>
+            <button onClick={() => setBookingUser(null)} className="btn-secondary">
+              {t("admin.cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-3 mb-4">
         <input
           className="input-field max-w-xs"
           placeholder={t("admin.searchByName")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
         />
         <div className="flex gap-1">
           {(["", "Male", "Female"] as const).map((g) => (
@@ -273,7 +310,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                   </span>
                 </div>
                 <button
-                  onClick={() => handleBookForUser(p.id)}
+                  onClick={() => startBookForUser(p.id)}
                   className="btn-primary text-sm py-1.5 px-3"
                 >
                   {t("admin.book")}

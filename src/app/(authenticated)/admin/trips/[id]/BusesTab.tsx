@@ -198,13 +198,13 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                     onClick={() => startEdit(bus)}
                     className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
                   >
-                    {t("admin.edit")}
+                    {t("common.edit")}
                   </button>
                   <button
                     onClick={() => handleDelete(bus.id)}
                     className="px-3 py-1.5 rounded-md text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200"
                   >
-                    {t("admin.delete")}
+                    {t("common.delete")}
                   </button>
                 </div>
               </div>

@@ -21,7 +21,7 @@ const emptyForm: RoomForm = {
 };
 
 type BookingWithProfile = Booking & { profiles: Profile };
-type RoomWithCount = Room & { occupant_count: number };
+type RoomWithCount = Room & { occupant_count: number; occupants: Profile[] };
 
 export default function RoomsTab({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
@@ -55,12 +55,18 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     const roomList = (roomsRes.data || []) as Room[];
     const roomsWithCounts = await Promise.all(
       roomList.map(async (room) => {
-        const { count } = await supabase
+        const { data: occupantBookings } = await supabase
           .from("bookings")
-          .select("*", { count: "exact", head: true })
+          .select("user_id")
           .eq("room_id", room.id)
           .is("cancelled_at", null);
-        return { ...room, occupant_count: count || 0 };
+
+        const userIds = (occupantBookings || []).map((b) => b.user_id);
+        const { data: occupantProfiles } = userIds.length > 0
+          ? await supabase.from("profiles").select("*").in("id", userIds)
+          : { data: [] };
+
+        return { ...room, occupant_count: userIds.length, occupants: (occupantProfiles || []) as Profile[] };
       })
     );
 
@@ -270,13 +276,13 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                         onClick={() => startEdit(room)}
                         className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700"
                       >
-                        {t("admin.edit")}
+                        {t("common.edit")}
                       </button>
                       <button
                         onClick={() => handleDelete(room.id)}
                         className="px-2 py-1 rounded text-xs bg-red-100 text-red-700"
                       >
-                        {t("admin.delete")}
+                        {t("common.delete")}
                       </button>
                     </div>
                   </div>
@@ -284,6 +290,11 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                     {room.occupant_count}/{room.capacity} {t("admin.occupants")}
                     {room.supervisor_name && ` — ${room.supervisor_name}`}
                   </div>
+                  {room.occupants.length > 0 && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      {room.occupants.map((o) => o.full_name).join("، ")}
+                    </div>
+                  )}
                   {canAssign && (
                     <button
                       onClick={() => handleAssign(selectedBooking, room.id)}

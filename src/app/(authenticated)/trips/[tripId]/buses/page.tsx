@@ -9,6 +9,13 @@ import type { Bus, Trip } from "@/lib/types/database";
 
 type BusWithCount = Bus & { booking_count: number };
 
+type BookingConfirmation = {
+  tripTitle: string;
+  busArea: string;
+  leaderName: string;
+  tripDate: string;
+};
+
 export default function BusesPage({ params }: { params: Promise<{ tripId: string }> }) {
   const { tripId } = use(params);
   const { t, lang } = useTranslation();
@@ -20,6 +27,7 @@ export default function BusesPage({ params }: { params: Promise<{ tripId: string
   const [buses, setBuses] = useState<BusWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingBusId, setBookingBusId] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -49,8 +57,12 @@ export default function BusesPage({ params }: { params: Promise<{ tripId: string
     loadData();
   }, [tripId]);
 
-  async function handleBook(busId: string) {
-    setBookingBusId(busId);
+  async function handleBook(bus: BusWithCount) {
+    const areaName = lang === "ar" ? bus.area_name_ar : bus.area_name_en;
+    const confirmed = confirm(`${t("buses.choose")}: ${areaName}?`);
+    if (!confirmed) return;
+
+    setBookingBusId(bus.id);
 
     const {
       data: { user },
@@ -63,7 +75,7 @@ export default function BusesPage({ params }: { params: Promise<{ tripId: string
     const { error } = await supabase.from("bookings").insert({
       user_id: user.id,
       trip_id: tripId,
-      bus_id: busId,
+      bus_id: bus.id,
     });
 
     if (error) {
@@ -76,14 +88,55 @@ export default function BusesPage({ params }: { params: Promise<{ tripId: string
       return;
     }
 
-    showToast(t("confirm.title"), "success");
-    router.push("/trips");
+    setConfirmation({
+      tripTitle: trip ? (lang === "ar" ? trip.title_ar : trip.title_en) : "",
+      busArea: areaName,
+      leaderName: bus.leader_name || "-",
+      tripDate: trip?.trip_date || "",
+    });
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <p className="text-xl text-gray-500">{t("common.loading")}</p>
+      </div>
+    );
+  }
+
+  if (confirmation) {
+    return (
+      <div className="max-w-md mx-auto text-center py-10">
+        <div className="mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-20 h-20 mx-auto text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h1 className="text-3xl font-bold text-emerald-600 mb-6">{t("confirm.title")}</h1>
+        <div className="card text-start space-y-3">
+          <div className="flex justify-between">
+            <span className="text-gray-500">{t("confirm.trip")}</span>
+            <span className="font-semibold">{confirmation.tripTitle}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">{t("confirm.bus")}</span>
+            <span className="font-semibold">{confirmation.busArea}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">{t("confirm.leader")}</span>
+            <span className="font-semibold">{confirmation.leaderName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">{t("confirm.date")}</span>
+            <span className="font-semibold">{confirmation.tripDate}</span>
+          </div>
+        </div>
+        <button
+          onClick={() => router.push("/trips")}
+          className="btn-primary w-full mt-6"
+        >
+          {t("confirm.ok")}
+        </button>
       </div>
     );
   }
@@ -100,8 +153,7 @@ export default function BusesPage({ params }: { params: Promise<{ tripId: string
       <h1 className="text-2xl font-bold mb-2">{t("buses.chooseBus")}</h1>
       {trip && (
         <p className="text-gray-600 mb-6">
-          {lang === "ar" ? trip.title_ar : trip.title_en} — {t("trips.date")}:{" "}
-          {trip.trip_date}
+          {lang === "ar" ? trip.title_ar : trip.title_en} — {t("trips.date")}: {trip.trip_date}
         </p>
       )}
 
@@ -134,7 +186,7 @@ export default function BusesPage({ params }: { params: Promise<{ tripId: string
                     </span>
                   ) : (
                     <button
-                      onClick={() => handleBook(bus.id)}
+                      onClick={() => handleBook(bus)}
                       disabled={bookingBusId !== null}
                       className="btn-primary"
                     >
@@ -145,21 +197,13 @@ export default function BusesPage({ params }: { params: Promise<{ tripId: string
 
                 <div className="mt-3">
                   <div className="flex justify-between text-sm text-gray-500 mb-1">
-                    <span>
-                      {t("buses.availableSeats")}: {available}
-                    </span>
-                    <span>
-                      {bus.booking_count}/{bus.capacity}
-                    </span>
+                    <span>{t("buses.availableSeats")}: {available}</span>
+                    <span>{bus.booking_count}/{bus.capacity}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div
                       className={`h-3 rounded-full transition-all ${
-                        isFull
-                          ? "bg-red-500"
-                          : percent > 80
-                            ? "bg-yellow-500"
-                            : "bg-emerald-500"
+                        isFull ? "bg-red-500" : percent > 80 ? "bg-yellow-500" : "bg-emerald-500"
                       }`}
                       style={{ width: `${percent}%` }}
                     />

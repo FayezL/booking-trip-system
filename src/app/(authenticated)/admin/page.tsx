@@ -129,6 +129,12 @@ export default function AdminDashboard() {
                 </div>
                 <div className="text-gray-500">{t("admin.busSeatsFilled")}</div>
               </div>
+              <div className="bg-purple-50 rounded-lg p-2 text-center">
+                <div className="font-bold text-lg text-purple-700">
+                  {s.roomsAssigned}/{s.bookingTotal}
+                </div>
+                <div className="text-gray-500">{t("admin.roomsAssigned")}</div>
+              </div>
             </div>
           </div>
         ))}
