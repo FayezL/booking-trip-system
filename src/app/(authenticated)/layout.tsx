@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import Header from "@/components/Header";
 import type { Profile } from "@/lib/types/database";
+
+const getProfile = cache(async (userId: string) => {
+  const supabase = await createClient();
+  return supabase.from("profiles").select("*").eq("id", userId).single();
+});
 
 export default async function AuthenticatedLayout({
   children,
@@ -18,11 +24,7 @@ export default async function AuthenticatedLayout({
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await getProfile(user.id);
 
   if (!profile) {
     redirect("/login");

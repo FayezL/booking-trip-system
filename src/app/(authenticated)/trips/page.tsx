@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -37,13 +37,11 @@ export default function TripsPage() {
     setLoading(false);
   }
 
+  const bookedTripIds = useMemo(() => new Set(myBookings.map((b) => b.trip_id)), [myBookings]);
+
   useEffect(() => {
     loadData();
   }, []);
-
-  function isBooked(tripId: string): boolean {
-    return myBookings.some((b) => b.trip_id === tripId);
-  }
 
   function getTripTitle(trip: Trip): string {
     return lang === "ar" ? trip.title_ar : trip.title_en;
@@ -73,7 +71,7 @@ export default function TripsPage() {
       ) : (
         <div className="space-y-4">
           {trips.map((trip) => {
-            const booked = isBooked(trip.id);
+            const booked = bookedTripIds.has(trip.id);
             return (
               <div key={trip.id} className="card">
                 <div className="flex items-center justify-between">

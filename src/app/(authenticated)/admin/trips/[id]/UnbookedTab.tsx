@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
@@ -51,29 +51,17 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const allBookedRes = await supabase
-      .from("bookings")
-      .select("user_id")
-      .eq("trip_id", tripId)
-      .is("cancelled_at", null);
+    const [allBookedRes, profilesRes, busListRes] = await Promise.all([
+      supabase.from("bookings").select("user_id").eq("trip_id", tripId).is("cancelled_at", null),
+      supabase.from("profiles").select("*").neq("id", user.id).order("full_name"),
+      supabase.from("buses").select("*").eq("trip_id", tripId),
+    ]);
 
-    const bookedIds = new Set((allBookedRes.data || []).map((b) => b.user_id));
+    const bookedIds = new Set((allBookedRes.data || []).map((b: { user_id: string }) => b.user_id));
+    const unbookedProfiles = (profilesRes.data || []).filter((p: Profile) => !bookedIds.has(p.id));
 
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("*")
-      .neq("id", user.id)
-      .order("full_name");
-
-    const unbookedProfiles = (profiles || []).filter((p) => !bookedIds.has(p.id));
     setUnbooked(unbookedProfiles);
-
-    const { data: busList } = await supabase
-      .from("buses")
-      .select("*")
-      .eq("trip_id", tripId);
-    setBuses(busList || []);
-
+    setBuses(busListRes.data || []);
     setLoading(false);
   }
 
@@ -140,14 +128,14 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     loadData();
   }
 
-  const filtered = unbooked.filter((p) => {
+  const filtered = useMemo(() => unbooked.filter((p) => {
     const matchesSearch = !search || p.full_name.includes(search);
     const matchesGender = !genderFilter || p.gender === genderFilter;
     return matchesSearch && matchesGender;
-  });
+  }), [unbooked, search, genderFilter]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput), 300);
@@ -158,8 +146,10 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     setPage(1);
   }, [search, genderFilter]);
 
-  const maleCount = unbooked.filter((p) => p.gender === "Male").length;
-  const femaleCount = unbooked.filter((p) => p.gender === "Female").length;
+  const { maleCount, femaleCount } = useMemo(() => ({
+    maleCount: unbooked.filter((p) => p.gender === "Male").length,
+    femaleCount: unbooked.filter((p) => p.gender === "Female").length,
+  }), [unbooked]);
 
   if (loading) {
     return <LoadingSpinner text={t("common.loading")} />;

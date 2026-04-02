@@ -39,16 +39,37 @@ export default function AdminDashboard() {
 
       const trips = tripsRes.data || [];
       const totalRegistered = profilesRes.count || 0;
-      const allBuses = busesRes.data || [];
-      const allRooms = roomsRes.data || [];
-      const allBookings = bookingsRes.data || [];
-      const allRoomBookings = roomBookingsRes.data || [];
 
-      const tripStats: TripStats[] = trips.map((trip) => {
-        const busCap = allBuses.filter((b) => b.trip_id === trip.id).reduce((s, b) => s + b.capacity, 0);
-        const roomCap = allRooms.filter((r) => r.trip_id === trip.id).reduce((s, r) => s + r.capacity, 0);
-        const booked = allBookings.filter((b) => b.trip_id === trip.id).length;
-        const roomsAssigned = allRoomBookings.filter((b) => b.trip_id === trip.id).length;
+      type BusRow = { trip_id: string; capacity: number };
+      type RoomRow = { trip_id: string; capacity: number };
+      type BookingRow = { trip_id: string; bus_id?: string; room_id?: string };
+
+      const allBuses = (busesRes.data || []) as BusRow[];
+      const allRooms = (roomsRes.data || []) as RoomRow[];
+      const allBookings = (bookingsRes.data || []) as BookingRow[];
+      const allRoomBookings = (roomBookingsRes.data || []) as BookingRow[];
+
+      function groupBy<T>(arr: T[], key: (item: T) => string): Map<string, T[]> {
+        const m = new Map<string, T[]>();
+        for (const item of arr) {
+          const k = key(item);
+          const list = m.get(k) || [];
+          list.push(item);
+          m.set(k, list);
+        }
+        return m;
+      }
+
+      const busesByTrip = groupBy(allBuses, (b) => b.trip_id);
+      const roomsByTrip = groupBy(allRooms, (r) => r.trip_id);
+      const bookingsByTrip = groupBy(allBookings, (b) => b.trip_id);
+      const roomBookingsByTrip = groupBy(allRoomBookings, (b) => b.trip_id);
+
+      const tripStats: TripStats[] = trips.map((trip: Trip) => {
+        const busCap = (busesByTrip.get(trip.id) || []).reduce((s, b) => s + b.capacity, 0);
+        const roomCap = (roomsByTrip.get(trip.id) || []).reduce((s, r) => s + r.capacity, 0);
+        const booked = (bookingsByTrip.get(trip.id) || []).length;
+        const roomsAssigned = (roomBookingsByTrip.get(trip.id) || []).length;
 
         return {
           trip,

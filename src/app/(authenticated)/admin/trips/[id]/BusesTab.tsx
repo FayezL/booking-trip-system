@@ -50,7 +50,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
       bookingCounts[b.bus_id] = (bookingCounts[b.bus_id] || 0) + 1;
     }
 
-    const busesWithCounts = (busesRes.data || []).map((bus) => ({
+    const busesWithCounts = (busesRes.data || []).map((bus: Bus) => ({
       ...bus,
       booking_count: bookingCounts[bus.id] || 0,
     }));

@@ -43,35 +43,35 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
   }, [tripId]);
 
   async function loadData() {
-    const [roomsRes, bookingsRes, allBookingsWithProfiles] = await Promise.all([
+    const [roomsRes, bookingsRes] = await Promise.all([
       supabase.from("rooms").select("*").eq("trip_id", tripId),
       supabase
         .from("bookings")
         .select("*, profiles(*)")
         .eq("trip_id", tripId)
         .is("cancelled_at", null),
-      supabase
-        .from("bookings")
-        .select("user_id, room_id, profiles(*)")
-        .eq("trip_id", tripId)
-        .is("cancelled_at", null)
-        .not("room_id", "is", null),
     ]);
 
-    const roomsWithCounts: RoomWithCount[] = (roomsRes.data || []).map((room) => {
-      const roomBookings = (allBookingsWithProfiles.data || []).filter(
-        (b) => b.room_id === room.id
-      );
+    const allBookings = bookingsRes.data || [];
+
+    const bookingsByRoom = new Map<string, typeof allBookings>();
+    for (const b of allBookings) {
+      if (!b.room_id) continue;
+      const list = bookingsByRoom.get(b.room_id) || ([] as typeof allBookings);
+      list.push(b);
+      bookingsByRoom.set(b.room_id, list);
+    }
+
+    const roomsWithCounts: RoomWithCount[] = (roomsRes.data || []).map((room: Room) => {
+      const roomBookings = bookingsByRoom.get(room.id) || ([] as typeof allBookings);
       return {
         ...room,
         occupant_count: roomBookings.length,
-        occupants: roomBookings.map((b) => b.profiles as unknown as Profile),
+        occupants: roomBookings.map((b: { profiles: unknown }) => b.profiles as unknown as Profile),
       };
     });
 
-    const unassignedBookings = (bookingsRes.data || []).filter(
-      (b) => b.room_id === null
-    );
+    const unassignedBookings = allBookings.filter((b: { room_id: string | null }) => b.room_id === null);
 
     setRooms(roomsWithCounts);
     setUnassigned(unassignedBookings as unknown as BookingWithProfile[]);

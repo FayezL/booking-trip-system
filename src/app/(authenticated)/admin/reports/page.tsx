@@ -50,9 +50,7 @@ export default function ReportsPage() {
         return;
       }
 
-      const [{ generateBusReportPDF, generateRoomReportPDF }] = await Promise.all([
-        import("@/lib/pdf/generate-report"),
-      ]);
+      const { generateBusReportPDF, generateRoomReportPDF } = await import("@/lib/pdf/generate-report");
 
       if (type === "bus") {
         const [busesRes, bookingsRes] = await Promise.all([
