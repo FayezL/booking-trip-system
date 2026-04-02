@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Room, Booking, Profile } from "@/lib/types/database";
 
 type RoomForm = {
@@ -146,7 +147,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
   }
 
   if (loading) {
-    return <p className="text-center py-10 text-gray-500">{t("common.loading")}</p>;
+    return <LoadingSpinner text={t("common.loading")} />;
   }
 
   return (

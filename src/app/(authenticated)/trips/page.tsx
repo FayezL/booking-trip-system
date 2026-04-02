@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Trip, Booking } from "@/lib/types/database";
 
 export default function TripsPage() {
@@ -48,11 +49,7 @@ export default function TripsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-xl text-gray-500">{t("common.loading")}</p>
-      </div>
-    );
+    return <LoadingSpinner text={t("common.loading")} />;
   }
 
   return (

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Bus, Trip } from "@/lib/types/database";
 
 type BusWithCount = Bus & { booking_count: number };
@@ -97,11 +98,7 @@ export default function BusesPage({ params }: { params: Promise<{ tripId: string
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-xl text-gray-500">{t("common.loading")}</p>
-      </div>
-    );
+    return <LoadingSpinner text={t("common.loading")} />;
   }
 
   if (confirmation) {
