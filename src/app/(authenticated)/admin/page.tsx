@@ -28,57 +28,39 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function loadStats() {
-      const { data: trips } = await supabase
-        .from("trips")
-        .select("*")
-        .order("trip_date", { ascending: false });
+      const [tripsRes, profilesRes, busesRes, roomsRes, bookingsRes, roomBookingsRes] = await Promise.all([
+        supabase.from("trips").select("*").order("trip_date", { ascending: false }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("buses").select("trip_id, capacity"),
+        supabase.from("rooms").select("trip_id, capacity"),
+        supabase.from("bookings").select("trip_id, bus_id").is("cancelled_at", null),
+        supabase.from("bookings").select("trip_id, room_id").is("cancelled_at", null).not("room_id", "is", null),
+      ]);
 
-      if (!trips) {
-        setLoading(false);
-        return;
-      }
+      const trips = tripsRes.data || [];
+      const totalRegistered = profilesRes.count || 0;
+      const allBuses = busesRes.data || [];
+      const allRooms = roomsRes.data || [];
+      const allBookings = bookingsRes.data || [];
+      const allRoomBookings = roomBookingsRes.data || [];
 
-      const tripStats: TripStats[] = [];
+      const tripStats: TripStats[] = trips.map((trip) => {
+        const busCap = allBuses.filter((b) => b.trip_id === trip.id).reduce((s, b) => s + b.capacity, 0);
+        const roomCap = allRooms.filter((r) => r.trip_id === trip.id).reduce((s, r) => s + r.capacity, 0);
+        const booked = allBookings.filter((b) => b.trip_id === trip.id).length;
+        const roomsAssigned = allRoomBookings.filter((b) => b.trip_id === trip.id).length;
 
-      for (const trip of trips) {
-        const [profilesRes, busesRes, roomsRes] = await Promise.all([
-          supabase.from("profiles").select("id", { count: "exact", head: true }),
-          supabase.from("buses").select("capacity").eq("trip_id", trip.id),
-          supabase.from("rooms").select("capacity").eq("trip_id", trip.id),
-        ]);
-
-        const totalRegistered = profilesRes.count || 0;
-        const totalBusCapacity = (busesRes.data || []).reduce((sum, b) => sum + b.capacity, 0);
-        const totalRoomCapacity = (roomsRes.data || []).reduce((sum, r) => sum + r.capacity, 0);
-
-        const [bookingsRes, roomBookingsRes] = await Promise.all([
-          supabase
-            .from("bookings")
-            .select("bus_id", { count: "exact" })
-            .eq("trip_id", trip.id)
-            .is("cancelled_at", null),
-          supabase
-            .from("bookings")
-            .select("room_id", { count: "exact" })
-            .eq("trip_id", trip.id)
-            .is("cancelled_at", null)
-            .not("room_id", "is", null),
-        ]);
-
-        const busSeatsFilled = bookingsRes.count || 0;
-        const roomsAssigned = roomBookingsRes.count || 0;
-
-        tripStats.push({
+        return {
           trip,
           totalRegistered,
-          bookedCount: bookingsRes.count || 0,
-          unbookedCount: totalRegistered - (bookingsRes.count || 0),
-          busSeatsFilled,
-          busSeatsTotal: totalBusCapacity,
+          bookedCount: booked,
+          unbookedCount: totalRegistered - booked,
+          busSeatsFilled: booked,
+          busSeatsTotal: busCap,
           roomsAssigned,
-          bookingTotal: totalRoomCapacity,
-        });
-      }
+          bookingTotal: roomCap,
+        };
+      });
 
       setStats(tripStats);
       setLoading(false);

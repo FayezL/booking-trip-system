@@ -5,11 +5,13 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import {
-  generateBusReportPDF,
-  generateRoomReportPDF,
-} from "@/lib/pdf/generate-report";
 import type { Trip, Bus, Room } from "@/lib/types/database";
+
+type Passenger = {
+  full_name: string;
+  phone: string;
+  gender: string;
+};
 
 export default function ReportsPage() {
   const { t } = useTranslation();
@@ -48,66 +50,49 @@ export default function ReportsPage() {
         return;
       }
 
+      const [{ generateBusReportPDF, generateRoomReportPDF }] = await Promise.all([
+        import("@/lib/pdf/generate-report"),
+      ]);
+
       if (type === "bus") {
-        const { data: buses } = await supabase
-          .from("buses")
-          .select("*")
-          .eq("trip_id", selectedTrip);
+        const [busesRes, bookingsRes] = await Promise.all([
+          supabase.from("buses").select("*").eq("trip_id", selectedTrip),
+          supabase.from("bookings").select("bus_id, user_id, profiles(full_name, phone, gender)").eq("trip_id", selectedTrip).is("cancelled_at", null),
+        ]);
 
-        const getPassengers = async (busId: string) => {
-          const { data: bookings } = await supabase
-            .from("bookings")
-            .select("user_id")
-            .eq("bus_id", busId)
-            .is("cancelled_at", null);
-
-          const userIds = (bookings || []).map((b) => b.user_id);
-          if (userIds.length === 0) return [];
-
-          const { data: passengers } = await supabase
-            .from("profiles")
-            .select("full_name, phone, gender")
-            .in("id", userIds);
-
-          return passengers || [];
-        };
+        const busMap = new Map<string, Passenger[]>();
+        for (const b of bookingsRes.data || []) {
+          const list = busMap.get(b.bus_id) || [];
+          if (b.profiles) list.push(b.profiles as unknown as Passenger);
+          busMap.set(b.bus_id, list);
+        }
 
         const pdfBytes = await generateBusReportPDF(
           trip,
-          (buses || []) as Bus[],
-          getPassengers
+          (busesRes.data || []) as Bus[],
+          async (busId) => busMap.get(busId) || []
         );
 
         downloadPDF(pdfBytes, "bus-report.pdf");
         showToast(t("admin.busReport"), "success");
       } else {
-        const { data: rooms } = await supabase
-          .from("rooms")
-          .select("*")
-          .eq("trip_id", selectedTrip);
+        const [roomsRes, bookingsRes] = await Promise.all([
+          supabase.from("rooms").select("*").eq("trip_id", selectedTrip),
+          supabase.from("bookings").select("room_id, user_id, profiles(full_name, phone, gender)").eq("trip_id", selectedTrip).is("cancelled_at", null).not("room_id", "is", null),
+        ]);
 
-        const getOccupants = async (roomId: string) => {
-          const { data: bookings } = await supabase
-            .from("bookings")
-            .select("user_id")
-            .eq("room_id", roomId)
-            .is("cancelled_at", null);
-
-          const userIds = (bookings || []).map((b) => b.user_id);
-          if (userIds.length === 0) return [];
-
-          const { data: occupants } = await supabase
-            .from("profiles")
-            .select("full_name, phone, gender")
-            .in("id", userIds);
-
-          return occupants || [];
-        };
+        const roomMap = new Map<string, Passenger[]>();
+        for (const b of bookingsRes.data || []) {
+          if (!b.room_id) continue;
+          const list = roomMap.get(b.room_id) || [];
+          if (b.profiles) list.push(b.profiles as unknown as Passenger);
+          roomMap.set(b.room_id, list);
+        }
 
         const pdfBytes = await generateRoomReportPDF(
           trip,
-          (rooms || []) as Room[],
-          getOccupants
+          (roomsRes.data || []) as Room[],
+          async (roomId) => roomMap.get(roomId) || []
         );
 
         downloadPDF(pdfBytes, "room-report.pdf");

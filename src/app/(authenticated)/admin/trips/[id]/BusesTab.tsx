@@ -40,21 +40,20 @@ export default function BusesTab({ tripId }: { tripId: string }) {
   }, [tripId]);
 
   async function loadBuses() {
-    const { data: busList } = await supabase
-      .from("buses")
-      .select("*")
-      .eq("trip_id", tripId);
+    const [busesRes, bookingsRes] = await Promise.all([
+      supabase.from("buses").select("*").eq("trip_id", tripId),
+      supabase.from("bookings").select("bus_id").eq("trip_id", tripId).is("cancelled_at", null),
+    ]);
 
-    const busesWithCounts = await Promise.all(
-      (busList || []).map(async (bus) => {
-        const { count } = await supabase
-          .from("bookings")
-          .select("*", { count: "exact", head: true })
-          .eq("bus_id", bus.id)
-          .is("cancelled_at", null);
-        return { ...bus, booking_count: count || 0 };
-      })
-    );
+    const bookingCounts: Record<string, number> = {};
+    for (const b of bookingsRes.data || []) {
+      bookingCounts[b.bus_id] = (bookingCounts[b.bus_id] || 0) + 1;
+    }
+
+    const busesWithCounts = (busesRes.data || []).map((bus) => ({
+      ...bus,
+      booking_count: bookingCounts[bus.id] || 0,
+    }));
 
     setBuses(busesWithCounts);
     setLoading(false);

@@ -43,36 +43,38 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
   }, [tripId]);
 
   async function loadData() {
-    const [roomsRes, bookingsRes] = await Promise.all([
+    const [roomsRes, bookingsRes, allBookingsWithProfiles] = await Promise.all([
       supabase.from("rooms").select("*").eq("trip_id", tripId),
       supabase
         .from("bookings")
         .select("*, profiles(*)")
         .eq("trip_id", tripId)
+        .is("cancelled_at", null),
+      supabase
+        .from("bookings")
+        .select("user_id, room_id, profiles(*)")
+        .eq("trip_id", tripId)
         .is("cancelled_at", null)
-        .is("room_id", null),
+        .not("room_id", "is", null),
     ]);
 
-    const roomList = (roomsRes.data || []) as Room[];
-    const roomsWithCounts = await Promise.all(
-      roomList.map(async (room) => {
-        const { data: occupantBookings } = await supabase
-          .from("bookings")
-          .select("user_id")
-          .eq("room_id", room.id)
-          .is("cancelled_at", null);
+    const roomsWithCounts: RoomWithCount[] = (roomsRes.data || []).map((room) => {
+      const roomBookings = (allBookingsWithProfiles.data || []).filter(
+        (b) => b.room_id === room.id
+      );
+      return {
+        ...room,
+        occupant_count: roomBookings.length,
+        occupants: roomBookings.map((b) => b.profiles as unknown as Profile),
+      };
+    });
 
-        const userIds = (occupantBookings || []).map((b) => b.user_id);
-        const { data: occupantProfiles } = userIds.length > 0
-          ? await supabase.from("profiles").select("*").in("id", userIds)
-          : { data: [] };
-
-        return { ...room, occupant_count: userIds.length, occupants: (occupantProfiles || []) as Profile[] };
-      })
+    const unassignedBookings = (bookingsRes.data || []).filter(
+      (b) => b.room_id === null
     );
 
     setRooms(roomsWithCounts);
-    setUnassigned((bookingsRes.data || []) as unknown as BookingWithProfile[]);
+    setUnassigned(unassignedBookings as unknown as BookingWithProfile[]);
     setLoading(false);
   }
 
