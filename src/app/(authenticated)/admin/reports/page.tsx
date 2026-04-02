@@ -5,16 +5,19 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import type { Trip } from "@/lib/types/database";
+import {
+  generateBusReportPDF,
+  generateRoomReportPDF,
+} from "@/lib/pdf/generate-report";
+import type { Trip, Bus, Room } from "@/lib/types/database";
 
 export default function ReportsPage() {
-  const { t, lang } = useTranslation();
+  const { t } = useTranslation();
   const supabase = createClient();
   const { showToast } = useToast();
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [selectedTrip, setSelectedTrip] = useState<string>("");
-  const [reportData, setReportData] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
@@ -38,96 +41,99 @@ export default function ReportsPage() {
 
     setGenerating(true);
 
-    const trip = trips.find((tr) => tr.id === selectedTrip);
-    if (!trip) {
-      setGenerating(false);
-      return;
-    }
+    try {
+      const trip = trips.find((tr) => tr.id === selectedTrip);
+      if (!trip) {
+        setGenerating(false);
+        return;
+      }
 
-    if (type === "bus") {
-      const { data: buses } = await supabase
-        .from("buses")
-        .select("*")
-        .eq("trip_id", selectedTrip);
+      if (type === "bus") {
+        const { data: buses } = await supabase
+          .from("buses")
+          .select("*")
+          .eq("trip_id", selectedTrip);
 
-      let report = `=== ${t("admin.busReport")} ===\n`;
-      report += `${lang === "ar" ? trip.title_ar : trip.title_en} — ${trip.trip_date}\n\n`;
+        const getPassengers = async (busId: string) => {
+          const { data: bookings } = await supabase
+            .from("bookings")
+            .select("user_id")
+            .eq("bus_id", busId)
+            .is("cancelled_at", null);
 
-      for (const bus of buses || []) {
-        const areaName = lang === "ar" ? bus.area_name_ar : bus.area_name_en;
-        report += `--- ${areaName} ---\n`;
-        report += `${t("admin.leaderName")}: ${bus.leader_name || "-"}\n`;
-        report += `${t("admin.capacity")}: ${bus.capacity}\n`;
+          const userIds = (bookings || []).map((b) => b.user_id);
+          if (userIds.length === 0) return [];
 
-        const { data: bookings } = await supabase
-          .from("bookings")
-          .select("user_id")
-          .eq("bus_id", bus.id)
-          .is("cancelled_at", null);
-
-        const userIds = (bookings || []).map((b) => b.user_id);
-        report += `${t("admin.passengers")} (${userIds.length}):\n`;
-
-        if (userIds.length > 0) {
           const { data: passengers } = await supabase
             .from("profiles")
             .select("full_name, phone, gender")
             .in("id", userIds);
 
-          for (const p of passengers || []) {
-            report += `  - ${p.full_name} (${p.phone}) [${p.gender}]\n`;
-          }
-        }
+          return passengers || [];
+        };
 
-        report += "\n";
-      }
+        const pdfBytes = await generateBusReportPDF(
+          trip,
+          (buses || []) as Bus[],
+          getPassengers
+        );
 
-      setReportData(report);
-    } else {
-      const { data: rooms } = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("trip_id", selectedTrip);
+        downloadPDF(pdfBytes, "bus-report.pdf");
+        showToast(t("admin.busReport"), "success");
+      } else {
+        const { data: rooms } = await supabase
+          .from("rooms")
+          .select("*")
+          .eq("trip_id", selectedTrip);
 
-      let report = `=== ${t("admin.roomReport")} ===\n`;
-      report += `${lang === "ar" ? trip.title_ar : trip.title_en} — ${trip.trip_date}\n\n`;
+        const getOccupants = async (roomId: string) => {
+          const { data: bookings } = await supabase
+            .from("bookings")
+            .select("user_id")
+            .eq("room_id", roomId)
+            .is("cancelled_at", null);
 
-      for (const room of rooms || []) {
-        report += `--- ${room.room_label} (${room.room_type}) ---\n`;
-        report += `${t("admin.supervisorName")}: ${room.supervisor_name || "-"}\n`;
-        report += `${t("admin.capacity")}: ${room.capacity}\n`;
+          const userIds = (bookings || []).map((b) => b.user_id);
+          if (userIds.length === 0) return [];
 
-        const { data: bookings } = await supabase
-          .from("bookings")
-          .select("user_id")
-          .eq("room_id", room.id)
-          .is("cancelled_at", null);
-
-        const userIds = (bookings || []).map((b) => b.user_id);
-        report += `${t("admin.occupants")} (${userIds.length}):\n`;
-
-        if (userIds.length > 0) {
           const { data: occupants } = await supabase
             .from("profiles")
             .select("full_name, phone, gender")
             .in("id", userIds);
 
-          for (const o of occupants || []) {
-            report += `  - ${o.full_name} (${o.phone}) [${o.gender}]\n`;
-          }
-        }
+          return occupants || [];
+        };
 
-        report += "\n";
+        const pdfBytes = await generateRoomReportPDF(
+          trip,
+          (rooms || []) as Room[],
+          getOccupants
+        );
+
+        downloadPDF(pdfBytes, "room-report.pdf");
+        showToast(t("admin.roomReport"), "success");
       }
-
-      setReportData(report);
+    } catch {
+      showToast(t("common.error"), "error");
     }
 
     setGenerating(false);
   }
 
+  function downloadPDF(bytes: Uint8Array, filename: string) {
+    const blob = new Blob([new Uint8Array(bytes) as BlobPart], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   if (loading) {
-    return <LoadingSpinner text={t("common.loading")} />;
+    return <LoadingSpinner />;
   }
 
   return (
@@ -141,15 +147,12 @@ export default function ReportsPage() {
             <select
               className="input-field"
               value={selectedTrip}
-              onChange={(e) => {
-                setSelectedTrip(e.target.value);
-                setReportData("");
-              }}
+              onChange={(e) => setSelectedTrip(e.target.value)}
             >
               <option value="">---</option>
               {trips.map((trip) => (
                 <option key={trip.id} value={trip.id}>
-                  {lang === "ar" ? trip.title_ar : trip.title_en}
+                  {trip.title_ar}
                 </option>
               ))}
             </select>
@@ -160,7 +163,7 @@ export default function ReportsPage() {
               disabled={generating}
               className="btn-primary"
             >
-              {generating ? t("common.loading") : t("admin.busReport")}
+              {generating ? <LoadingSpinner /> : t("admin.busReport")}
             </button>
           </div>
           <div className="flex items-end">
@@ -169,22 +172,11 @@ export default function ReportsPage() {
               disabled={generating}
               className="btn-primary"
             >
-              {generating ? t("common.loading") : t("admin.roomReport")}
+              {generating ? <LoadingSpinner /> : t("admin.roomReport")}
             </button>
           </div>
         </div>
       </div>
-
-      {reportData && (
-        <div className="card">
-          <pre
-            className="whitespace-pre-wrap text-sm leading-relaxed font-mono"
-            dir="rtl"
-          >
-            {reportData}
-          </pre>
-        </div>
-      )}
     </div>
   );
 }

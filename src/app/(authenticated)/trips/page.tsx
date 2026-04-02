@@ -15,28 +15,29 @@ export default function TripsPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [myBookings, setMyBookings] = useState<(Booking & { trips: Trip; buses: { area_name_ar: string; area_name_en: string } })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  async function loadData() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const [tripsRes, bookingsRes] = await Promise.all([
+      supabase.from("trips").select("*").eq("is_open", true).order("trip_date", { ascending: false }),
+      supabase
+        .from("bookings")
+        .select("*, trips(*), buses(area_name_ar, area_name_en)")
+        .eq("user_id", user.id)
+        .is("cancelled_at", null),
+    ]);
+
+    setTrips(tripsRes.data || []);
+    setMyBookings((bookingsRes.data || []) as unknown as typeof myBookings);
+    setLoading(false);
+  }
 
   useEffect(() => {
-    async function loadData() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const [tripsRes, bookingsRes] = await Promise.all([
-        supabase.from("trips").select("*").eq("is_open", true).order("trip_date", { ascending: false }),
-        supabase
-          .from("bookings")
-          .select("*, trips(*), buses(area_name_ar, area_name_en)")
-          .eq("user_id", user.id)
-          .is("cancelled_at", null),
-      ]);
-
-      setTrips(tripsRes.data || []);
-      setMyBookings((bookingsRes.data || []) as unknown as typeof myBookings);
-      setLoading(false);
-    }
-
     loadData();
   }, []);
 
@@ -46,6 +47,17 @@ export default function TripsPage() {
 
   function getTripTitle(trip: Trip): string {
     return lang === "ar" ? trip.title_ar : trip.title_en;
+  }
+
+  async function handleCancelBooking(bookingId: string) {
+    if (!confirm(t("admin.confirmCancel"))) return;
+    setCancellingId(bookingId);
+    const { error } = await supabase.rpc("cancel_booking", { p_booking_id: bookingId });
+    setCancellingId(null);
+    if (error) {
+      return;
+    }
+    loadData();
   }
 
   if (loading) {
@@ -100,17 +112,26 @@ export default function TripsPage() {
           <div className="space-y-3">
             {myBookings.map((booking) => (
               <div key={booking.id} className="card flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold">
-                    {booking.trips ? getTripTitle(booking.trips as Trip) : ""}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {t("confirm.bus")}: {lang === "ar" ? booking.buses.area_name_ar : booking.buses.area_name_en}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div>
+                    <h3 className="text-lg font-bold">
+                      {booking.trips ? getTripTitle(booking.trips as Trip) : ""}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {t("confirm.bus")}: {lang === "ar" ? booking.buses.area_name_ar : booking.buses.area_name_en}
+                    </p>
+                  </div>
                 </div>
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
+                <button
+                  onClick={() => handleCancelBooking(booking.id)}
+                  disabled={cancellingId !== null}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                >
+                  {cancellingId === booking.id ? t("common.loading") : t("admin.cancelBooking")}
+                </button>
               </div>
             ))}
           </div>

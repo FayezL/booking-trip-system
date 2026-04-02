@@ -39,6 +39,9 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   const [saving, setSaving] = useState(false);
   const [bookingUser, setBookingUser] = useState<string | null>(null);
   const [selectedBus, setSelectedBus] = useState<string>("");
+  const [page, setPage] = useState(1);
+
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     loadData();
@@ -140,10 +143,17 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     return matchesSearch && matchesGender;
   });
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput), 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, genderFilter]);
 
   const maleCount = unbooked.filter((p) => p.gender === "Male").length;
   const femaleCount = unbooked.filter((p) => p.gender === "Female").length;
@@ -294,31 +304,52 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
         {filtered.length === 0 ? (
           <p className="text-gray-500 text-center py-4">{t("admin.noBookings")}</p>
         ) : (
-          filtered.map((p) => (
-            <div key={p.id} className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-medium">{p.full_name}</span>
-                  <span className="text-sm text-gray-500 ms-2" dir="ltr">{p.phone}</span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded ms-2 ${
-                      p.gender === "Male"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-pink-100 text-pink-700"
-                    }`}
+          <>
+            {paginated.map((p) => (
+              <div key={p.id} className="card">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-medium">{p.full_name}</span>
+                    <span className="text-sm text-gray-500 ms-2" dir="ltr">{p.phone}</span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded ms-2 ${
+                        p.gender === "Male"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-pink-100 text-pink-700"
+                      }`}
+                    >
+                      {p.gender === "Male" ? t("auth.male") : t("auth.female")}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => startBookForUser(p.id)}
+                    className="btn-primary text-sm py-1.5 px-3"
                   >
-                    {p.gender === "Male" ? t("auth.male") : t("auth.female")}
-                  </span>
+                    {t("admin.book")}
+                  </button>
                 </div>
+              </div>
+            ))}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-4">
                 <button
-                  onClick={() => startBookForUser(p.id)}
-                  className="btn-primary text-sm py-1.5 px-3"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
                 >
-                  {t("admin.book")}
+                  ←
+                </button>
+                <span className="text-sm text-gray-600">{page} / {totalPages}</span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                >
+                  →
                 </button>
               </div>
-            </div>
-          ))
+            )}
+          </>
         )}
       </div>
     </div>

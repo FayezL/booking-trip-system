@@ -104,7 +104,10 @@
     "noBookings": "No bookings",
     "confirmDelete": "Are you sure you want to delete this?",
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "cancelBooking": "Cancel Booking",
+    "confirmCancel": "Are you sure you want to cancel this booking?",
+    "removeRoom": "Remove from Room"
   },
   "common": {
     "loading": "Loading...",

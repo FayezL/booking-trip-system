@@ -104,7 +104,10 @@
     "noBookings": "مفيش حجوزات",
     "confirmDelete": "متأكد تمسح ده؟",
     "save": "احفظ",
-    "cancel": "الغاء"
+    "cancel": "الغاء",
+    "cancelBooking": "الغي الحجز",
+    "confirmCancel": "متأكد تلغي الحجز ده؟",
+    "removeRoom": "شيل من الأوضة"
   },
   "common": {
     "loading": "تحميل...",
