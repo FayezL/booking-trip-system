@@ -140,7 +140,8 @@
     "deleteAction": "Delete",
     "resetPasswordAction": "Reset Password",
     "changeRoleAction": "Change Role",
-    "bookAction": "Book"
+    "bookAction": "Book",
+    "addServant": "New Servant"
   },
   "common": {
     "loading": "Loading...",

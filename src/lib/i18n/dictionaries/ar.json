@@ -140,7 +140,8 @@
     "deleteAction": "مسح",
     "resetPasswordAction": "إعادة تعيين كلمة السر",
     "changeRoleAction": "تغيير الصلاحية",
-    "bookAction": "حجز"
+    "bookAction": "حجز",
+    "addServant": "خادم جديد"
   },
   "common": {
     "loading": "تحميل...",

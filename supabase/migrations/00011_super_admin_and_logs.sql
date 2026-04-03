@@ -65,3 +65,50 @@ BEGIN
   WHERE id = p_user_id;
 END;
 $$;
+
+-- 7. RPC: admin_create_servant (super_admin only)
+CREATE OR REPLACE FUNCTION public.admin_create_servant(
+  p_phone text,
+  p_full_name text,
+  p_gender text,
+  p_password text
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  new_user_id uuid;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'super_admin') THEN
+    RAISE EXCEPTION 'Only super admin can create servants';
+  END IF;
+
+  INSERT INTO auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    raw_user_meta_data
+  ) VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    gen_random_uuid(),
+    'authenticated',
+    'authenticated',
+    p_phone || '@church.local',
+    crypt(p_password, gen_salt('bf')),
+    now(),
+    now(),
+    now(),
+    jsonb_build_object('full_name', p_full_name, 'gender', p_gender, 'role', 'servant')
+  ) RETURNING id INTO new_user_id;
+
+  RETURN new_user_id;
+END;
+$$;

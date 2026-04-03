@@ -8,6 +8,20 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import type { Profile } from "@/lib/types/database";
 
+type ServantForm = {
+  phone: string;
+  full_name: string;
+  gender: "Male" | "Female";
+  password: string;
+};
+
+const emptyServantForm: ServantForm = {
+  phone: "",
+  full_name: "",
+  gender: "Male",
+  password: "",
+};
+
 export default function UsersPage() {
   const { t } = useTranslation();
   const supabase = createClient();
@@ -20,6 +34,9 @@ export default function UsersPage() {
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showServantForm, setShowServantForm] = useState(false);
+  const [servantForm, setServantForm] = useState<ServantForm>(emptyServantForm);
+  const [creatingServant, setCreatingServant] = useState(false);
   const [page, setPage] = useState(1);
 
   const PAGE_SIZE = 20;
@@ -76,6 +93,43 @@ export default function UsersPage() {
     }
   }
 
+  async function handleCreateServant() {
+    if (
+      !servantForm.phone ||
+      !/^\d{8,15}$/.test(servantForm.phone) ||
+      !servantForm.full_name ||
+      !servantForm.password ||
+      servantForm.password.length < 6
+    ) {
+      showToast(t("common.error"), "error");
+      return;
+    }
+
+    setCreatingServant(true);
+    const { error } = await supabase.rpc("admin_create_servant", {
+      p_phone: servantForm.phone,
+      p_full_name: servantForm.full_name,
+      p_gender: servantForm.gender,
+      p_password: servantForm.password,
+    });
+    setCreatingServant(false);
+
+    if (error) {
+      if (error.message.includes("unique") || error.message.includes("already")) {
+        showToast(t("auth.phoneExists"), "error");
+      } else {
+        showToast(t("common.error"), "error");
+      }
+      return;
+    }
+
+    showToast(t("admin.servant") + " ✓", "success");
+    logAction("create_servant", "user", undefined, { phone: servantForm.phone });
+    setShowServantForm(false);
+    setServantForm(emptyServantForm);
+    loadUsers();
+  }
+
   const filtered = useMemo(() => users.filter((u) => {
     const matchesSearch = !search || u.full_name.includes(search) || u.phone.includes(search);
     const matchesRole = !roleFilter || u.role === roleFilter;
@@ -96,7 +150,68 @@ export default function UsersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">{t("admin.userManagement")}</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">{t("admin.userManagement")}</h1>
+        <button onClick={() => setShowServantForm(!showServantForm)} className="btn-primary">
+          + {t("admin.addServant")}
+        </button>
+      </div>
+
+      {showServantForm && (
+        <div className="card mb-4">
+          <h3 className="text-lg font-bold mb-3">+ {t("admin.addServant")}</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="label-text">{t("auth.phone")}</label>
+              <input
+                className="input-field"
+                value={servantForm.phone}
+                onChange={(e) => setServantForm({ ...servantForm, phone: e.target.value })}
+                placeholder="01XXXXXXXXX"
+                dir="ltr"
+              />
+            </div>
+            <div>
+              <label className="label-text">{t("auth.fullName")}</label>
+              <input
+                className="input-field"
+                value={servantForm.full_name}
+                onChange={(e) => setServantForm({ ...servantForm, full_name: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label-text">{t("auth.gender")}</label>
+              <select
+                className="input-field"
+                value={servantForm.gender}
+                onChange={(e) => setServantForm({ ...servantForm, gender: e.target.value as "Male" | "Female" })}
+              >
+                <option value="Male">{t("auth.male")}</option>
+                <option value="Female">{t("auth.female")}</option>
+              </select>
+            </div>
+            <div>
+              <label className="label-text">{t("auth.password")}</label>
+              <input
+                type="password"
+                className="input-field"
+                value={servantForm.password}
+                onChange={(e) => setServantForm({ ...servantForm, password: e.target.value })}
+                dir="ltr"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 mt-4">
+            <button onClick={handleCreateServant} disabled={creatingServant} className="btn-primary">
+              {creatingServant ? t("common.loading") : t("admin.addServant")}
+            </button>
+            <button onClick={() => { setShowServantForm(false); setServantForm(emptyServantForm); }} className="btn-secondary">
+              {t("admin.cancel")}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-3 mb-4">
         <input

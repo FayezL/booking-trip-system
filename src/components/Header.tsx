@@ -32,6 +32,12 @@ export default function Header({ profile }: HeaderProps) {
           >
             Verena Church
           </h1>
+          <button
+            onClick={() => router.push("/trips")}
+            className="text-sm text-emerald-600 font-medium hover:underline"
+          >
+            {t("trips.myBookings")}
+          </button>
           {isAdmin && (
             <nav className="flex gap-2 flex-wrap">
               <button
