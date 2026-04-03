@@ -1,6 +1,3 @@
-[project]
-id = "booking0trip-system"
-
 [api]
 port = 54321
 
@@ -12,12 +9,6 @@ port = 54323
 
 [auth]
 site_url = "http://localhost:3000"
-
-[auth.sessions]
-timebox = "7d"
-
-[auth.jwt]
-exp = 604800
 
 [functions.generate-report]
 verify_jwt = true

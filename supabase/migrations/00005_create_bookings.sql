@@ -5,11 +5,10 @@ CREATE TABLE public.bookings (
   bus_id uuid NOT NULL REFERENCES public.buses(id),
   room_id uuid REFERENCES public.rooms(id),
   created_at timestamptz DEFAULT now(),
-  cancelled_at timestamptz,
-
-  CONSTRAINT unique_active_booking UNIQUE (user_id, trip_id) WHERE cancelled_at IS NULL
+  cancelled_at timestamptz
 );
 
+CREATE UNIQUE INDEX idx_bookings_unique_active ON public.bookings(user_id, trip_id) WHERE cancelled_at IS NULL;
 CREATE INDEX idx_bookings_trip_id ON public.bookings(trip_id);
 CREATE INDEX idx_bookings_bus_id ON public.bookings(bus_id);
 CREATE INDEX idx_bookings_room_id ON public.bookings(room_id);
