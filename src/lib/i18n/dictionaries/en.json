@@ -70,8 +70,7 @@
     "createTrip": "New Trip",
     "editTrip": "Edit Trip",
     "deleteTrip": "Delete Trip",
-    "tripTitleAr": "Trip Title (Arabic)",
-    "tripTitleEn": "Trip Title (English)",
+    "tripTitle": "Trip Title",
     "tripDate": "Trip Date",
     "isOpen": "Open",
     "isClosed": "Closed",
@@ -171,7 +170,13 @@
     "bookingSoon": "Booking will be available soon",
     "backToTrips": "Back to Trips",
     "busesCount": "Number of Buses",
-    "areaOverview": "Trip Areas"
+    "areaOverview": "Trip Areas",
+    "searchByName": "Search by name",
+    "allRooms": "All Rooms",
+    "availableRooms": "Available",
+    "fullRooms": "Full",
+    "assignRoom": "Assign Room",
+    "removeFromRoom": "Remove from Room"
   },
   "common": {
     "loading": "Loading...",

@@ -70,8 +70,7 @@
     "createTrip": "رحلة جديدة",
     "editTrip": "تعديل الرحلة",
     "deleteTrip": "مسح الرحلة",
-    "tripTitleAr": "اسم الرحلة بالعربي",
-    "tripTitleEn": "اسم الرحلة بالإنجليزي",
+    "tripTitle": "اسم الرحلة",
     "tripDate": "تاريخ الرحلة",
     "isOpen": "مفتوح",
     "isClosed": "مقفول",
@@ -171,7 +170,13 @@
     "bookingSoon": "الحجز هيكون متاح قريب",
     "backToTrips": "ارجع للرحلات",
     "busesCount": "عدد الأتوبيسات",
-    "areaOverview": "مناطق الرحلة"
+    "areaOverview": "مناطق الرحلة",
+    "searchByName": "دوّر بالاسم",
+    "allRooms": "كل الأوض",
+    "availableRooms": "فيه مكان",
+    "fullRooms": "مليانة",
+    "assignRoom": "خصّص أوضة",
+    "removeFromRoom": "شيل من الأوضة"
   },
   "common": {
     "loading": "تحميل...",

@@ -10,21 +10,19 @@ import { logAction } from "@/lib/admin-logs";
 import type { Trip } from "@/lib/types/database";
 
 type TripForm = {
-  title_ar: string;
-  title_en: string;
+  title: string;
   trip_date: string;
   is_open: boolean;
 };
 
 const emptyForm: TripForm = {
-  title_ar: "",
-  title_en: "",
+  title: "",
   trip_date: "",
   is_open: true,
 };
 
 export default function TripsManagementPage() {
-  const { t, lang } = useTranslation();
+  const { t } = useTranslation();
   const router = useRouter();
   const supabase = createClient();
   const { showToast } = useToast();
@@ -52,8 +50,7 @@ export default function TripsManagementPage() {
   function startEdit(trip: Trip) {
     setEditingId(trip.id);
     setForm({
-      title_ar: trip.title_ar,
-      title_en: trip.title_en,
+      title: trip.title_ar,
       trip_date: trip.trip_date,
       is_open: trip.is_open,
     });
@@ -67,17 +64,24 @@ export default function TripsManagementPage() {
   }
 
   async function handleSave() {
-    if (!form.title_ar || !form.title_en || !form.trip_date) {
+    if (!form.title || !form.trip_date) {
       showToast(t("common.error"), "error");
       return;
     }
 
     setSaving(true);
 
+    const payload = {
+      title_ar: form.title,
+      title_en: form.title,
+      trip_date: form.trip_date,
+      is_open: form.is_open,
+    };
+
     if (editingId) {
       const { error } = await supabase
         .from("trips")
-        .update(form)
+        .update(payload)
         .eq("id", editingId);
       if (error) {
         showToast(t("common.error"), "error");
@@ -86,7 +90,7 @@ export default function TripsManagementPage() {
         logAction("edit_trip", "trip", editingId);
       }
     } else {
-      const { error } = await supabase.from("trips").insert(form);
+      const { error } = await supabase.from("trips").insert(payload);
       if (error) {
         showToast(t("common.error"), "error");
       } else {
@@ -144,20 +148,11 @@ export default function TripsManagementPage() {
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="label-text">{t("admin.tripTitleAr")}</label>
+              <label className="label-text">{t("admin.tripTitle")}</label>
               <input
                 className="input-field"
-                value={form.title_ar}
-                onChange={(e) => setForm({ ...form, title_ar: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="label-text">{t("admin.tripTitleEn")}</label>
-              <input
-                className="input-field"
-                value={form.title_en}
-                onChange={(e) => setForm({ ...form, title_en: e.target.value })}
-                dir="ltr"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
               />
             </div>
             <div>
@@ -199,9 +194,7 @@ export default function TripsManagementPage() {
           <div key={trip.id} className="card">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold">
-                  {lang === "ar" ? trip.title_ar : trip.title_en}
-                </h3>
+                <h3 className="text-lg font-bold">{trip.title_ar}</h3>
                 <p className="text-sm text-gray-500">{trip.trip_date}</p>
               </div>
               <div className="flex items-center gap-2">

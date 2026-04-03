@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
@@ -37,10 +37,18 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
   const [saving, setSaving] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null);
   const [genderTab, setGenderTab] = useState<"Male" | "Female">("Male");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [roomFilter, setRoomFilter] = useState<"all" | "available" | "full">("all");
 
   useEffect(() => {
     loadData();
   }, [tripId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   async function loadData() {
     const [roomsRes, bookingsRes] = await Promise.all([
@@ -82,8 +90,27 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     setLoading(false);
   }
 
-  const filteredRooms = rooms.filter((r) => r.room_type === genderTab);
-  const filteredUnassigned = unassigned.filter((b) => b.profiles.gender === genderTab);
+  const filteredUnassigned = useMemo(() => {
+    return unassigned.filter((b) => {
+      if (b.profiles.gender !== genderTab) return false;
+      if (search && !b.profiles.full_name.includes(search)) return false;
+      return true;
+    });
+  }, [unassigned, genderTab, search]);
+
+  const filteredRooms = useMemo(() => {
+    return rooms.filter((r) => {
+      if (r.room_type !== genderTab) return false;
+      if (roomFilter === "available" && r.occupant_count >= r.capacity) return false;
+      if (roomFilter === "full" && r.occupant_count < r.capacity) return false;
+      if (search) {
+        const hasMatch = r.room_label.includes(search) ||
+          r.occupants.some((o) => o.full_name.includes(search));
+        if (!hasMatch) return false;
+      }
+      return true;
+    });
+  }, [rooms, genderTab, roomFilter, search]);
 
   function startEdit(room: Room) {
     setEditingId(room.id);
@@ -186,6 +213,15 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
     }`;
 
+  const filterClass = (active: boolean) =>
+    `px-3 py-1.5 rounded-md text-sm font-medium ${
+      active
+        ? "bg-emerald-100 text-emerald-700"
+        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+    }`;
+
+  const allGenderCount = unassigned.filter((b) => b.profiles.gender === genderTab).length;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -195,13 +231,34 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
         </button>
       </div>
 
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setGenderTab("Male")} className={tabClass(genderTab === "Male")}>
-          {t("admin.boysTab")}
-        </button>
-        <button onClick={() => setGenderTab("Female")} className={tabClass(genderTab === "Female")}>
-          {t("admin.girlsTab")}
-        </button>
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="flex gap-2">
+          <button onClick={() => setGenderTab("Male")} className={tabClass(genderTab === "Male")}>
+            {t("admin.boysTab")}
+          </button>
+          <button onClick={() => setGenderTab("Female")} className={tabClass(genderTab === "Female")}>
+            {t("admin.girlsTab")}
+          </button>
+        </div>
+
+        <div className="flex gap-1">
+          <button onClick={() => setRoomFilter("all")} className={filterClass(roomFilter === "all")}>
+            {t("admin.all")}
+          </button>
+          <button onClick={() => setRoomFilter("available")} className={filterClass(roomFilter === "available")}>
+            {t("admin.areaActive")}
+          </button>
+          <button onClick={() => setRoomFilter("full")} className={filterClass(roomFilter === "full")}>
+            {t("buses.full").split("—")[0].trim()}
+          </button>
+        </div>
+
+        <input
+          className="input-field max-w-xs"
+          placeholder={t("admin.searchByName")}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
       </div>
 
       {showForm && (
@@ -248,7 +305,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <h3 className="text-lg font-bold mb-3">
-            {t("admin.unassigned")} ({filteredUnassigned.length})
+            {t("admin.unassigned")} ({filteredUnassigned.length}/{allGenderCount})
           </h3>
           <div className="space-y-2">
             {filteredUnassigned.length === 0 ? (
@@ -264,7 +321,18 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                       : "hover:bg-gray-50"
                   }`}
                 >
-                  <span className="font-medium">{b.profiles.full_name}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{b.profiles.full_name}</span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        b.profiles.gender === "Male"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-pink-100 text-pink-700"
+                      }`}
+                    >
+                      {b.profiles.gender === "Male" ? t("auth.male") : t("auth.female")}
+                    </span>
+                  </div>
                 </div>
               ))
             )}
