@@ -9,28 +9,26 @@ import { logAction } from "@/lib/admin-logs";
 import type { Room, Booking, Profile } from "@/lib/types/database";
 
 type RoomForm = {
-  room_type: "Male" | "Female";
+  room_label: string;
   capacity: number;
   supervisor_name: string;
-  room_label: string;
 };
 
 const emptyForm: RoomForm = {
-  room_type: "Male",
+  room_label: "",
   capacity: 0,
   supervisor_name: "",
-  room_label: "",
 };
 
 type BookingWithProfile = Booking & { profiles: Profile };
-type RoomWithCount = Room & { occupant_count: number; occupants: Profile[] };
+type RoomWithOccupants = Room & { occupant_count: number; occupants: { id: string; full_name: string; booking_id: string }[] };
 
 export default function RoomsTab({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
   const supabase = createClient();
   const { showToast } = useToast();
 
-  const [rooms, setRooms] = useState<RoomWithCount[]>([]);
+  const [rooms, setRooms] = useState<RoomWithOccupants[]>([]);
   const [unassigned, setUnassigned] = useState<BookingWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -38,6 +36,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
   const [form, setForm] = useState<RoomForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null);
+  const [genderTab, setGenderTab] = useState<"Male" | "Female">("Male");
 
   useEffect(() => {
     loadData();
@@ -63,29 +62,35 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
       bookingsByRoom.set(b.room_id, list);
     }
 
-    const roomsWithCounts: RoomWithCount[] = (roomsRes.data || []).map((room: Room) => {
+    const roomsWithOccupants: RoomWithOccupants[] = (roomsRes.data || []).map((room: Room) => {
       const roomBookings = bookingsByRoom.get(room.id) || ([] as typeof allBookings);
       return {
         ...room,
         occupant_count: roomBookings.length,
-        occupants: roomBookings.map((b: { profiles: unknown }) => b.profiles as unknown as Profile),
+        occupants: roomBookings.map((b: { id: string; profiles: unknown }) => ({
+          id: (b.profiles as unknown as Profile).id,
+          full_name: (b.profiles as unknown as Profile).full_name,
+          booking_id: b.id,
+        })),
       };
     });
 
     const unassignedBookings = allBookings.filter((b: { room_id: string | null }) => b.room_id === null);
 
-    setRooms(roomsWithCounts);
+    setRooms(roomsWithOccupants);
     setUnassigned(unassignedBookings as unknown as BookingWithProfile[]);
     setLoading(false);
   }
 
+  const filteredRooms = rooms.filter((r) => r.room_type === genderTab);
+  const filteredUnassigned = unassigned.filter((b) => b.profiles.gender === genderTab);
+
   function startEdit(room: Room) {
     setEditingId(room.id);
     setForm({
-      room_type: room.room_type,
+      room_label: room.room_label,
       capacity: room.capacity,
       supervisor_name: room.supervisor_name || "",
-      room_label: room.room_label,
     });
     setShowForm(true);
   }
@@ -117,7 +122,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     } else {
       const { error } = await supabase
         .from("rooms")
-        .insert({ ...form, trip_id: tripId });
+        .insert({ ...form, room_type: genderTab, trip_id: tripId });
       if (error) showToast(t("common.error"), "error");
       else {
         showToast(t("admin.createRoom"), "success");
@@ -148,13 +153,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     });
 
     if (error) {
-      if (error.message.includes("Gender mismatch")) {
-        showToast(t("common.error"), "error");
-      } else if (error.message.includes("full") || error.message.includes("Room is full")) {
-        showToast(t("common.error"), "error");
-      } else {
-        showToast(t("common.error"), "error");
-      }
+      showToast(t("common.error"), "error");
     } else {
       showToast(t("admin.assignRoom"), "success");
       logAction("assign_room", "booking", bookingId);
@@ -163,9 +162,29 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     }
   }
 
+  async function handleRemoveFromRoom(bookingId: string) {
+    const { error } = await supabase
+      .from("bookings")
+      .update({ room_id: null })
+      .eq("id", bookingId);
+    if (error) showToast(t("common.error"), "error");
+    else {
+      showToast(t("admin.removeFromRoom"), "success");
+      logAction("remove_from_room", "booking", bookingId);
+      loadData();
+    }
+  }
+
   if (loading) {
     return <LoadingSpinner text={t("common.loading")} />;
   }
+
+  const tabClass = (active: boolean) =>
+    `px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+      active
+        ? "bg-emerald-600 text-white"
+        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+    }`;
 
   return (
     <div>
@@ -176,22 +195,18 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
         </button>
       </div>
 
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => setGenderTab("Male")} className={tabClass(genderTab === "Male")}>
+          {t("admin.boysTab")}
+        </button>
+        <button onClick={() => setGenderTab("Female")} className={tabClass(genderTab === "Female")}>
+          {t("admin.girlsTab")}
+        </button>
+      </div>
+
       {showForm && (
         <div className="card mb-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="label-text">{t("admin.roomType")}</label>
-              <select
-                className="input-field"
-                value={form.room_type}
-                onChange={(e) =>
-                  setForm({ ...form, room_type: e.target.value as "Male" | "Female" })
-                }
-              >
-                <option value="Male">{t("auth.male")}</option>
-                <option value="Female">{t("auth.female")}</option>
-              </select>
-            </div>
+          <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="label-text">{t("admin.roomLabel")}</label>
               <input
@@ -232,12 +247,14 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
 
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <h3 className="text-lg font-bold mb-3">{t("admin.unassigned")}</h3>
+          <h3 className="text-lg font-bold mb-3">
+            {t("admin.unassigned")} ({filteredUnassigned.length})
+          </h3>
           <div className="space-y-2">
-            {unassigned.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">{t("admin.noBookings")}</p>
+            {filteredUnassigned.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">{t("admin.noUnassigned")}</p>
             ) : (
-              unassigned.map((b) => (
+              filteredUnassigned.map((b) => (
                 <div
                   key={b.id}
                   onClick={() => setSelectedBooking(b.id)}
@@ -247,18 +264,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                       : "hover:bg-gray-50"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{b.profiles.full_name}</span>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded ${
-                        b.profiles.gender === "Male"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-pink-100 text-pink-700"
-                      }`}
-                    >
-                      {b.profiles.gender === "Male" ? t("auth.male") : t("auth.female")}
-                    </span>
-                  </div>
+                  <span className="font-medium">{b.profiles.full_name}</span>
                 </div>
               ))
             )}
@@ -266,28 +272,22 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
         </div>
 
         <div>
-          <h3 className="text-lg font-bold mb-3">{t("admin.rooms")}</h3>
-          <div className="space-y-2">
-            {rooms.map((room) => {
+          <h3 className="text-lg font-bold mb-3">
+            {genderTab === "Male" ? t("admin.boysTab") : t("admin.girlsTab")} — {t("admin.rooms")} ({filteredRooms.length})
+          </h3>
+          <div className="space-y-3">
+            {filteredRooms.map((room) => {
               const canAssign =
                 selectedBooking &&
-                room.occupant_count < room.capacity &&
-                unassigned.find((b) => b.id === selectedBooking)?.profiles.gender === room.room_type;
+                room.occupant_count < room.capacity;
+
+              const percent = room.capacity > 0 ? (room.occupant_count / room.capacity) * 100 : 0;
 
               return (
                 <div key={room.id} className="card">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <span className="font-bold">{room.room_label}</span>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded ms-2 ${
-                          room.room_type === "Male"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-pink-100 text-pink-700"
-                        }`}
-                      >
-                        {room.room_type === "Male" ? t("auth.male") : t("auth.female")}
-                      </span>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -304,13 +304,31 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                       </button>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 mb-1">
                     {room.occupant_count}/{room.capacity} {t("admin.occupants")}
                     {room.supervisor_name && ` — ${room.supervisor_name}`}
                   </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        percent >= 100 ? "bg-red-500" : percent > 80 ? "bg-yellow-500" : "bg-emerald-500"
+                      }`}
+                      style={{ width: `${Math.min(percent, 100)}%` }}
+                    />
+                  </div>
                   {room.occupants.length > 0 && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      {room.occupants.map((o) => o.full_name).join("، ")}
+                    <div className="space-y-1">
+                      {room.occupants.map((o) => (
+                        <div key={o.id} className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">{o.full_name}</span>
+                          <button
+                            onClick={() => handleRemoveFromRoom(o.booking_id)}
+                            className="text-xs text-red-600 hover:underline"
+                          >
+                            {t("admin.removeFromRoom")}
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                   {canAssign && (

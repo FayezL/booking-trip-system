@@ -7,6 +7,15 @@ export type Profile = {
   created_at: string;
 };
 
+export type Area = {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
 export type Trip = {
   id: string;
   title_ar: string;
@@ -23,6 +32,8 @@ export type Bus = {
   area_name_en: string;
   capacity: number;
   leader_name: string | null;
+  area_id: string | null;
+  bus_label: string | null;
 };
 
 export type Room = {

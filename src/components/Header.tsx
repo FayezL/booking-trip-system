@@ -53,6 +53,18 @@ export default function Header({ profile }: HeaderProps) {
                 {t("admin.trips")}
               </button>
               <button
+                onClick={() => router.push("/admin/areas")}
+                className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
+              >
+                {t("admin.areas")}
+              </button>
+              <button
+                onClick={() => router.push("/admin/rooms")}
+                className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
+              >
+                {t("admin.rooms")}
+              </button>
+              <button
                 onClick={() => router.push("/admin/reports")}
                 className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
               >

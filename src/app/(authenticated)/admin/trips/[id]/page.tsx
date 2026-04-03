@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import BusesTab from "./BusesTab";
@@ -14,9 +14,9 @@ type Tab = "buses" | "rooms" | "unbooked";
 export default function TripDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id: tripId } = use(params);
+  const { id: tripId } = params;
   const { t, lang } = useTranslation();
   const supabase = createClient();
 

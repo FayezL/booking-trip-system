@@ -227,7 +227,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                 <option value="">---</option>
                 {buses.map((bus) => (
                   <option key={bus.id} value={bus.id}>
-                    {lang === "ar" ? bus.area_name_ar : bus.area_name_en}
+                    {bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en)}
                   </option>
                 ))}
               </select>
@@ -256,7 +256,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
             >
               {buses.map((bus) => (
                 <option key={bus.id} value={bus.id}>
-                  {lang === "ar" ? bus.area_name_ar : bus.area_name_en}
+                  {bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en)}
                 </option>
               ))}
             </select>

@@ -82,38 +82,54 @@ export async function generateBusReportPDF(
   y -= 10;
   drawSeparator();
 
+  const grouped = new Map<string, Bus[]>();
   for (const bus of buses) {
-    ensureSpace(LINE_HEIGHT * 4);
-    drawText(bus.area_name_ar, 14);
-    drawText("المسؤول: " + (bus.leader_name || "—"), 12);
+    const key = bus.area_id || bus.area_name_ar;
+    const group = grouped.get(key) || [];
+    group.push(bus);
+    grouped.set(key, group);
+  }
 
-    const passengers = await getPassengers(bus.id);
-    drawText(
-      "السعة: " + bus.capacity + " | الركاب: " + passengers.length,
-      12
-    );
-
-    if (passengers.length > 0) {
-      for (let i = 0; i < passengers.length; i++) {
-        const p = passengers[i];
-        drawText(
-          (i + 1) +
-            ". " +
-            p.full_name +
-            " (" +
-            p.phone +
-            ") [" +
-            p.gender +
-            "]",
-          11
-        );
-      }
-    } else {
-      drawText("لا يوجد ركاب", 11);
-    }
-
+  const groupEntries = Array.from(grouped.values());
+  for (const groupBuses of groupEntries) {
+    const areaName = groupBuses[0]?.area_name_ar || "";
+    ensureSpace(LINE_HEIGHT * 2);
+    drawText("📍 " + areaName, 16);
     y -= 5;
-    drawSeparator();
+
+    for (const bus of groupBuses) {
+      ensureSpace(LINE_HEIGHT * 4);
+      drawText(bus.bus_label || bus.area_name_ar, 14);
+      drawText("المسؤول: " + (bus.leader_name || "—"), 12);
+
+      const passengers = await getPassengers(bus.id);
+      drawText(
+        "السعة: " + bus.capacity + " | الركاب: " + passengers.length,
+        12
+      );
+
+      if (passengers.length > 0) {
+        for (let i = 0; i < passengers.length; i++) {
+          const p = passengers[i];
+          drawText(
+            (i + 1) +
+              ". " +
+              p.full_name +
+              " (" +
+              p.phone +
+              ") [" +
+              p.gender +
+              "]",
+            11
+          );
+        }
+      } else {
+        drawText("لا يوجد ركاب", 11);
+      }
+
+      y -= 5;
+      drawSeparator();
+    }
   }
 
   return pdfDoc.save();
