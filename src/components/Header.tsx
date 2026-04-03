@@ -28,7 +28,7 @@ export default function Header({ profile }: HeaderProps) {
             className="text-xl font-bold text-emerald-700 cursor-pointer"
             onClick={() => router.push(profile.role === "servant" ? "/admin" : "/trips")}
           >
-            CTRMS
+            Verena Church
           </h1>
           {profile.role === "servant" && (
             <nav className="flex gap-2">

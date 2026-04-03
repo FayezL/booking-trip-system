@@ -4,8 +4,8 @@ import { I18nProvider } from "@/lib/i18n/context";
 import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
-  title: "CTRMS - Church Trip Management",
-  description: "Church Trip & Room Management System",
+  title: "Verena Church - Trip Management",
+  description: "Verena Church Trip & Room Management System",
 };
 
 export default function RootLayout({
