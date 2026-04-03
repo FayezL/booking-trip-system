@@ -6,14 +6,12 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
-import type { Bus, Area } from "@/lib/types/database";
+import type { Bus } from "@/lib/types/database";
 
 type BusWithCount = Bus & { booking_count: number };
 
 type BusForm = {
-  area_id: string;
-  area_name_ar: string;
-  area_name_en: string;
+  area_name: string;
   capacity: number;
   leader_name: string;
   bus_label: string;
@@ -21,9 +19,7 @@ type BusForm = {
 };
 
 const emptyForm: BusForm = {
-  area_id: "",
-  area_name_ar: "",
-  area_name_en: "",
+  area_name: "",
   capacity: 0,
   leader_name: "",
   bus_label: "",
@@ -31,12 +27,11 @@ const emptyForm: BusForm = {
 };
 
 export default function BusesTab({ tripId }: { tripId: string }) {
-  const { t, lang } = useTranslation();
+  const { t } = useTranslation();
   const supabase = createClient();
   const { showToast } = useToast();
 
   const [buses, setBuses] = useState<BusWithCount[]>([]);
-  const [areas, setAreas] = useState<Area[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -45,17 +40,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
 
   useEffect(() => {
     loadBuses();
-    loadAreas();
   }, [tripId]);
-
-  async function loadAreas() {
-    const { data } = await supabase
-      .from("areas")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order");
-    setAreas(data || []);
-  }
 
   async function loadBuses() {
     const [busesRes, bookingsRes] = await Promise.all([
@@ -80,9 +65,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
   function startEdit(bus: Bus) {
     setEditingId(bus.id);
     setForm({
-      area_id: bus.area_id || "",
-      area_name_ar: bus.area_name_ar,
-      area_name_en: bus.area_name_en,
+      area_name: bus.area_name_ar,
       capacity: bus.capacity,
       leader_name: bus.leader_name || "",
       bus_label: bus.bus_label || "",
@@ -124,39 +107,29 @@ export default function BusesTab({ tripId }: { tripId: string }) {
       return;
     }
 
-    if (!form.area_id || form.capacity <= 0 || form.bus_count < 1) {
+    if (!form.area_name || form.capacity <= 0 || form.bus_count < 1) {
       showToast(t("common.error"), "error");
       return;
     }
 
     setSaving(true);
 
-    const area = areas.find((a) => a.id === form.area_id);
-    if (!area) {
-      setSaving(false);
-      return;
-    }
+    const existingLabels = buses.map((b) => b.bus_label || "");
 
-    const existingLabels = buses
-      .filter((b) => b.area_id === form.area_id)
-      .map((b) => b.bus_label || "");
-
-    const areaName = area.name_ar;
     const busesToCreate = [];
     let labelIndex = 1;
 
     for (let i = 0; i < form.bus_count; i++) {
-      let label = `${areaName} Bus ${labelIndex}`;
+      let label = `${form.area_name} Bus ${labelIndex}`;
       while (existingLabels.includes(label)) {
         labelIndex++;
-        label = `${areaName} Bus ${labelIndex}`;
+        label = `${form.area_name} Bus ${labelIndex}`;
       }
       existingLabels.push(label);
       busesToCreate.push({
         trip_id: tripId,
-        area_id: form.area_id,
-        area_name_ar: area.name_ar,
-        area_name_en: area.name_en,
+        area_name_ar: form.area_name,
+        area_name_en: form.area_name,
         capacity: form.capacity,
         leader_name: form.leader_name || null,
         bus_label: label,
@@ -202,7 +175,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
       </div>
 
       {showForm && (
-        <div className="card mb-4">
+        <div className="card mb-4 animate-fade-in">
           <div className="grid gap-4 md:grid-cols-2">
             {editingId ? (
               <div>
@@ -216,27 +189,12 @@ export default function BusesTab({ tripId }: { tripId: string }) {
             ) : (
               <>
                 <div>
-                  <label className="label-text">{t("admin.areas")}</label>
-                  <select
+                  <label className="label-text">{t("admin.areaName")}</label>
+                  <input
                     className="input-field"
-                    value={form.area_id}
-                    onChange={(e) => {
-                      const area = areas.find((a) => a.id === e.target.value);
-                      setForm({
-                        ...form,
-                        area_id: e.target.value,
-                        area_name_ar: area?.name_ar || "",
-                        area_name_en: area?.name_en || "",
-                      });
-                    }}
-                  >
-                    <option value="">---</option>
-                    {areas.map((area) => (
-                      <option key={area.id} value={area.id}>
-                        {lang === "ar" ? area.name_ar : area.name_en}
-                      </option>
-                    ))}
-                  </select>
+                    value={form.area_name}
+                    onChange={(e) => setForm({ ...form, area_name: e.target.value })}
+                  />
                 </div>
                 <div>
                   <label className="label-text">{t("admin.numberOfBuses")}</label>
@@ -282,50 +240,70 @@ export default function BusesTab({ tripId }: { tripId: string }) {
         </div>
       )}
 
-      <div className="space-y-3">
-        {buses.map((bus) => {
-          const percent = bus.capacity > 0 ? (bus.booking_count / bus.capacity) * 100 : 0;
-          const displayName = bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en);
-          return (
-            <div key={bus.id} className="card">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h3 className="text-lg font-bold">{displayName}</h3>
-                  {bus.leader_name && (
-                    <p className="text-sm text-gray-500">
-                      {t("admin.leaderName")}: {bus.leader_name}
-                    </p>
-                  )}
+      {buses.length === 0 ? (
+        <div className="text-center py-10">
+          <p className="text-xl text-gray-500 mb-2">{t("admin.noBusesYet")}</p>
+          <p className="text-sm text-gray-400 mb-4">{t("admin.addBusesFirst")}</p>
+          <button onClick={startCreate} className="btn-primary">
+            + {t("admin.createBus")}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {buses.map((bus) => {
+            const percent = bus.capacity > 0 ? (bus.booking_count / bus.capacity) * 100 : 0;
+            const displayName = bus.bus_label || bus.area_name_ar;
+            const statusBg = percent >= 80
+              ? "bg-red-100 text-red-700"
+              : percent >= 50
+                ? "bg-yellow-100 text-yellow-700"
+                : "bg-emerald-100 text-emerald-700";
+            return (
+              <div key={bus.id} className="card">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold">{displayName}</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${statusBg}`}>
+                      {bus.booking_count}/{bus.capacity}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => startEdit(bus)}
+                      className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    >
+                      {t("common.edit")}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(bus.id)}
+                      className="px-3 py-1.5 rounded-md text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200"
+                    >
+                      {t("common.delete")}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => startEdit(bus)}
-                    className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
-                  >
-                    {t("common.edit")}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(bus.id)}
-                    className="px-3 py-1.5 rounded-md text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200"
-                  >
-                    {t("common.delete")}
-                  </button>
+                {bus.leader_name && (
+                  <p className="text-sm text-gray-500 mb-1">
+                    {t("admin.leaderName")}: {bus.leader_name}
+                  </p>
+                )}
+                <div className="flex justify-between text-sm text-gray-500 mb-1">
+                  <span>{t("admin.passengers")}: {bus.booking_count}/{bus.capacity}</span>
+                  <span>{Math.round(percent)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all ${
+                      percent >= 80 ? "bg-red-500" : percent >= 50 ? "bg-yellow-500" : "bg-emerald-500"
+                    }`}
+                    style={{ width: `${Math.min(percent, 100)}%` }}
+                  />
                 </div>
               </div>
-              <div className="flex justify-between text-sm text-gray-500 mb-1">
-                <span>{t("admin.passengers")}: {bus.booking_count}/{bus.capacity}</span>
-                <span>{Math.round(percent)}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="h-2 rounded-full bg-emerald-500 transition-all"
-                  style={{ width: `${Math.min(percent, 100)}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

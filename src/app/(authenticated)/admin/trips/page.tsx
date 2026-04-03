@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
@@ -24,6 +25,7 @@ const emptyForm: TripForm = {
 
 export default function TripsManagementPage() {
   const { t, lang } = useTranslation();
+  const router = useRouter();
   const supabase = createClient();
   const { showToast } = useToast();
 
@@ -203,6 +205,12 @@ export default function TripsManagementPage() {
                 <p className="text-sm text-gray-500">{trip.trip_date}</p>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => router.push(`/admin/trips/${trip.id}`)}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                >
+                  {t("admin.manage")}
+                </button>
                 <button
                   onClick={() => toggleOpen(trip)}
                   className={`px-3 py-1.5 rounded-md text-sm font-medium ${

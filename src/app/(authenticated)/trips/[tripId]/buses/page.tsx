@@ -188,7 +188,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
       )}
 
       {areaGroups.length === 0 ? (
-        <p className="text-xl text-gray-500 text-center py-10">{t("trips.noTrips")}</p>
+        <p className="text-xl text-gray-500 text-center py-10">{t("admin.bookingSoon")}</p>
       ) : (
         <div className="space-y-6">
           {areaGroups.map((group) => (

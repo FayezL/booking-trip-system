@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import OverviewTab from "./OverviewTab";
 import BusesTab from "./BusesTab";
 import RoomsTab from "./RoomsTab";
 import UnbookedTab from "./UnbookedTab";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Trip } from "@/lib/types/database";
 
-type Tab = "buses" | "rooms" | "unbooked";
+type Tab = "overview" | "buses" | "rooms" | "unbooked";
 
 export default function TripDetailPage({
   params,
@@ -18,10 +20,11 @@ export default function TripDetailPage({
 }) {
   const { id: tripId } = params;
   const { t, lang } = useTranslation();
+  const router = useRouter();
   const supabase = createClient();
 
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("buses");
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,6 +49,7 @@ export default function TripDetailPage({
   }
 
   const tabs: { key: Tab; label: string }[] = [
+    { key: "overview", label: t("admin.overview") },
     { key: "buses", label: t("admin.buses") },
     { key: "rooms", label: t("admin.rooms") },
     { key: "unbooked", label: t("admin.unbooked") },
@@ -53,6 +57,13 @@ export default function TripDetailPage({
 
   return (
     <div>
+      <button
+        onClick={() => router.push("/admin/trips")}
+        className="mb-4 text-emerald-600 font-semibold text-lg hover:underline"
+      >
+        ← {t("admin.backToTrips")}
+      </button>
+
       <h1 className="text-2xl font-bold mb-1">
         {lang === "ar" ? trip.title_ar : trip.title_en}
       </h1>
@@ -74,6 +85,7 @@ export default function TripDetailPage({
         ))}
       </div>
 
+      {activeTab === "overview" && <OverviewTab tripId={tripId} onSwitchTab={setActiveTab} />}
       {activeTab === "buses" && <BusesTab tripId={tripId} />}
       {activeTab === "rooms" && <RoomsTab tripId={tripId} />}
       {activeTab === "unbooked" && <UnbookedTab tripId={tripId} />}

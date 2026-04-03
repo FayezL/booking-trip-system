@@ -52,16 +52,30 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [allBookedRes, profilesRes, busListRes] = await Promise.all([
+    const [allBookedRes, busListRes] = await Promise.all([
       supabase.from("bookings").select("user_id").eq("trip_id", tripId).is("cancelled_at", null),
-      supabase.from("profiles").select("*").neq("id", user.id).order("full_name"),
       supabase.from("buses").select("*").eq("trip_id", tripId),
     ]);
 
-    const bookedIds = new Set((allBookedRes.data || []).map((b: { user_id: string }) => b.user_id));
-    const unbookedProfiles = (profilesRes.data || []).filter((p: Profile) => !bookedIds.has(p.id));
+    const bookedIds = (allBookedRes.data || []).map((b: { user_id: string }) => b.user_id);
 
-    setUnbooked(unbookedProfiles);
+    let profilesRes;
+    if (bookedIds.length > 0) {
+      profilesRes = await supabase
+        .from("profiles")
+        .select("*")
+        .neq("id", user.id)
+        .not("id", "in", `(${bookedIds.join(",")})`)
+        .order("full_name");
+    } else {
+      profilesRes = await supabase
+        .from("profiles")
+        .select("*")
+        .neq("id", user.id)
+        .order("full_name");
+    }
+
+    setUnbooked((profilesRes.data || []) as Profile[]);
     setBuses(busListRes.data || []);
     setLoading(false);
   }
