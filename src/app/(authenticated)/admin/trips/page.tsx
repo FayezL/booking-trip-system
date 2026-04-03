@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { logAction } from "@/lib/admin-logs";
 import type { Trip } from "@/lib/types/database";
 
 type TripForm = {
@@ -80,6 +81,7 @@ export default function TripsManagementPage() {
         showToast(t("common.error"), "error");
       } else {
         showToast(t("admin.editTrip"), "success");
+        logAction("edit_trip", "trip", editingId);
       }
     } else {
       const { error } = await supabase.from("trips").insert(form);
@@ -87,6 +89,7 @@ export default function TripsManagementPage() {
         showToast(t("common.error"), "error");
       } else {
         showToast(t("admin.createTrip"), "success");
+        logAction("create_trip", "trip");
       }
     }
 
@@ -103,6 +106,7 @@ export default function TripsManagementPage() {
       showToast(t("common.error"), "error");
     } else {
       showToast(t("admin.deleteTrip"), "success");
+      logAction("delete_trip", "trip", id);
       loadTrips();
     }
   }
@@ -112,7 +116,10 @@ export default function TripsManagementPage() {
       .from("trips")
       .update({ is_open: !trip.is_open })
       .eq("id", trip.id);
-    if (!error) loadTrips();
+    if (!error) {
+      logAction("toggle_trip", "trip", trip.id);
+      loadTrips();
+    }
   }
 
   if (loading) {

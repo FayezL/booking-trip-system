@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { logAction } from "@/lib/admin-logs";
 import type { Profile, Bus } from "@/lib/types/database";
 
 type RegisterForm = {
@@ -86,6 +87,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       showToast(t("common.error"), "error");
     } else {
       showToast(t("admin.book"), "success");
+      logAction("book_user", "booking", undefined, { user_id: bookingUser });
       setBookingUser(null);
       loadData();
     }
@@ -123,6 +125,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     }
 
     showToast(t("admin.registerPatient"), "success");
+    logAction("register_patient", "user", undefined, { phone: form.phone });
     setShowRegister(false);
     setForm(emptyForm);
     loadData();

@@ -15,6 +15,8 @@ export default function Header({ profile }: HeaderProps) {
   const router = useRouter();
   const supabase = createClient();
 
+  const isAdmin = profile.role === "servant" || profile.role === "super_admin";
+
   async function handleLogout() {
     await supabase.auth.signOut();
     router.push("/login");
@@ -26,12 +28,12 @@ export default function Header({ profile }: HeaderProps) {
         <div className="flex items-center gap-4">
           <h1
             className="text-xl font-bold text-emerald-700 cursor-pointer"
-            onClick={() => router.push(profile.role === "servant" ? "/admin" : "/trips")}
+            onClick={() => router.push(isAdmin ? "/admin" : "/trips")}
           >
             Verena Church
           </h1>
-          {profile.role === "servant" && (
-            <nav className="flex gap-2">
+          {isAdmin && (
+            <nav className="flex gap-2 flex-wrap">
               <button
                 onClick={() => router.push("/admin")}
                 className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
@@ -50,6 +52,22 @@ export default function Header({ profile }: HeaderProps) {
               >
                 {t("admin.reports")}
               </button>
+              {profile.role === "super_admin" && (
+                <>
+                  <button
+                    onClick={() => router.push("/admin/users")}
+                    className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    {t("admin.users")}
+                  </button>
+                  <button
+                    onClick={() => router.push("/admin/logs")}
+                    className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    {t("admin.activityLogs")}
+                  </button>
+                </>
+              )}
             </nav>
           )}
         </div>

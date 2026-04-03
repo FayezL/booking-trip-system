@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { logAction } from "@/lib/admin-logs";
 import type { Room, Booking, Profile } from "@/lib/types/database";
 
 type RoomForm = {
@@ -109,13 +110,19 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
         .update(form)
         .eq("id", editingId);
       if (error) showToast(t("common.error"), "error");
-      else showToast(t("admin.editRoom"), "success");
+      else {
+        showToast(t("admin.editRoom"), "success");
+        logAction("edit_room", "room", editingId);
+      }
     } else {
       const { error } = await supabase
         .from("rooms")
         .insert({ ...form, trip_id: tripId });
       if (error) showToast(t("common.error"), "error");
-      else showToast(t("admin.createRoom"), "success");
+      else {
+        showToast(t("admin.createRoom"), "success");
+        logAction("create_room", "room");
+      }
     }
 
     setSaving(false);
@@ -129,6 +136,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     if (error) showToast(t("common.error"), "error");
     else {
       showToast(t("admin.deleteRoom"), "success");
+      logAction("delete_room", "room", id);
       loadData();
     }
   }
@@ -149,6 +157,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
       }
     } else {
       showToast(t("admin.assignRoom"), "success");
+      logAction("assign_room", "booking", bookingId);
       setSelectedBooking(null);
       loadData();
     }

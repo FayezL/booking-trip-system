@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { logAction } from "@/lib/admin-logs";
 import type { Bus } from "@/lib/types/database";
 
 type BusWithCount = Bus & { booking_count: number };
@@ -90,13 +91,19 @@ export default function BusesTab({ tripId }: { tripId: string }) {
         .update(form)
         .eq("id", editingId);
       if (error) showToast(t("common.error"), "error");
-      else showToast(t("admin.editBus"), "success");
+      else {
+        showToast(t("admin.editBus"), "success");
+        logAction("edit_bus", "bus", editingId);
+      }
     } else {
       const { error } = await supabase
         .from("buses")
         .insert({ ...form, trip_id: tripId });
       if (error) showToast(t("common.error"), "error");
-      else showToast(t("admin.createBus"), "success");
+      else {
+        showToast(t("admin.createBus"), "success");
+        logAction("create_bus", "bus");
+      }
     }
 
     setSaving(false);
@@ -110,6 +117,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
     if (error) showToast(t("common.error"), "error");
     else {
       showToast(t("admin.deleteBus"), "success");
+      logAction("delete_bus", "bus", id);
       loadBuses();
     }
   }

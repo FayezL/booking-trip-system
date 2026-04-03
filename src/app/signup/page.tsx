@@ -9,8 +9,6 @@ import LanguageToggle from "@/components/LanguageToggle";
 export default function SignupPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const supabase = createClient();
-
   const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
   const [gender, setGender] = useState<"Male" | "Female" | "">("");
@@ -41,6 +39,7 @@ export default function SignupPage() {
 
     setLoading(true);
     const email = `${phone.trim()}@church.local`;
+    const supabase = createClient();
 
     const { error: authError } = await supabase.auth.signUp({
       email,

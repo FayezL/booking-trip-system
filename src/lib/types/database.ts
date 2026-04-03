@@ -3,7 +3,7 @@ export type Profile = {
   phone: string;
   full_name: string;
   gender: "Male" | "Female";
-  role: "servant" | "patient";
+  role: "super_admin" | "servant" | "patient";
   created_at: string;
 };
 
@@ -42,4 +42,14 @@ export type Booking = {
   room_id: string | null;
   created_at: string;
   cancelled_at: string | null;
+};
+
+export type AdminLog = {
+  id: string;
+  admin_id: string;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
 };

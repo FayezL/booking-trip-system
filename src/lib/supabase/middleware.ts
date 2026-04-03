@@ -49,7 +49,7 @@ export async function updateSession(request: NextRequest) {
       .single();
 
     const url = request.nextUrl.clone();
-    url.pathname = profile?.role === "servant" ? "/admin" : "/trips";
+    url.pathname = (profile?.role === "servant" || profile?.role === "super_admin") ? "/admin" : "/trips";
     return NextResponse.redirect(url);
   }
 
@@ -60,7 +60,7 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (!profile || profile.role !== "servant") {
+    if (!profile || (profile.role !== "servant" && profile.role !== "super_admin")) {
       const url = request.nextUrl.clone();
       url.pathname = "/trips";
       return NextResponse.redirect(url);

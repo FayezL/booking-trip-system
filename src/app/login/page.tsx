@@ -2,17 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, setSessionPersistence } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import LanguageToggle from "@/components/LanguageToggle";
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const supabase = createClient();
-
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +30,7 @@ export default function LoginPage() {
 
     setLoading(true);
     const email = `${phone.trim()}@church.local`;
+    const supabase = createClient();
 
     const { error: authError } = await supabase.auth.signInWithPassword({
       email,
@@ -42,6 +42,10 @@ export default function LoginPage() {
     if (authError) {
       setError(t("auth.invalidCredentials"));
       return;
+    }
+
+    if (!rememberMe) {
+      setSessionPersistence(false);
     }
 
     router.push("/trips");
@@ -83,6 +87,19 @@ export default function LoginPage() {
                 dir="ltr"
                 disabled={loading}
               />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <label htmlFor="rememberMe" className="text-sm text-gray-600">
+                {t("auth.rememberMe")}
+              </label>
             </div>
 
             {error && (
