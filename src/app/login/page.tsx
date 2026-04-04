@@ -52,17 +52,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 p-4">
+      <div className="w-full max-w-md animate-slide-up">
         <div className="flex justify-end mb-4">
           <LanguageToggle />
         </div>
         <div className="card">
-          <h1 className="text-2xl font-bold text-center mb-8">
-            {t("auth.login")}
-          </h1>
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800">
+              {t("auth.login")}
+            </h1>
+          </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="label-text">{t("auth.phone")}</label>
               <input
@@ -95,15 +102,15 @@ export default function LoginPage() {
                 id="rememberMe"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
-              <label htmlFor="rememberMe" className="text-sm text-gray-600">
+              <label htmlFor="rememberMe" className="text-sm text-slate-500">
                 {t("auth.rememberMe")}
               </label>
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-700 p-3 rounded-lg text-center text-lg">
+              <div className="bg-red-50 text-red-600 p-3 rounded-xl text-center text-base font-medium animate-fade-in">
                 {error}
               </div>
             )}
@@ -117,9 +124,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center mt-6 text-lg text-gray-600">
+          <p className="text-center mt-6 text-base text-slate-500">
             {t("auth.noAccount")}{" "}
-            <a href="/signup" className="text-emerald-600 font-semibold hover:underline">
+            <a href="/signup" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
               {t("auth.registerHere")}
             </a>
           </p>

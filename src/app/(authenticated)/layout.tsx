@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import Header from "@/components/Header";
+import MobileNav from "@/components/MobileNav";
 import type { Profile } from "@/lib/types/database";
 
 const getProfile = cache(async (userId: string) => {
@@ -33,7 +34,10 @@ export default async function AuthenticatedLayout({
   return (
     <>
       <Header profile={profile as Profile} />
-      <main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-6 pb-24 md:pb-6">
+        {children}
+      </main>
+      <MobileNav profile={profile as Profile} />
     </>
   );
 }

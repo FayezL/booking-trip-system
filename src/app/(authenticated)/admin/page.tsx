@@ -95,45 +95,45 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">{t("admin.dashboard")}</h1>
+    <div className="animate-fade-in">
+      <h1 className="section-title mb-6">{t("admin.dashboard")}</h1>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((s) => (
           <div
             key={s.trip.id}
-            className="card cursor-pointer hover:shadow-lg transition-shadow"
+            className="card-hover"
             onClick={() => router.push(`/admin/trips/${s.trip.id}`)}
           >
-            <h2 className="text-xl font-bold mb-3">
+            <h2 className="text-lg font-bold text-slate-800 mb-2">
               {lang === "ar" ? s.trip.title_ar : s.trip.title_en}
             </h2>
-            <p className="text-sm text-gray-500 mb-3">{s.trip.trip_date}</p>
+            <p className="text-sm text-slate-400 mb-4">{s.trip.trip_date}</p>
 
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="bg-gray-50 rounded-lg p-2 text-center">
-                <div className="font-bold text-lg">{s.totalRegistered}</div>
-                <div className="text-gray-500">{t("admin.totalRegistered")}</div>
+              <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <div className="font-bold text-lg text-slate-700">{s.totalRegistered}</div>
+                <div className="text-slate-400 text-xs">{t("admin.totalRegistered")}</div>
               </div>
-              <div className="bg-emerald-50 rounded-lg p-2 text-center">
-                <div className="font-bold text-lg text-emerald-700">{s.bookedCount}</div>
-                <div className="text-gray-500">{t("admin.bookedCount")}</div>
+              <div className="bg-blue-50 rounded-xl p-3 text-center">
+                <div className="font-bold text-lg text-blue-700">{s.bookedCount}</div>
+                <div className="text-slate-400 text-xs">{t("admin.bookedCount")}</div>
               </div>
-              <div className="bg-red-50 rounded-lg p-2 text-center">
-                <div className="font-bold text-lg text-red-700">{s.unbookedCount}</div>
-                <div className="text-gray-500">{t("admin.unbookedCount")}</div>
+              <div className="bg-red-50 rounded-xl p-3 text-center">
+                <div className="font-bold text-lg text-red-600">{s.unbookedCount}</div>
+                <div className="text-slate-400 text-xs">{t("admin.unbookedCount")}</div>
               </div>
-              <div className="bg-blue-50 rounded-lg p-2 text-center">
-                <div className="font-bold text-lg text-blue-700">
+              <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <div className="font-bold text-lg text-slate-700">
                   {s.busSeatsFilled}/{s.busSeatsTotal}
                 </div>
-                <div className="text-gray-500">{t("admin.busSeatsFilled")}</div>
+                <div className="text-slate-400 text-xs">{t("admin.busSeatsFilled")}</div>
               </div>
-              <div className="bg-purple-50 rounded-lg p-2 text-center">
+              <div className="bg-purple-50 rounded-xl p-3 text-center col-span-2">
                 <div className="font-bold text-lg text-purple-700">
                   {s.roomsAssigned}/{s.bookingTotal}
                 </div>
-                <div className="text-gray-500">{t("admin.roomsAssigned")}</div>
+                <div className="text-slate-400 text-xs">{t("admin.roomsAssigned")}</div>
               </div>
             </div>
           </div>

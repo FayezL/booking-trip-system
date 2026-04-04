@@ -136,30 +136,25 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
 
   if (confirmation) {
     return (
-      <div className="max-w-md mx-auto text-center py-10">
-        <div className="mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-20 h-20 mx-auto text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="max-w-md mx-auto text-center py-8 animate-slide-up">
+        <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h1 className="text-3xl font-bold text-emerald-600 mb-6">{t("confirm.title")}</h1>
-        <div className="card text-start space-y-3">
-          <div className="flex justify-between">
-            <span className="text-gray-500">{t("confirm.trip")}</span>
-            <span className="font-semibold">{confirmation.tripTitle}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">{t("confirm.bus")}</span>
-            <span className="font-semibold">{confirmation.busLabel}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">{t("confirm.leader")}</span>
-            <span className="font-semibold">{confirmation.leaderName}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">{t("confirm.date")}</span>
-            <span className="font-semibold">{confirmation.tripDate}</span>
-          </div>
+        <h1 className="text-2xl font-bold text-blue-600 mb-6">{t("confirm.title")}</h1>
+        <div className="card text-start space-y-4">
+          {[
+            { label: t("confirm.trip"), value: confirmation.tripTitle },
+            { label: t("confirm.bus"), value: confirmation.busLabel },
+            { label: t("confirm.leader"), value: confirmation.leaderName },
+            { label: t("confirm.date"), value: confirmation.tripDate },
+          ].map((item) => (
+            <div key={item.label} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
+              <span className="text-slate-400 text-sm">{item.label}</span>
+              <span className="font-semibold text-slate-800">{item.value}</span>
+            </div>
+          ))}
         </div>
         <button
           onClick={() => router.push("/trips")}
@@ -172,29 +167,39 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   }
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <button
         onClick={() => router.push("/trips")}
-        className="mb-4 text-emerald-600 font-semibold text-lg hover:underline"
+        className="mb-4 text-blue-600 font-semibold text-base hover:text-blue-700 transition-colors inline-flex items-center gap-1"
       >
-        ← {t("buses.back")}
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l7-7-7-7" />
+        </svg>
+        {t("buses.back")}
       </button>
 
-      <h1 className="text-2xl font-bold mb-2">{t("buses.chooseBus")}</h1>
+      <h1 className="section-title mb-2">{t("buses.chooseBus")}</h1>
       {trip && (
-        <p className="text-gray-600 mb-6">
+        <p className="text-slate-400 mb-6 text-sm">
           {lang === "ar" ? trip.title_ar : trip.title_en} — {t("trips.date")}: {trip.trip_date}
         </p>
       )}
 
       {areaGroups.length === 0 ? (
-        <p className="text-xl text-gray-500 text-center py-10">{t("admin.bookingSoon")}</p>
+        <div className="text-center py-16">
+          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-lg text-slate-400">{t("admin.bookingSoon")}</p>
+        </div>
       ) : (
         <div className="space-y-6">
           {areaGroups.map((group) => (
             <div key={group.areaId || group.areaName}>
-              <h2 className="text-xl font-bold text-emerald-700 mb-3">{group.areaName}</h2>
-              <div className="space-y-4">
+              <h2 className="text-lg font-bold text-blue-700 mb-3">{group.areaName}</h2>
+              <div className="space-y-3">
                 {group.buses.map((bus) => {
                   const available = bus.capacity - bus.booking_count;
                   const isFull = available <= 0;
@@ -203,28 +208,29 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                   const showAll = expandedBuses.has(bus.id);
                   const visiblePassengers = showAll ? bus.passengers : bus.passengers.slice(0, 5);
                   const hiddenCount = bus.passengers.length - 5;
+                  const fillClass = isFull ? "danger" : percent > 80 ? "warning" : "";
 
                   return (
                     <div key={bus.id} className={`card ${isFull ? "opacity-60" : ""}`}>
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                         <div>
-                          <h3 className="text-xl font-bold">{displayName}</h3>
+                          <h3 className="text-lg font-bold text-slate-800">{displayName}</h3>
                           {bus.leader_name && (
-                            <p className="text-gray-500 mt-1">
+                            <p className="text-slate-400 mt-0.5 text-sm">
                               {t("buses.leader")}: {bus.leader_name}
                             </p>
                           )}
                         </div>
 
                         {isFull ? (
-                          <span className="px-4 py-2 rounded-lg bg-red-100 text-red-700 text-lg font-semibold">
+                          <span className="badge-red shrink-0 self-start sm:self-auto">
                             {t("buses.full")}
                           </span>
                         ) : (
                           <button
                             onClick={() => handleBook(bus)}
                             disabled={bookingBusId !== null}
-                            className="btn-primary"
+                            className="btn-primary w-full sm:w-auto shrink-0"
                           >
                             {bookingBusId === bus.id ? t("common.loading") : t("buses.choose")}
                           </button>
@@ -232,31 +238,29 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                       </div>
 
                       <div className="mt-3">
-                        <div className="flex justify-between text-sm text-gray-500 mb-1">
+                        <div className="flex justify-between text-sm text-slate-400 mb-1.5">
                           <span>{t("buses.availableSeats")}: {available}</span>
                           <span>{bus.booking_count}/{bus.capacity}</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div className="progress-bar">
                           <div
-                            className={`h-3 rounded-full transition-all ${
-                              isFull ? "bg-red-500" : percent > 80 ? "bg-yellow-500" : "bg-emerald-500"
-                            }`}
+                            className={`progress-bar-fill ${fillClass}`}
                             style={{ width: `${percent}%` }}
                           />
                         </div>
                       </div>
 
                       {bus.passengers.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <p className="text-xs font-medium text-gray-400 mb-1">
+                        <div className="mt-3 pt-3 border-t border-slate-50">
+                          <p className="text-xs font-medium text-slate-300 mb-1">
                             {t("admin.passengersList")} ({bus.passengers.length})
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-slate-500">
                             {visiblePassengers.join("، ")}
                             {!showAll && hiddenCount > 0 && (
                               <button
                                 onClick={() => toggleExpand(bus.id)}
-                                className="text-emerald-600 font-medium ms-1 hover:underline"
+                                className="text-blue-600 font-medium ms-1 hover:text-blue-700 transition-colors"
                               >
                                 +{hiddenCount} {t("admin.showMore")}
                               </button>

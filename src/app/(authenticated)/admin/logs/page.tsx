@@ -81,10 +81,10 @@ export default function LogsPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">{t("admin.activityLogs")}</h1>
+    <div className="animate-fade-in">
+      <h1 className="section-title mb-6">{t("admin.activityLogs")}</h1>
 
-      <div className="flex gap-3 mb-4">
+      <div className="mb-4">
         <select
           className="input-field max-w-xs"
           value={actionFilter}
@@ -102,43 +102,41 @@ export default function LogsPage() {
       <div className="space-y-2">
         {paginated.map((log) => (
           <div key={log.id} className="card">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm text-gray-500" dir="ltr">
-                  {formatTimestamp(log.created_at)}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-400" dir="ltr">
+                {formatTimestamp(log.created_at)}
+              </span>
+              <span className="font-medium text-sm text-slate-700">
+                {log.profiles?.full_name || "—"}
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+                {t(`admin.${ACTION_LABELS[log.action] || "action"}`)}
+              </span>
+              {log.target_type && (
+                <span className="text-xs text-slate-400">
+                  {log.target_type}{log.target_id ? `: ${log.target_id.slice(0, 8)}...` : ""}
                 </span>
-                <span className="font-medium text-sm">
-                  {log.profiles?.full_name || "—"}
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">
-                  {t(`admin.${ACTION_LABELS[log.action] || "action"}`)}
-                </span>
-                {log.target_type && (
-                  <span className="text-xs text-gray-500">
-                    {log.target_type}{log.target_id ? `: ${log.target_id.slice(0, 8)}...` : ""}
-                  </span>
-                )}
-              </div>
+              )}
             </div>
           </div>
         ))}
         {logs.length === 0 && (
-          <p className="text-gray-500 text-center py-4">{t("admin.noLogs")}</p>
+          <p className="text-slate-400 text-center py-4 text-sm">{t("admin.noLogs")}</p>
         )}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 pt-4">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 hover:bg-slate-100 disabled:opacity-50 transition-all duration-150"
             >
               ←
             </button>
-            <span className="text-sm text-gray-600">{page} / {totalPages}</span>
+            <span className="text-sm text-slate-500">{page} / {totalPages}</span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 hover:bg-slate-100 disabled:opacity-50 transition-all duration-150"
             >
               →
             </button>

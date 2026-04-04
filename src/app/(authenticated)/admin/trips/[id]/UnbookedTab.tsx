@@ -174,22 +174,22 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-xl font-bold">{t("admin.unbooked")}</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-lg font-bold text-slate-800">{t("admin.unbooked")}</h2>
+          <p className="text-sm text-slate-400">
             {unbooked.length} {t("admin.unbooked")} ({maleCount}M, {femaleCount}F)
           </p>
         </div>
-        <button onClick={() => setShowRegister(!showRegister)} className="btn-primary">
+        <button onClick={() => setShowRegister(!showRegister)} className="btn-primary w-full sm:w-auto">
           + {t("admin.registerPatient")}
         </button>
       </div>
 
       {showRegister && (
-        <div className="card mb-4">
-          <h3 className="text-lg font-bold mb-3">{t("admin.registerPatient")}</h3>
-          <div className="grid gap-4 md:grid-cols-2">
+        <div className="card mb-4 animate-slide-up">
+          <h3 className="text-base font-bold text-slate-800 mb-3">{t("admin.registerPatient")}</h3>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
               <label className="label-text">{t("auth.phone")}</label>
               <input
@@ -247,11 +247,11 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               </select>
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
-            <button onClick={handleRegister} disabled={saving} className="btn-primary">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button onClick={handleRegister} disabled={saving} className="btn-primary w-full sm:w-auto">
               {saving ? t("common.loading") : t("admin.registerPatient")}
             </button>
-            <button onClick={() => setShowRegister(false)} className="btn-secondary">
+            <button onClick={() => setShowRegister(false)} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
             </button>
           </div>
@@ -259,8 +259,8 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       )}
 
       {bookingUser && (
-        <div className="card mb-4">
-          <h3 className="text-lg font-bold mb-3">{t("admin.book")}</h3>
+        <div className="card mb-4 animate-slide-up">
+          <h3 className="text-base font-bold text-slate-800 mb-3">{t("admin.book")}</h3>
           <div>
             <label className="label-text">{t("buses.chooseBus")}</label>
             <select
@@ -275,20 +275,20 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               ))}
             </select>
           </div>
-          <div className="flex gap-3 mt-4">
-            <button onClick={confirmBookForUser} className="btn-primary">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button onClick={confirmBookForUser} className="btn-primary w-full sm:w-auto">
               {t("admin.book")}
             </button>
-            <button onClick={() => setBookingUser(null)} className="btn-secondary">
+            <button onClick={() => setBookingUser(null)} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
             </button>
           </div>
         </div>
       )}
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input
-          className="input-field max-w-xs"
+          className="input-field flex-1 min-w-[140px] max-w-xs"
           placeholder={t("admin.searchByName")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
@@ -298,10 +298,10 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
             <button
               key={g}
               onClick={() => setGenderFilter(g)}
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
                 genderFilter === g
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-blue-50 text-blue-700"
+                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
               }`}
             >
               {g === "" ? t("admin.all") : g === "Male" ? t("auth.male") : t("auth.female")}
@@ -312,20 +312,20 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">{t("admin.noBookings")}</p>
+          <p className="text-slate-400 text-center py-4 text-sm">{t("admin.noBookings")}</p>
         ) : (
           <>
             {paginated.map((p) => (
               <div key={p.id} className="card">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="font-medium">{p.full_name}</span>
-                    <span className="text-sm text-gray-500 ms-2" dir="ltr">{p.phone}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-slate-800 text-sm">{p.full_name}</span>
+                    <span className="text-xs text-slate-400" dir="ltr">{p.phone}</span>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded ms-2 ${
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         p.gender === "Male"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-pink-100 text-pink-700"
+                          ? "bg-blue-50 text-blue-600"
+                          : "bg-pink-50 text-pink-600"
                       }`}
                     >
                       {p.gender === "Male" ? t("auth.male") : t("auth.female")}
@@ -333,7 +333,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                   </div>
                   <button
                     onClick={() => startBookForUser(p.id)}
-                    className="btn-primary text-sm py-1.5 px-3"
+                    className="btn-primary text-sm py-2 px-4 w-full sm:w-auto"
                   >
                     {t("admin.book")}
                   </button>
@@ -345,15 +345,15 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 hover:bg-slate-100 disabled:opacity-50 transition-all duration-150"
                 >
                   ←
                 </button>
-                <span className="text-sm text-gray-600">{page} / {totalPages}</span>
+                <span className="text-sm text-slate-500">{page} / {totalPages}</span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 hover:bg-slate-100 disabled:opacity-50 transition-all duration-150"
                 >
                   →
                 </button>

@@ -133,20 +133,20 @@ export default function TripsManagementPage() {
   }
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">{t("admin.trips")}</h1>
+        <h1 className="section-title">{t("admin.trips")}</h1>
         <button onClick={startCreate} className="btn-primary">
           + {t("admin.createTrip")}
         </button>
       </div>
 
       {showForm && (
-        <div className="card mb-6">
-          <h2 className="text-xl font-bold mb-4">
+        <div className="card mb-6 animate-slide-up">
+          <h2 className="text-lg font-bold text-slate-800 mb-4">
             {editingId ? t("admin.editTrip") : t("admin.createTrip")}
           </h2>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
               <label className="label-text">{t("admin.tripTitle")}</label>
               <input
@@ -168,21 +168,21 @@ export default function TripsManagementPage() {
             <div className="flex items-end">
               <button
                 onClick={() => setForm({ ...form, is_open: !form.is_open })}
-                className={`px-4 py-3 rounded-lg font-semibold min-h-[48px] ${
+                className={`px-4 py-3 rounded-xl font-semibold min-h-[48px] transition-all duration-150 ${
                   form.is_open
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-gray-200 text-gray-600"
+                    ? "bg-blue-50 text-blue-700 border-2 border-blue-200"
+                    : "bg-slate-100 text-slate-500 border-2 border-slate-200"
                 }`}
               >
                 {form.is_open ? t("admin.isOpen") : t("admin.isClosed")}
               </button>
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
-            <button onClick={handleSave} disabled={saving} className="btn-primary">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button onClick={handleSave} disabled={saving} className="btn-primary w-full sm:w-auto">
               {saving ? t("common.loading") : t("admin.save")}
             </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary">
+            <button onClick={() => setShowForm(false)} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
             </button>
           </div>
@@ -192,37 +192,37 @@ export default function TripsManagementPage() {
       <div className="space-y-3">
         {trips.map((trip) => (
           <div key={trip.id} className="card">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-bold">{trip.title_ar}</h3>
-                <p className="text-sm text-gray-500">{trip.trip_date}</p>
+                <h3 className="text-base font-bold text-slate-800">{trip.title_ar}</h3>
+                <p className="text-sm text-slate-400">{trip.trip_date}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => router.push(`/admin/trips/${trip.id}`)}
-                  className="px-3 py-1.5 rounded-md text-sm font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-95 transition-all duration-150 min-h-[40px]"
                 >
                   {t("admin.manage")}
                 </button>
                 <button
                   onClick={() => toggleOpen(trip)}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium active:scale-95 transition-all duration-150 min-h-[40px] ${
                     trip.is_open
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-gray-200 text-gray-600"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-slate-100 text-slate-500"
                   }`}
                 >
                   {trip.is_open ? t("admin.isOpen") : t("admin.isClosed")}
                 </button>
                 <button
                   onClick={() => startEdit(trip)}
-                  className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all duration-150 min-h-[40px]"
                 >
                   {t("common.edit")}
                 </button>
                 <button
                   onClick={() => handleDelete(trip.id)}
-                  className="px-3 py-1.5 rounded-md text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200"
+                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all duration-150 min-h-[40px]"
                 >
                   {t("common.delete")}
                 </button>

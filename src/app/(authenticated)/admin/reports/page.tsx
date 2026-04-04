@@ -120,11 +120,11 @@ export default function ReportsPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">{t("admin.reports")}</h1>
+    <div className="animate-fade-in">
+      <h1 className="section-title mb-6">{t("admin.reports")}</h1>
 
-      <div className="card mb-6">
-        <div className="grid gap-4 md:grid-cols-3">
+      <div className="card">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           <div>
             <label className="label-text">{t("admin.selectTrip")}</label>
             <select
@@ -140,11 +140,11 @@ export default function ReportsPage() {
               ))}
             </select>
           </div>
-          <div className="flex items-end gap-2">
+          <div className="flex items-end">
             <button
               onClick={() => generateReport("bus")}
               disabled={generating}
-              className="btn-primary"
+              className="btn-primary w-full"
             >
               {generating ? <LoadingSpinner /> : t("admin.busReport")}
             </button>
@@ -153,7 +153,7 @@ export default function ReportsPage() {
             <button
               onClick={() => generateReport("room")}
               disabled={generating}
-              className="btn-primary"
+              className="btn-primary w-full"
             >
               {generating ? <LoadingSpinner /> : t("admin.roomReport")}
             </button>

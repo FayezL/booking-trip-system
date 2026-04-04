@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import LanguageToggle from "./LanguageToggle";
@@ -13,6 +13,7 @@ interface HeaderProps {
 export default function Header({ profile }: HeaderProps) {
   const { t } = useTranslation();
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
   const isAdmin = profile.role === "servant" || profile.role === "super_admin";
@@ -22,70 +23,95 @@ export default function Header({ profile }: HeaderProps) {
     router.push("/login");
   }
 
+  function isActive(href: string): boolean {
+    if (href === "/admin") return pathname === "/admin";
+    return pathname.startsWith(href);
+  }
+
+  const navItems = [
+    ...(isAdmin
+      ? [
+          { href: "/admin", label: t("admin.dashboard") },
+          { href: "/admin/trips", label: t("admin.trips") },
+          { href: "/admin/reports", label: t("admin.reports") },
+          ...(profile.role === "super_admin"
+            ? [
+                { href: "/admin/users", label: t("admin.users") },
+                { href: "/admin/logs", label: t("admin.activityLogs") },
+              ]
+            : []),
+        ]
+      : []),
+  ];
+
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
+      {/* Mobile Header */}
+      <div className="md:hidden px-4 py-2.5 flex items-center justify-between">
+        <h1
+          className="text-lg font-bold text-blue-700 cursor-pointer"
+          onClick={() => router.push(isAdmin ? "/admin" : "/trips")}
+        >
+          Verena Church
+        </h1>
+        <div className="flex items-center gap-2">
+          <LanguageToggle />
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-red-500 active:scale-95 transition-all duration-150"
+            title={t("auth.logout")}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex max-w-7xl mx-auto px-6 py-3 items-center justify-between">
+        <div className="flex items-center gap-6">
           <h1
-            className="text-xl font-bold text-emerald-700 cursor-pointer"
+            className="text-xl font-bold text-blue-700 cursor-pointer hover:text-blue-800 transition-colors"
             onClick={() => router.push(isAdmin ? "/admin" : "/trips")}
           >
             Verena Church
           </h1>
-          <button
-            onClick={() => router.push("/trips")}
-            className="text-sm text-emerald-600 font-medium hover:underline"
-          >
-            {t("trips.myBookings")}
-          </button>
+          {!isAdmin && (
+            <button
+              onClick={() => router.push("/trips")}
+              className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors"
+            >
+              {t("trips.myBookings")}
+            </button>
+          )}
           {isAdmin && (
-            <nav className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => router.push("/admin")}
-                className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
-              >
-                {t("admin.dashboard")}
-              </button>
-              <button
-                onClick={() => router.push("/admin/trips")}
-                className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
-              >
-                {t("admin.trips")}
-              </button>
-              <button
-                onClick={() => router.push("/admin/reports")}
-                className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
-              >
-                {t("admin.reports")}
-              </button>
-              {profile.role === "super_admin" && (
-                <>
-                  <button
-                    onClick={() => router.push("/admin/users")}
-                    className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
-                  >
-                    {t("admin.users")}
-                  </button>
-                  <button
-                    onClick={() => router.push("/admin/logs")}
-                    className="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors"
-                  >
-                    {t("admin.activityLogs")}
-                  </button>
-                </>
-              )}
+            <nav className="flex gap-1">
+              {navItems.map((item) => (
+                <button
+                  key={item.href}
+                  onClick={() => router.push(item.href)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 ${
+                    isActive(item.href)
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
             </nav>
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-slate-400">
             {t("auth.welcome")}، {profile.full_name}
           </span>
           <LanguageToggle />
           <button
             onClick={handleLogout}
-            className="px-3 py-1.5 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-red-500 rounded-lg hover:bg-red-50 active:scale-95 transition-all duration-150"
           >
             {t("auth.logout")}
           </button>

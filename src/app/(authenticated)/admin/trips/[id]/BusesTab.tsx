@@ -168,15 +168,15 @@ export default function BusesTab({ tripId }: { tripId: string }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">{t("admin.buses")}</h2>
+        <h2 className="text-lg font-bold text-slate-800">{t("admin.buses")}</h2>
         <button onClick={startCreate} className="btn-primary">
           + {t("admin.createBus")}
         </button>
       </div>
 
       {showForm && (
-        <div className="card mb-4 animate-fade-in">
-          <div className="grid gap-4 md:grid-cols-2">
+        <div className="card mb-4 animate-slide-up">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {editingId ? (
               <div>
                 <label className="label-text">{t("admin.busLabel")}</label>
@@ -229,11 +229,11 @@ export default function BusesTab({ tripId }: { tripId: string }) {
               />
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
-            <button onClick={handleSave} disabled={saving} className="btn-primary">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button onClick={handleSave} disabled={saving} className="btn-primary w-full sm:w-auto">
               {saving ? t("common.loading") : t("admin.save")}
             </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary">
+            <button onClick={() => setShowForm(false)} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
             </button>
           </div>
@@ -242,8 +242,8 @@ export default function BusesTab({ tripId }: { tripId: string }) {
 
       {buses.length === 0 ? (
         <div className="text-center py-10">
-          <p className="text-xl text-gray-500 mb-2">{t("admin.noBusesYet")}</p>
-          <p className="text-sm text-gray-400 mb-4">{t("admin.addBusesFirst")}</p>
+          <p className="text-lg text-slate-400 mb-2">{t("admin.noBusesYet")}</p>
+          <p className="text-sm text-slate-300 mb-4">{t("admin.addBusesFirst")}</p>
           <button onClick={startCreate} className="btn-primary">
             + {t("admin.createBus")}
           </button>
@@ -254,48 +254,47 @@ export default function BusesTab({ tripId }: { tripId: string }) {
             const percent = bus.capacity > 0 ? (bus.booking_count / bus.capacity) * 100 : 0;
             const displayName = bus.bus_label || bus.area_name_ar;
             const statusBg = percent >= 80
-              ? "bg-red-100 text-red-700"
+              ? "bg-red-50 text-red-600"
               : percent >= 50
-                ? "bg-yellow-100 text-yellow-700"
-                : "bg-emerald-100 text-emerald-700";
+                ? "bg-amber-50 text-amber-700"
+                : "bg-blue-50 text-blue-700";
+            const fillClass = percent >= 80 ? "danger" : percent >= 50 ? "warning" : "";
             return (
               <div key={bus.id} className="card">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold">{displayName}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${statusBg}`}>
+                    <h3 className="text-base font-bold text-slate-800">{displayName}</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBg}`}>
                       {bus.booking_count}/{bus.capacity}
                     </span>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => startEdit(bus)}
-                      className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all duration-150"
                     >
                       {t("common.edit")}
                     </button>
                     <button
                       onClick={() => handleDelete(bus.id)}
-                      className="px-3 py-1.5 rounded-md text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200"
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all duration-150"
                     >
                       {t("common.delete")}
                     </button>
                   </div>
                 </div>
                 {bus.leader_name && (
-                  <p className="text-sm text-gray-500 mb-1">
+                  <p className="text-sm text-slate-400 mb-1">
                     {t("admin.leaderName")}: {bus.leader_name}
                   </p>
                 )}
-                <div className="flex justify-between text-sm text-gray-500 mb-1">
+                <div className="flex justify-between text-sm text-slate-400 mb-1.5">
                   <span>{t("admin.passengers")}: {bus.booking_count}/{bus.capacity}</span>
                   <span>{Math.round(percent)}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="progress-bar">
                   <div
-                    className={`h-2 rounded-full transition-all ${
-                      percent >= 80 ? "bg-red-500" : percent >= 50 ? "bg-yellow-500" : "bg-emerald-500"
-                    }`}
+                    className={`progress-bar-fill ${fillClass}`}
                     style={{ width: `${Math.min(percent, 100)}%` }}
                   />
                 </div>

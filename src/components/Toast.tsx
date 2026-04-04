@@ -28,19 +28,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+    }, 3500);
   }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2">
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`px-6 py-3 rounded-lg text-lg font-semibold shadow-lg animate-fade-in ${
+            className={`px-5 py-3 rounded-xl text-base font-semibold shadow-lg animate-slide-down pointer-events-auto ${
               toast.type === "success"
-                ? "bg-emerald-600 text-white"
+                ? "bg-blue-600 text-white"
                 : "bg-red-600 text-white"
             }`}
           >

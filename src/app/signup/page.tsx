@@ -67,17 +67,24 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 p-4">
+      <div className="w-full max-w-md animate-slide-up">
         <div className="flex justify-end mb-4">
           <LanguageToggle />
         </div>
         <div className="card">
-          <h1 className="text-2xl font-bold text-center mb-8">
-            {t("auth.signup")}
-          </h1>
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800">
+              {t("auth.signup")}
+            </h1>
+          </div>
 
-          <form onSubmit={handleSignup} className="space-y-6">
+          <form onSubmit={handleSignup} className="space-y-5">
             <div>
               <label className="label-text">{t("auth.phone")}</label>
               <input
@@ -104,14 +111,14 @@ export default function SignupPage() {
 
             <div>
               <label className="label-text">{t("auth.gender")}</label>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setGender("Male")}
-                  className={`flex-1 py-3 rounded-lg text-lg font-semibold border-2 transition-colors min-h-[48px]
+                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
                     ${gender === "Male"
-                      ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                     }`}
                   disabled={loading}
                 >
@@ -120,10 +127,10 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={() => setGender("Female")}
-                  className={`flex-1 py-3 rounded-lg text-lg font-semibold border-2 transition-colors min-h-[48px]
+                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
                     ${gender === "Female"
-                      ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                     }`}
                   disabled={loading}
                 >
@@ -146,7 +153,7 @@ export default function SignupPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-700 p-3 rounded-lg text-center text-lg">
+              <div className="bg-red-50 text-red-600 p-3 rounded-xl text-center text-base font-medium animate-fade-in">
                 {error}
               </div>
             )}
@@ -160,9 +167,9 @@ export default function SignupPage() {
             </button>
           </form>
 
-          <p className="text-center mt-6 text-lg text-gray-600">
+          <p className="text-center mt-6 text-base text-slate-500">
             {t("auth.hasAccount")}{" "}
-            <a href="/login" className="text-emerald-600 font-semibold hover:underline">
+            <a href="/login" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
               {t("auth.loginHere")}
             </a>
           </p>

@@ -207,17 +207,17 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
   }
 
   const tabClass = (active: boolean) =>
-    `px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+    `px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-150 ${
       active
-        ? "bg-emerald-600 text-white"
-        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        ? "bg-blue-600 text-white shadow-sm"
+        : "bg-slate-100 text-slate-500 hover:bg-slate-200"
     }`;
 
   const filterClass = (active: boolean) =>
-    `px-3 py-1.5 rounded-md text-sm font-medium ${
+    `px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
       active
-        ? "bg-emerald-100 text-emerald-700"
-        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        ? "bg-blue-50 text-blue-700"
+        : "bg-slate-50 text-slate-500 hover:bg-slate-100"
     }`;
 
   const allGenderCount = unassigned.filter((b) => b.profiles.gender === genderTab).length;
@@ -225,7 +225,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">{t("admin.rooms")}</h2>
+        <h2 className="text-lg font-bold text-slate-800">{t("admin.rooms")}</h2>
         <button onClick={startCreate} className="btn-primary">
           + {t("admin.createRoom")}
         </button>
@@ -254,7 +254,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
         </div>
 
         <input
-          className="input-field max-w-xs"
+          className="input-field flex-1 min-w-[140px] max-w-xs"
           placeholder={t("admin.searchByName")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
@@ -262,8 +262,8 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
       </div>
 
       {showForm && (
-        <div className="card mb-4">
-          <div className="grid gap-4 md:grid-cols-3">
+        <div className="card mb-4 animate-slide-up">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
             <div>
               <label className="label-text">{t("admin.roomLabel")}</label>
               <input
@@ -291,43 +291,43 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
               />
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
-            <button onClick={handleSave} disabled={saving} className="btn-primary">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button onClick={handleSave} disabled={saving} className="btn-primary w-full sm:w-auto">
               {saving ? t("common.loading") : t("admin.save")}
             </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary">
+            <button onClick={() => setShowForm(false)} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
             </button>
           </div>
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         <div>
-          <h3 className="text-lg font-bold mb-3">
+          <h3 className="text-base font-bold text-slate-800 mb-3">
             {t("admin.unassigned")} ({filteredUnassigned.length}/{allGenderCount})
           </h3>
           <div className="space-y-2">
             {filteredUnassigned.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">{t("admin.noUnassigned")}</p>
+              <p className="text-slate-400 text-center py-4 text-sm">{t("admin.noUnassigned")}</p>
             ) : (
               filteredUnassigned.map((b) => (
                 <div
                   key={b.id}
                   onClick={() => setSelectedBooking(b.id)}
-                  className={`card cursor-pointer transition-colors ${
+                  className={`card cursor-pointer transition-all duration-150 ${
                     selectedBooking === b.id
-                      ? "ring-2 ring-emerald-500"
-                      : "hover:bg-gray-50"
+                      ? "ring-2 ring-blue-500 shadow-sm"
+                      : "hover:shadow-sm"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">{b.profiles.full_name}</span>
+                    <span className="font-medium text-slate-800 text-sm">{b.profiles.full_name}</span>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded ${
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         b.profiles.gender === "Male"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-pink-100 text-pink-700"
+                          ? "bg-blue-50 text-blue-600"
+                          : "bg-pink-50 text-pink-600"
                       }`}
                     >
                       {b.profiles.gender === "Male" ? t("auth.male") : t("auth.female")}
@@ -340,7 +340,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
         </div>
 
         <div>
-          <h3 className="text-lg font-bold mb-3">
+          <h3 className="text-base font-bold text-slate-800 mb-3">
             {genderTab === "Male" ? t("admin.boysTab") : t("admin.girlsTab")} — {t("admin.rooms")} ({filteredRooms.length})
           </h3>
           <div className="space-y-3">
@@ -350,37 +350,34 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                 room.occupant_count < room.capacity;
 
               const percent = room.capacity > 0 ? (room.occupant_count / room.capacity) * 100 : 0;
+              const fillClass = percent >= 100 ? "danger" : percent > 80 ? "warning" : "";
 
               return (
                 <div key={room.id} className="card">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <span className="font-bold">{room.room_label}</span>
-                    </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                    <span className="font-bold text-slate-800">{room.room_label}</span>
                     <div className="flex gap-2">
                       <button
                         onClick={() => startEdit(room)}
-                        className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700"
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all duration-150"
                       >
                         {t("common.edit")}
                       </button>
                       <button
                         onClick={() => handleDelete(room.id)}
-                        className="px-2 py-1 rounded text-xs bg-red-100 text-red-700"
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all duration-150"
                       >
                         {t("common.delete")}
                       </button>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500 mb-1">
+                  <div className="text-sm text-slate-400 mb-2">
                     {room.occupant_count}/{room.capacity} {t("admin.occupants")}
                     {room.supervisor_name && ` — ${room.supervisor_name}`}
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                  <div className="progress-bar mb-2">
                     <div
-                      className={`h-2 rounded-full transition-all ${
-                        percent >= 100 ? "bg-red-500" : percent > 80 ? "bg-yellow-500" : "bg-emerald-500"
-                      }`}
+                      className={`progress-bar-fill ${fillClass}`}
                       style={{ width: `${Math.min(percent, 100)}%` }}
                     />
                   </div>
@@ -388,10 +385,10 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                     <div className="space-y-1">
                       {room.occupants.map((o) => (
                         <div key={o.id} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">{o.full_name}</span>
+                          <span className="text-slate-500">{o.full_name}</span>
                           <button
                             onClick={() => handleRemoveFromRoom(o.booking_id)}
-                            className="text-xs text-red-600 hover:underline"
+                            className="text-xs text-red-500 hover:text-red-600 transition-colors"
                           >
                             {t("admin.removeFromRoom")}
                           </button>
@@ -402,7 +399,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                   {canAssign && (
                     <button
                       onClick={() => handleAssign(selectedBooking, room.id)}
-                      className="btn-primary mt-2 w-full text-sm py-1.5"
+                      className="btn-primary mt-3 w-full text-sm py-2"
                     >
                       {t("admin.assignRoom")}
                     </button>

@@ -149,18 +149,18 @@ export default function UsersPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">{t("admin.userManagement")}</h1>
-        <button onClick={() => setShowServantForm(!showServantForm)} className="btn-primary">
+    <div className="animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <h1 className="section-title">{t("admin.userManagement")}</h1>
+        <button onClick={() => setShowServantForm(!showServantForm)} className="btn-primary w-full sm:w-auto">
           + {t("admin.addServant")}
         </button>
       </div>
 
       {showServantForm && (
-        <div className="card mb-4">
-          <h3 className="text-lg font-bold mb-3">+ {t("admin.addServant")}</h3>
-          <div className="grid gap-4 md:grid-cols-2">
+        <div className="card mb-4 animate-slide-up">
+          <h3 className="text-base font-bold text-slate-800 mb-3">+ {t("admin.addServant")}</h3>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
               <label className="label-text">{t("auth.phone")}</label>
               <input
@@ -202,33 +202,33 @@ export default function UsersPage() {
               />
             </div>
           </div>
-          <div className="flex gap-3 mt-4">
-            <button onClick={handleCreateServant} disabled={creatingServant} className="btn-primary">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button onClick={handleCreateServant} disabled={creatingServant} className="btn-primary w-full sm:w-auto">
               {creatingServant ? t("common.loading") : t("admin.addServant")}
             </button>
-            <button onClick={() => { setShowServantForm(false); setServantForm(emptyServantForm); }} className="btn-secondary">
+            <button onClick={() => { setShowServantForm(false); setServantForm(emptyServantForm); }} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
             </button>
           </div>
         </div>
       )}
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input
-          className="input-field max-w-xs"
+          className="input-field flex-1 min-w-[140px] max-w-xs"
           placeholder={t("admin.searchUsers")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {["", "super_admin", "servant", "patient"].map((r) => (
             <button
               key={r}
               onClick={() => setRoleFilter(r)}
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
                 roleFilter === r
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-blue-50 text-blue-700"
+                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
               }`}
             >
               {r === "" ? t("admin.all") : r === "super_admin" ? t("admin.superAdmin") : t(`admin.${r}`)}
@@ -238,9 +238,9 @@ export default function UsersPage() {
       </div>
 
       {resetUserId && (
-        <div className="card mb-4">
-          <h3 className="text-lg font-bold mb-3">{t("admin.resetPassword")}</h3>
-          <div className="flex gap-3 items-end">
+        <div className="card mb-4 animate-slide-up">
+          <h3 className="text-base font-bold text-slate-800 mb-3">{t("admin.resetPassword")}</h3>
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
             <div className="flex-1">
               <label className="label-text">{t("admin.newPassword")}</label>
               <input
@@ -252,10 +252,10 @@ export default function UsersPage() {
                 placeholder="••••••••"
               />
             </div>
-            <button onClick={handleResetPassword} disabled={saving} className="btn-primary">
+            <button onClick={handleResetPassword} disabled={saving} className="btn-primary w-full sm:w-auto">
               {saving ? t("common.loading") : t("admin.resetPassword")}
             </button>
-            <button onClick={() => { setResetUserId(null); setNewPassword(""); }} className="btn-secondary">
+            <button onClick={() => { setResetUserId(null); setNewPassword(""); }} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
             </button>
           </div>
@@ -265,19 +265,19 @@ export default function UsersPage() {
       <div className="space-y-2">
         {paginated.map((u) => (
           <div key={u.id} className="card">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <span className="font-medium">{u.full_name}</span>
-                <span className="text-sm text-gray-500 ms-2" dir="ltr">{u.phone}</span>
-                <span className={`text-xs px-2 py-0.5 rounded ms-2 ${
-                  u.role === "super_admin" ? "bg-yellow-100 text-yellow-700" :
-                  u.role === "servant" ? "bg-blue-100 text-blue-700" :
-                  "bg-gray-100 text-gray-700"
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium text-slate-800 text-sm">{u.full_name}</span>
+                <span className="text-xs text-slate-400" dir="ltr">{u.phone}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  u.role === "super_admin" ? "bg-amber-50 text-amber-700" :
+                  u.role === "servant" ? "bg-blue-50 text-blue-600" :
+                  "bg-slate-50 text-slate-600"
                 }`}>
                   {u.role === "super_admin" ? t("admin.superAdmin") :
                    u.role === "servant" ? t("admin.servant") : t("admin.patient")}
                 </span>
-                <span className={`text-xs px-2 py-0.5 rounded ms-1 ${
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   u.gender === "Male" ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"
                 }`}>
                   {u.gender === "Male" ? t("auth.male") : t("auth.female")}
@@ -288,20 +288,20 @@ export default function UsersPage() {
                   <>
                     <button
                       onClick={() => handleChangeRole(u.id, u.role)}
-                      className="px-3 py-1.5 rounded-md text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all duration-150"
                     >
                       {u.role === "patient" ? t("admin.servant") : t("admin.patient")}
                     </button>
                     <button
                       onClick={() => setResetUserId(u.id)}
-                      className="px-3 py-1.5 rounded-md text-sm font-medium bg-orange-100 text-orange-700 hover:bg-orange-200"
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-orange-50 text-orange-600 hover:bg-orange-100 active:scale-95 transition-all duration-150"
                     >
                       {t("admin.resetPassword")}
                     </button>
                   </>
                 )}
                 {u.role === "super_admin" && (
-                  <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
                     {t("admin.protectedAccount")}
                   </span>
                 )}
@@ -310,22 +310,22 @@ export default function UsersPage() {
           </div>
         ))}
         {filtered.length === 0 && (
-          <p className="text-gray-500 text-center py-4">{t("admin.noUsers")}</p>
+          <p className="text-slate-400 text-center py-4 text-sm">{t("admin.noUsers")}</p>
         )}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 pt-4">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 hover:bg-slate-100 disabled:opacity-50 transition-all duration-150"
             >
               ←
             </button>
-            <span className="text-sm text-gray-600">{page} / {totalPages}</span>
+            <span className="text-sm text-slate-500">{page} / {totalPages}</span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1.5 rounded-md text-sm font-medium bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 hover:bg-slate-100 disabled:opacity-50 transition-all duration-150"
             >
               →
             </button>
