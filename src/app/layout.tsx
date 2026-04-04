@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { I18nProvider } from "@/lib/i18n/context";
 import { ToastProvider } from "@/components/Toast";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Verena Church - Trip Management",
@@ -21,6 +22,7 @@ export default function RootLayout({
             {children}
           </ToastProvider>
         </I18nProvider>
+        <Analytics />
       </body>
     </html>
   );
