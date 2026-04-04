@@ -143,7 +143,7 @@ export default function TripsManagementPage() {
 
       {showForm && (
         <div className="card mb-6 animate-slide-up">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 mb-4">
             {editingId ? t("admin.editTrip") : t("admin.createTrip")}
           </h2>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
@@ -170,8 +170,8 @@ export default function TripsManagementPage() {
                 onClick={() => setForm({ ...form, is_open: !form.is_open })}
                 className={`px-4 py-3 rounded-xl font-semibold min-h-[48px] transition-all duration-150 ${
                   form.is_open
-                    ? "bg-blue-50 text-blue-700 border-2 border-blue-200"
-                    : "bg-slate-100 text-slate-500 border-2 border-slate-200"
+                    ? "bg-blue-50 text-blue-700 border-2 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800"
+                    : "bg-slate-100 text-slate-500 border-2 border-slate-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
                 }`}
               >
                 {form.is_open ? t("admin.isOpen") : t("admin.isClosed")}
@@ -194,13 +194,13 @@ export default function TripsManagementPage() {
           <div key={trip.id} className="card">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-bold text-slate-800">{trip.title_ar}</h3>
-                <p className="text-sm text-slate-400">{trip.trip_date}</p>
+                <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{trip.title_ar}</h3>
+                <p className="text-sm text-slate-400 dark:text-gray-500">{trip.trip_date}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => router.push(`/admin/trips/${trip.id}`)}
-                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-95 transition-all duration-150 min-h-[40px]"
+                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-950/50 hover:bg-blue-100 active:scale-95 transition-all duration-150 min-h-[40px]"
                 >
                   {t("admin.manage")}
                 </button>
@@ -208,21 +208,21 @@ export default function TripsManagementPage() {
                   onClick={() => toggleOpen(trip)}
                   className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium active:scale-95 transition-all duration-150 min-h-[40px] ${
                     trip.is_open
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-slate-100 text-slate-500"
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                      : "bg-slate-100 text-slate-500 dark:bg-gray-800 dark:text-gray-400"
                   }`}
                 >
                   {trip.is_open ? t("admin.isOpen") : t("admin.isClosed")}
                 </button>
                 <button
                   onClick={() => startEdit(trip)}
-                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all duration-150 min-h-[40px]"
+                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-slate-50 text-slate-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 hover:bg-slate-100 active:scale-95 transition-all duration-150 min-h-[40px]"
                 >
                   {t("common.edit")}
                 </button>
                 <button
                   onClick={() => handleDelete(trip.id)}
-                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all duration-150 min-h-[40px]"
+                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50 hover:bg-red-100 active:scale-95 transition-all duration-150 min-h-[40px]"
                 >
                   {t("common.delete")}
                 </button>

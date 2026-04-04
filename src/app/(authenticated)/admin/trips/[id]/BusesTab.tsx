@@ -168,7 +168,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-slate-800">{t("admin.buses")}</h2>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">{t("admin.buses")}</h2>
         <button onClick={startCreate} className="btn-primary">
           + {t("admin.createBus")}
         </button>
@@ -242,8 +242,8 @@ export default function BusesTab({ tripId }: { tripId: string }) {
 
       {buses.length === 0 ? (
         <div className="text-center py-10">
-          <p className="text-lg text-slate-400 mb-2">{t("admin.noBusesYet")}</p>
-          <p className="text-sm text-slate-300 mb-4">{t("admin.addBusesFirst")}</p>
+          <p className="text-lg text-slate-400 dark:text-gray-500 mb-2">{t("admin.noBusesYet")}</p>
+          <p className="text-sm text-slate-300 dark:text-gray-600 mb-4">{t("admin.addBusesFirst")}</p>
           <button onClick={startCreate} className="btn-primary">
             + {t("admin.createBus")}
           </button>
@@ -254,16 +254,16 @@ export default function BusesTab({ tripId }: { tripId: string }) {
             const percent = bus.capacity > 0 ? (bus.booking_count / bus.capacity) * 100 : 0;
             const displayName = bus.bus_label || bus.area_name_ar;
             const statusBg = percent >= 80
-              ? "bg-red-50 text-red-600"
+              ? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
               : percent >= 50
-                ? "bg-amber-50 text-amber-700"
-                : "bg-blue-50 text-blue-700";
+                ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
+                : "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400";
             const fillClass = percent >= 80 ? "danger" : percent >= 50 ? "warning" : "";
             return (
               <div key={bus.id} className="card">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-slate-800">{displayName}</h3>
+                    <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{displayName}</h3>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBg}`}>
                       {bus.booking_count}/{bus.capacity}
                     </span>
@@ -271,24 +271,24 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => startEdit(bus)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all duration-150"
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
                     >
                       {t("common.edit")}
                     </button>
                     <button
                       onClick={() => handleDelete(bus.id)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all duration-150"
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 active:scale-95 transition-all duration-150"
                     >
                       {t("common.delete")}
                     </button>
                   </div>
                 </div>
                 {bus.leader_name && (
-                  <p className="text-sm text-slate-400 mb-1">
+                  <p className="text-sm text-slate-400 dark:text-gray-500 mb-1">
                     {t("admin.leaderName")}: {bus.leader_name}
                   </p>
                 )}
-                <div className="flex justify-between text-sm text-slate-400 mb-1.5">
+                <div className="flex justify-between text-sm text-slate-400 dark:text-gray-500 mb-1.5">
                   <span>{t("admin.passengers")}: {bus.booking_count}/{bus.capacity}</span>
                   <span>{Math.round(percent)}%</span>
                 </div>

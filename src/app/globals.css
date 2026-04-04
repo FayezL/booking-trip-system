@@ -10,7 +10,7 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-800;
+    @apply bg-slate-50 text-slate-800 dark:bg-gray-950 dark:text-gray-100;
   }
 
   * {
@@ -20,27 +20,27 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-6 rounded-xl text-lg font-semibold min-h-[48px] hover:bg-blue-700 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm shadow-blue-600/20;
+    @apply inline-flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-6 rounded-xl text-lg font-semibold min-h-[48px] hover:bg-blue-700 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm shadow-blue-600/20 dark:shadow-blue-400/10;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 bg-slate-100 text-slate-700 py-3 px-6 rounded-xl text-lg font-semibold min-h-[48px] hover:bg-slate-200 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-2 bg-slate-100 text-slate-700 py-3 px-6 rounded-xl text-lg font-semibold min-h-[48px] hover:bg-slate-200 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 bg-red-50 text-red-600 py-2 px-3 rounded-lg text-sm font-medium min-h-[44px] hover:bg-red-100 active:scale-[0.98] transition-all duration-150;
+    @apply inline-flex items-center justify-center gap-2 bg-red-50 text-red-600 py-2 px-3 rounded-lg text-sm font-medium min-h-[44px] hover:bg-red-100 active:scale-[0.98] transition-all duration-150 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-950;
   }
 
   .input-field {
-    @apply w-full px-4 py-3 text-lg border border-slate-200 rounded-xl min-h-[48px] bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all duration-150 placeholder:text-slate-300;
+    @apply w-full px-4 py-3 text-lg border border-slate-200 rounded-xl min-h-[48px] bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all duration-150 placeholder:text-slate-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400;
   }
 
   .label-text {
-    @apply block text-base font-medium text-slate-600 mb-1.5;
+    @apply block text-base font-medium text-slate-600 mb-1.5 dark:text-gray-400;
   }
 
   .card {
-    @apply bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 transition-shadow duration-200;
+    @apply bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 transition-shadow duration-200 dark:bg-gray-900 dark:border-gray-800;
   }
 
   .card-hover {
@@ -52,23 +52,23 @@
   }
 
   .badge-blue {
-    @apply badge bg-blue-50 text-blue-700;
+    @apply badge bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400;
   }
 
   .badge-green {
-    @apply badge bg-emerald-50 text-emerald-700;
+    @apply badge bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400;
   }
 
   .badge-red {
-    @apply badge bg-red-50 text-red-700;
+    @apply badge bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400;
   }
 
   .badge-amber {
-    @apply badge bg-amber-50 text-amber-700;
+    @apply badge bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400;
   }
 
   .section-title {
-    @apply text-xl sm:text-2xl font-bold text-slate-800;
+    @apply text-xl sm:text-2xl font-bold text-slate-800 dark:text-gray-100;
   }
 }
 
@@ -116,7 +116,7 @@
 }
 
 .progress-bar {
-  @apply w-full bg-slate-100 rounded-full overflow-hidden;
+  @apply w-full bg-slate-100 rounded-full overflow-hidden dark:bg-gray-800;
   height: 10px;
 }
 
@@ -143,7 +143,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full;
+  @apply bg-slate-200 rounded-full dark:bg-gray-700;
 }
 
 .hide-scrollbar {

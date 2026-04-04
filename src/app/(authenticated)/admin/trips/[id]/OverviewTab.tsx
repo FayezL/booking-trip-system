@@ -87,16 +87,16 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
   }
 
   const stats = [
-    { label: t("admin.totalBooked"), value: totalBooked, bg: "bg-blue-50", text: "text-blue-700" },
-    { label: t("admin.unbookedCount"), value: totalRegistered - totalBooked, bg: "bg-red-50", text: "text-red-600" },
-    { label: t("admin.busSeatsFilled"), value: `${busSeatsFilled}/${busSeatsTotal}`, bg: "bg-slate-50", text: "text-slate-700" },
-    { label: t("admin.roomsAssigned"), value: `${roomsAssigned}/${roomsTotal}`, bg: "bg-purple-50", text: "text-purple-700" },
+    { label: t("admin.totalBooked"), value: totalBooked, bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-700 dark:text-blue-400" },
+    { label: t("admin.unbookedCount"), value: totalRegistered - totalBooked, bg: "bg-red-50 dark:bg-red-950/30", text: "text-red-600 dark:text-red-400" },
+    { label: t("admin.busSeatsFilled"), value: `${busSeatsFilled}/${busSeatsTotal}`, bg: "bg-slate-50 dark:bg-gray-800", text: "text-slate-700 dark:text-gray-300" },
+    { label: t("admin.roomsAssigned"), value: `${roomsAssigned}/${roomsTotal}`, bg: "bg-purple-50 dark:bg-purple-950/30", text: "text-purple-700 dark:text-purple-400" },
   ];
 
   function getStatusColor(percent: number) {
-    if (percent >= 80) return { fill: "danger", badge: "bg-red-50 text-red-600" };
-    if (percent >= 50) return { fill: "warning", badge: "bg-amber-50 text-amber-700" };
-    return { fill: "", badge: "bg-blue-50 text-blue-700" };
+    if (percent >= 80) return { fill: "danger", badge: "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400" };
+    if (percent >= 50) return { fill: "warning", badge: "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" };
+    return { fill: "", badge: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400" };
   }
 
   return (
@@ -105,14 +105,14 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
         {stats.map((stat) => (
           <div key={stat.label} className={`${stat.bg} rounded-2xl p-4 text-center`}>
             <div className={`text-2xl font-bold ${stat.text}`}>{stat.value}</div>
-            <div className="text-xs text-slate-400 mt-1">{stat.label}</div>
+            <div className="text-xs text-slate-400 dark:text-gray-500 mt-1">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {areaGroups.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-3">{t("admin.areaOverview")}</h2>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 mb-3">{t("admin.areaOverview")}</h2>
           <div className="space-y-3">
             {areaGroups.map((group) => {
               const percent = group.totalCapacity > 0 ? (group.totalBooked / group.totalCapacity) * 100 : 0;
@@ -121,12 +121,12 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
                 <div key={group.areaName} className="card">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-slate-800">{group.areaName}</h3>
+                      <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{group.areaName}</h3>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.badge}`}>
                         {group.buses.length} {t("admin.busesCount")}
                       </span>
                     </div>
-                    <span className="text-sm text-slate-400">
+                    <span className="text-sm text-slate-400 dark:text-gray-500">
                       {group.totalBooked}/{group.totalCapacity}
                     </span>
                   </div>
@@ -136,7 +136,7 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
                       style={{ width: `${Math.min(percent, 100)}%` }}
                     />
                   </div>
-                  <p className="text-sm text-slate-400 mt-2">
+                  <p className="text-sm text-slate-400 dark:text-gray-500 mt-2">
                     {group.buses.map((b) => b.bus_label || b.area_name_ar).join("، ")}
                   </p>
                 </div>
@@ -148,8 +148,8 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
 
       {areaGroups.length === 0 && (
         <div className="text-center py-8">
-          <p className="text-base text-slate-400 mb-2">{t("admin.noBusesYet")}</p>
-          <p className="text-sm text-slate-300 mb-4">{t("admin.addBusesFirst")}</p>
+          <p className="text-base text-slate-400 dark:text-gray-500 mb-2">{t("admin.noBusesYet")}</p>
+          <p className="text-sm text-slate-300 dark:text-gray-600 mb-4">{t("admin.addBusesFirst")}</p>
         </div>
       )}
 

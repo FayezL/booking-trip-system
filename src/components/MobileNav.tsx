@@ -101,7 +101,7 @@ export default function MobileNav({ profile }: MobileNavProps) {
   }
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 md:hidden safe-area-bottom">
+    <nav className="fixed bottom-0 inset-x-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-slate-200 dark:border-gray-800 md:hidden safe-area-bottom">
       <div className="flex items-center justify-around h-16">
         {tabs.map((tab) => {
           const active = isActive(tab.href);
@@ -110,7 +110,7 @@ export default function MobileNav({ profile }: MobileNavProps) {
               key={tab.key}
               onClick={() => router.push(tab.href)}
               className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors duration-150 ${
-                active ? "text-blue-600" : "text-slate-400"
+                active ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-gray-500"
               }`}
             >
               {active ? icons[getActiveIcon(tab.icon)] : icons[tab.icon]}

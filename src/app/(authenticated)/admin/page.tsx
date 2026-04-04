@@ -105,35 +105,35 @@ export default function AdminDashboard() {
             className="card-hover"
             onClick={() => router.push(`/admin/trips/${s.trip.id}`)}
           >
-            <h2 className="text-lg font-bold text-slate-800 mb-2">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 mb-2">
               {lang === "ar" ? s.trip.title_ar : s.trip.title_en}
             </h2>
-            <p className="text-sm text-slate-400 mb-4">{s.trip.trip_date}</p>
+            <p className="text-sm text-slate-400 dark:text-gray-500 mb-4">{s.trip.trip_date}</p>
 
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="bg-slate-50 rounded-xl p-3 text-center">
-                <div className="font-bold text-lg text-slate-700">{s.totalRegistered}</div>
-                <div className="text-slate-400 text-xs">{t("admin.totalRegistered")}</div>
+              <div className="bg-slate-50 dark:bg-gray-800 rounded-xl p-3 text-center">
+                <div className="font-bold text-lg text-slate-700 dark:text-gray-300">{s.totalRegistered}</div>
+                <div className="text-slate-400 dark:text-gray-500 text-xs">{t("admin.totalRegistered")}</div>
               </div>
-              <div className="bg-blue-50 rounded-xl p-3 text-center">
-                <div className="font-bold text-lg text-blue-700">{s.bookedCount}</div>
-                <div className="text-slate-400 text-xs">{t("admin.bookedCount")}</div>
+              <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-3 text-center">
+                <div className="font-bold text-lg text-blue-700 dark:text-blue-400">{s.bookedCount}</div>
+                <div className="text-slate-400 dark:text-gray-500 text-xs">{t("admin.bookedCount")}</div>
               </div>
-              <div className="bg-red-50 rounded-xl p-3 text-center">
-                <div className="font-bold text-lg text-red-600">{s.unbookedCount}</div>
-                <div className="text-slate-400 text-xs">{t("admin.unbookedCount")}</div>
+              <div className="bg-red-50 dark:bg-red-950/30 rounded-xl p-3 text-center">
+                <div className="font-bold text-lg text-red-600 dark:text-red-400">{s.unbookedCount}</div>
+                <div className="text-slate-400 dark:text-gray-500 text-xs">{t("admin.unbookedCount")}</div>
               </div>
-              <div className="bg-slate-50 rounded-xl p-3 text-center">
-                <div className="font-bold text-lg text-slate-700">
+              <div className="bg-slate-50 dark:bg-gray-800 rounded-xl p-3 text-center">
+                <div className="font-bold text-lg text-slate-700 dark:text-gray-300">
                   {s.busSeatsFilled}/{s.busSeatsTotal}
                 </div>
-                <div className="text-slate-400 text-xs">{t("admin.busSeatsFilled")}</div>
+                <div className="text-slate-400 dark:text-gray-500 text-xs">{t("admin.busSeatsFilled")}</div>
               </div>
-              <div className="bg-purple-50 rounded-xl p-3 text-center col-span-2">
-                <div className="font-bold text-lg text-purple-700">
+              <div className="bg-purple-50 dark:bg-purple-950/30 rounded-xl p-3 text-center col-span-2">
+                <div className="font-bold text-lg text-purple-700 dark:text-purple-400">
                   {s.roomsAssigned}/{s.bookingTotal}
                 </div>
-                <div className="text-slate-400 text-xs">{t("admin.roomsAssigned")}</div>
+                <div className="text-slate-400 dark:text-gray-500 text-xs">{t("admin.roomsAssigned")}</div>
               </div>
             </div>
           </div>

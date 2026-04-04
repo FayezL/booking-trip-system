@@ -176,8 +176,8 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">{t("admin.unbooked")}</h2>
-          <p className="text-sm text-slate-400">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">{t("admin.unbooked")}</h2>
+          <p className="text-sm text-slate-400 dark:text-gray-500">
             {unbooked.length} {t("admin.unbooked")} ({maleCount}M, {femaleCount}F)
           </p>
         </div>
@@ -188,7 +188,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
       {showRegister && (
         <div className="card mb-4 animate-slide-up">
-          <h3 className="text-base font-bold text-slate-800 mb-3">{t("admin.registerPatient")}</h3>
+          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">{t("admin.registerPatient")}</h3>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
               <label className="label-text">{t("auth.phone")}</label>
@@ -260,7 +260,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
       {bookingUser && (
         <div className="card mb-4 animate-slide-up">
-          <h3 className="text-base font-bold text-slate-800 mb-3">{t("admin.book")}</h3>
+          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">{t("admin.book")}</h3>
           <div>
             <label className="label-text">{t("buses.chooseBus")}</label>
             <select
@@ -300,8 +300,8 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               onClick={() => setGenderFilter(g)}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
                 genderFilter === g
-                  ? "bg-blue-50 text-blue-700"
-                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
+                  : "bg-slate-50 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700"
               }`}
             >
               {g === "" ? t("admin.all") : g === "Male" ? t("auth.male") : t("auth.female")}
@@ -312,20 +312,20 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <p className="text-slate-400 text-center py-4 text-sm">{t("admin.noBookings")}</p>
+          <p className="text-slate-400 dark:text-gray-500 text-center py-4 text-sm">{t("admin.noBookings")}</p>
         ) : (
           <>
             {paginated.map((p) => (
               <div key={p.id} className="card">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-slate-800 text-sm">{p.full_name}</span>
-                    <span className="text-xs text-slate-400" dir="ltr">{p.phone}</span>
+                    <span className="font-medium text-slate-800 dark:text-gray-100 text-sm">{p.full_name}</span>
+                    <span className="text-xs text-slate-400 dark:text-gray-500" dir="ltr">{p.phone}</span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         p.gender === "Male"
-                          ? "bg-blue-50 text-blue-600"
-                          : "bg-pink-50 text-pink-600"
+                          ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
+                          : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
                       }`}
                     >
                       {p.gender === "Male" ? t("auth.male") : t("auth.female")}
@@ -345,15 +345,15 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 hover:bg-slate-100 disabled:opacity-50 transition-all duration-150"
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
                 >
                   ←
                 </button>
-                <span className="text-sm text-slate-500">{page} / {totalPages}</span>
+                <span className="text-sm text-slate-500 dark:text-gray-400">{page} / {totalPages}</span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 hover:bg-slate-100 disabled:opacity-50 transition-all duration-150"
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
                 >
                   →
                 </button>

@@ -68,12 +68,12 @@ export default function TripsPage() {
 
       {trips.length === 0 ? (
         <div className="text-center py-16">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="w-16 h-16 bg-slate-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-slate-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <p className="text-lg text-slate-400">{t("trips.noTrips")}</p>
+          <p className="text-lg text-slate-400 dark:text-gray-500">{t("trips.noTrips")}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -83,8 +83,8 @@ export default function TripsPage() {
               <div key={trip.id} className="card">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-800">{getTripTitle(trip)}</h2>
-                    <p className="text-slate-400 mt-1 text-sm">{t("trips.date")}: {trip.trip_date}</p>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100">{getTripTitle(trip)}</h2>
+                    <p className="text-slate-400 dark:text-gray-500 mt-1 text-sm">{t("trips.date")}: {trip.trip_date}</p>
                   </div>
 
                   <div className="shrink-0">
@@ -119,16 +119,16 @@ export default function TripsPage() {
               <div key={booking.id} className="card">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <div className="w-10 h-10 bg-blue-50 dark:bg-blue-950/30 rounded-xl flex items-center justify-center shrink-0">
+                       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-slate-800">
+                      <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">
                         {booking.trips ? getTripTitle(booking.trips as Trip) : ""}
                       </h3>
-                      <p className="text-sm text-slate-400">
+                       <p className="text-sm text-slate-400 dark:text-gray-500">
                         {t("confirm.bus")}: {lang === "ar" ? booking.buses.area_name_ar : booking.buses.area_name_en}
                       </p>
                     </div>

@@ -8,7 +8,7 @@ export default function LanguageToggle() {
   return (
     <button
       onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-      className="px-3 py-1.5 text-sm font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 active:scale-95 transition-all duration-150"
+      className="px-3 py-1.5 text-sm font-semibold rounded-lg bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-600 dark:text-gray-300 active:scale-95 transition-all duration-150"
     >
       {lang === "ar" ? "EN" : "عربي"}
     </button>

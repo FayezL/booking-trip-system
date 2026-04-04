@@ -45,7 +45,7 @@ export default function TripDetailPage({
   }
 
   if (!trip) {
-    return <p className="text-center py-20 text-slate-400">{t("common.error")}</p>;
+    return <p className="text-center py-20 text-slate-400 dark:text-gray-500">{t("common.error")}</p>;
   }
 
   const tabs: { key: Tab; label: string }[] = [
@@ -59,7 +59,7 @@ export default function TripDetailPage({
     <div className="animate-fade-in">
       <button
         onClick={() => router.push("/admin/trips")}
-        className="mb-4 text-blue-600 font-semibold text-base hover:text-blue-700 transition-colors inline-flex items-center gap-1"
+        className="mb-4 text-blue-600 dark:text-blue-400 font-semibold text-base hover:text-blue-700 dark:hover:text-blue-300 transition-colors inline-flex items-center gap-1"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l7-7-7-7" />
@@ -70,17 +70,17 @@ export default function TripDetailPage({
       <h1 className="section-title mb-1">
         {lang === "ar" ? trip.title_ar : trip.title_en}
       </h1>
-      <p className="text-slate-400 mb-4 text-sm">{trip.trip_date}</p>
+      <p className="text-slate-400 dark:text-gray-500 mb-4 text-sm">{trip.trip_date}</p>
 
-      <div className="flex gap-1 mb-6 border-b border-slate-200 overflow-x-auto hide-scrollbar -mx-4 px-4">
+      <div className="flex gap-1 mb-6 border-b border-slate-200 dark:border-gray-800 overflow-x-auto hide-scrollbar -mx-4 px-4">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2.5 text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === tab.key
-                ? "border-blue-600 text-blue-700"
-                : "border-transparent text-slate-400 hover:text-slate-600"
+                ? "border-blue-600 dark:border-blue-400 text-blue-700 dark:text-blue-400"
+                : "border-transparent text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300"
             }`}
           >
             {tab.label}
