@@ -8,7 +8,8 @@ import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Bus, Trip } from "@/lib/types/database";
 
-type BusWithCount = Bus & { booking_count: number; passengers: string[] };
+type PassengerInfo = { full_name: string; has_wheelchair: boolean };
+type BusWithCount = Bus & { booking_count: number; passengers: PassengerInfo[] };
 
 type AreaGroup = {
   areaId: string | null;
@@ -44,17 +45,20 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
         supabase.from("buses").select("*").eq("trip_id", tripId),
         supabase
           .from("bookings")
-          .select("bus_id, profiles(full_name)")
+          .select("bus_id, profiles(full_name, has_wheelchair)")
           .eq("trip_id", tripId)
           .is("cancelled_at", null),
       ]);
 
       if (tripRes.data) setTrip(tripRes.data);
 
-      const passengersByBus: Record<string, string[]> = {};
+      const passengersByBus: Record<string, PassengerInfo[]> = {};
       for (const b of bookingsRes.data || []) {
         const list = passengersByBus[b.bus_id] || [];
-        if (b.profiles) list.push((b.profiles as { full_name: string }).full_name);
+        if (b.profiles) {
+          const p = b.profiles as { full_name: string; has_wheelchair: boolean };
+          list.push({ full_name: p.full_name, has_wheelchair: p.has_wheelchair });
+        }
         passengersByBus[b.bus_id] = list;
       }
 
@@ -255,8 +259,12 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                           <p className="text-xs font-medium text-slate-300 dark:text-gray-600 mb-1">
                             {t("admin.passengersList")} ({bus.passengers.length})
                           </p>
-                          <p className="text-sm text-slate-500 dark:text-gray-400">
-                            {visiblePassengers.join("، ")}
+                          <div className="text-sm text-slate-500 dark:text-gray-400">
+                            {visiblePassengers.map((p, i) => (
+                              <span key={i}>
+                                {p.full_name}{p.has_wheelchair && " ♿"}{i < visiblePassengers.length - 1 ? "، " : ""}
+                              </span>
+                            ))}
                             {!showAll && hiddenCount > 0 && (
                               <button
                                 onClick={() => toggleExpand(bus.id)}
@@ -265,7 +273,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                                 +{hiddenCount} {t("admin.showMore")}
                               </button>
                             )}
-                          </p>
+                          </div>
                         </div>
                       )}
                     </div>

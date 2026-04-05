@@ -14,6 +14,8 @@ type RegisterForm = {
   gender: "Male" | "Female";
   password: string;
   bus_id: string;
+  role: string;
+  has_wheelchair: boolean;
 };
 
 const emptyForm: RegisterForm = {
@@ -22,6 +24,8 @@ const emptyForm: RegisterForm = {
   gender: "Male",
   password: "",
   bus_id: "",
+  role: "patient",
+  has_wheelchair: false,
 };
 
 export default function UnbookedTab({ tripId }: { tripId: string }) {
@@ -65,6 +69,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
         .from("profiles")
         .select("*")
         .neq("id", user.id)
+        .is("deleted_at", null)
         .not("id", "in", `(${bookedIds.join(",")})`)
         .order("full_name");
     } else {
@@ -72,6 +77,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
         .from("profiles")
         .select("*")
         .neq("id", user.id)
+        .is("deleted_at", null)
         .order("full_name");
     }
 
@@ -122,6 +128,8 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       p_password: form.password,
       p_trip_id: form.bus_id ? tripId : null,
       p_bus_id: form.bus_id || null,
+      p_role: form.role,
+      p_has_wheelchair: form.has_wheelchair,
     });
 
     setSaving(false);
@@ -222,6 +230,41 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               </select>
             </div>
             <div>
+              <label className="label-text">{t("admin.role")}</label>
+              <select
+                className="input-field"
+                value={form.role}
+                onChange={(e) => {
+                  const newRole = e.target.value;
+                  setForm({ ...form, role: newRole, has_wheelchair: newRole === "patient" ? form.has_wheelchair : false });
+                }}
+              >
+                <option value="patient">{t("admin.patient")}</option>
+                <option value="companion">{t("admin.companion")}</option>
+                <option value="family_assistant">{t("admin.familyAssistant")}</option>
+              </select>
+            </div>
+            {form.role === "patient" && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.has_wheelchair}
+                  onClick={() => setForm({ ...form, has_wheelchair: !form.has_wheelchair })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    form.has_wheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      form.has_wheelchair ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm text-slate-600 dark:text-gray-300">♿ {t("admin.wheelchair")}</span>
+              </div>
+            )}
+            <div>
               <label className="label-text">{t("auth.password")}</label>
               <input
                 type="password"
@@ -321,6 +364,9 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-slate-800 dark:text-gray-100 text-sm">{p.full_name}</span>
                     <span className="text-xs text-slate-400 dark:text-gray-500" dir="ltr">{p.phone}</span>
+                    {p.has_wheelchair && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" title={t("admin.wheelchair")}>♿</span>
+                    )}
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         p.gender === "Male"

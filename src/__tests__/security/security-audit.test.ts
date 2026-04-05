@@ -228,16 +228,14 @@ describe("Auth Security", () => {
     });
 
     it("redirects authenticated users away from /login and /signup", () => {
-      expect(middlewareSrc).toMatch(
-        /if\s*\(\s*user\s*&&\s*\(pathname\.startsWith\(["']\/login["']\)\s*\|\|\s*pathname\.startsWith\(["']\/signup["']\)\s*\)\s*\)/
-      );
+      expect(middlewareSrc).toMatch(/pathname\.startsWith\(["']\/login["']\)/);
+      expect(middlewareSrc).toMatch(/pathname\.startsWith\(["']\/signup["']\)/);
+      expect(middlewareSrc).toMatch(/NextResponse\.redirect/);
     });
 
-    it("checks servant role before allowing /admin access", () => {
-      expect(middlewareSrc).toMatch(
-        /if\s*\(\s*user\s*&&\s*pathname\.startsWith\(["']\/admin["']\)\s*\)/
-      );
-      expect(middlewareSrc).toMatch(/profile\.role\s*!==?\s*["']servant["']/);
+    it("checks admin role before allowing /admin access", () => {
+      expect(middlewareSrc).toMatch(/pathname\.startsWith\(["']\/admin["']\)/);
+      expect(middlewareSrc).toMatch(/profile\.role\s*!==?\s*["']admin["']/);
     });
   });
 

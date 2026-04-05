@@ -199,6 +199,7 @@ describe("SignupPage", () => {
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByText("auth.male"));
+    await user.click(screen.getByText("admin.patient"));
     await user.click(screen.getByRole("button", { name: "auth.signupButton" }));
     expect(screen.getByText("auth.passwordRequired")).toBeInTheDocument();
   });
@@ -213,6 +214,7 @@ describe("SignupPage", () => {
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByText("auth.male"));
+    await user.click(screen.getByText("admin.patient"));
     await user.type(screen.getByPlaceholderText("••••••••"), "secret123");
     await user.click(screen.getByRole("button", { name: "auth.signupButton" }));
     await waitFor(() => {
@@ -223,6 +225,8 @@ describe("SignupPage", () => {
           data: {
             full_name: "John Doe",
             gender: "Male",
+            role: "patient",
+            has_wheelchair: false,
           },
         },
       });
@@ -239,6 +243,7 @@ describe("SignupPage", () => {
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByText("auth.male"));
+    await user.click(screen.getByText("admin.patient"));
     await user.type(screen.getByPlaceholderText("••••••••"), "secret123");
     await user.click(screen.getByRole("button", { name: "auth.signupButton" }));
     await waitFor(() => {
@@ -258,6 +263,7 @@ describe("SignupPage", () => {
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByText("auth.male"));
+    await user.click(screen.getByText("admin.patient"));
     await user.type(screen.getByPlaceholderText("••••••••"), "secret123");
     await user.click(screen.getByRole("button", { name: "auth.signupButton" }));
     await waitFor(() => {
@@ -280,6 +286,7 @@ describe("SignupPage", () => {
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByText("auth.male"));
+    await user.click(screen.getByText("admin.patient"));
     await user.type(screen.getByPlaceholderText("••••••••"), "secret123");
     await user.click(screen.getByRole("button", { name: "auth.signupButton" }));
     expect(screen.getByPlaceholderText("01XXXXXXXXX")).toBeDisabled();

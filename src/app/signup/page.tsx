@@ -7,12 +7,16 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
 
+type SignupRole = "patient" | "companion" | "family_assistant";
+
 export default function SignupPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
   const [gender, setGender] = useState<"Male" | "Female" | "">("");
+  const [role, setRole] = useState<SignupRole | "">("");
+  const [hasWheelchair, setHasWheelchair] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +37,10 @@ export default function SignupPage() {
       setError(t("auth.genderRequired"));
       return;
     }
+    if (!role) {
+      setError(t("auth.userType"));
+      return;
+    }
     if (!password.trim() || password.length < 6) {
       setError(t("auth.passwordRequired"));
       return;
@@ -49,6 +57,8 @@ export default function SignupPage() {
         data: {
           full_name: fullName.trim(),
           gender,
+          role,
+          has_wheelchair: hasWheelchair,
         },
       },
     });
@@ -140,6 +150,54 @@ export default function SignupPage() {
                 </button>
               </div>
             </div>
+
+            <div>
+              <label className="label-text">{t("auth.userType")}</label>
+              <div className="flex gap-2 flex-wrap">
+                {(["patient", "companion", "family_assistant"] as const).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => {
+                      setRole(r);
+                      if (r !== "patient") setHasWheelchair(false);
+                    }}
+                    className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[48px] min-w-[90px]
+                      ${role === r
+                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600"
+                      }`}
+                    disabled={loading}
+                  >
+                    {t(`admin.${r === "patient" ? "patient" : r === "companion" ? "companion" : "familyAssistant"}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {role === "patient" && (
+              <div className="flex items-center gap-3 py-2">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hasWheelchair}
+                  onClick={() => setHasWheelchair(!hasWheelchair)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    hasWheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
+                  }`}
+                  disabled={loading}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      hasWheelchair ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm text-slate-600 dark:text-gray-300">
+                  ♿ {t("auth.wheelchair")}
+                </span>
+              </div>
+            )}
 
             <div>
               <label className="label-text">{t("auth.password")}</label>

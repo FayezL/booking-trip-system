@@ -24,7 +24,11 @@
     "phoneExists": "This phone number is already registered — you can book for them",
     "logout": "Logout",
     "welcome": "Welcome",
-    "rememberMe": "Remember Me"
+    "rememberMe": "Remember Me",
+    "userType": "User Type",
+    "companion": "Companion",
+    "familyAssistant": "Family Assistant",
+    "wheelchair": "Using a wheelchair"
   },
   "trips": {
     "title": "Available Trips",
@@ -176,7 +180,15 @@
     "availableRooms": "Available",
     "fullRooms": "Full",
     "assignRoom": "Assign Room",
-    "removeFromRoom": "Remove from Room"
+    "removeFromRoom": "Remove from Room",
+    "adminRole": "Admin",
+    "companion": "Companion",
+    "familyAssistant": "Family Assistant",
+    "addPerson": "New Person",
+    "deleteUser": "Delete User",
+    "confirmDeleteUser": "Are you sure you want to delete this user?",
+    "userDeleted": "User has been deleted",
+    "wheelchair": "Wheelchair"
   },
   "common": {
     "loading": "Loading...",

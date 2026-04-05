@@ -8,19 +8,52 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import type { Profile } from "@/lib/types/database";
 
-type ServantForm = {
+type UserRole = "admin" | "servant" | "patient" | "companion" | "family_assistant";
+
+type PersonForm = {
   phone: string;
   full_name: string;
   gender: "Male" | "Female";
   password: string;
+  role: UserRole;
+  has_wheelchair: boolean;
 };
 
-const emptyServantForm: ServantForm = {
+const emptyPersonForm: PersonForm = {
   phone: "",
   full_name: "",
   gender: "Male",
   password: "",
+  role: "patient",
+  has_wheelchair: false,
 };
+
+const ALL_ROLES: ("super_admin" | UserRole)[] = ["super_admin", "admin", "servant", "patient", "companion", "family_assistant"];
+const CREATABLE_ROLES: UserRole[] = ["admin", "patient", "companion", "family_assistant"];
+
+function getRoleLabel(role: string, t: (key: string) => string): string {
+  switch (role) {
+    case "super_admin": return t("admin.superAdmin");
+    case "admin": return t("admin.adminRole");
+    case "servant": return t("admin.servant");
+    case "patient": return t("admin.patient");
+    case "companion": return t("admin.companion");
+    case "family_assistant": return t("admin.familyAssistant");
+    default: return role;
+  }
+}
+
+function getRoleBadgeClasses(role: string): string {
+  switch (role) {
+    case "super_admin": return "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400";
+    case "admin": return "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400";
+    case "servant": return "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400";
+    case "patient": return "bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400";
+    case "companion": return "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400";
+    case "family_assistant": return "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400";
+    default: return "bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400";
+  }
+}
 
 export default function UsersPage() {
   const { t } = useTranslation();
@@ -34,9 +67,10 @@ export default function UsersPage() {
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
-  const [showServantForm, setShowServantForm] = useState(false);
-  const [servantForm, setServantForm] = useState<ServantForm>(emptyServantForm);
-  const [creatingServant, setCreatingServant] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<PersonForm>(emptyPersonForm);
+  const [creating, setCreating] = useState(false);
+  const [changingRoleUserId, setChangingRoleUserId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
   const PAGE_SIZE = 20;
@@ -49,8 +83,9 @@ export default function UsersPage() {
     const { data } = await supabase
       .from("profiles")
       .select("*")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
-    setUsers(data || []);
+    setUsers((data || []) as Profile[]);
     setLoading(false);
   }
 
@@ -77,8 +112,7 @@ export default function UsersPage() {
     }
   }
 
-  async function handleChangeRole(userId: string, currentRole: string) {
-    const newRole = currentRole === "patient" ? "servant" : "patient";
+  async function handleChangeRole(userId: string, newRole: string) {
     const { error } = await supabase
       .from("profiles")
       .update({ role: newRole })
@@ -88,31 +122,34 @@ export default function UsersPage() {
       showToast(t("common.error"), "error");
     } else {
       showToast(t("admin.changeRole"), "success");
-      logAction("change_role", "user", userId, { from: currentRole, to: newRole });
+      logAction("change_role", "user", userId, { to: newRole });
+      setChangingRoleUserId(null);
       loadUsers();
     }
   }
 
-  async function handleCreateServant() {
+  async function handleCreatePerson() {
     if (
-      !servantForm.phone ||
-      !/^\d{8,15}$/.test(servantForm.phone) ||
-      !servantForm.full_name ||
-      !servantForm.password ||
-      servantForm.password.length < 6
+      !form.phone ||
+      !/^\d{8,15}$/.test(form.phone) ||
+      !form.full_name ||
+      !form.password ||
+      form.password.length < 6
     ) {
       showToast(t("common.error"), "error");
       return;
     }
 
-    setCreatingServant(true);
-    const { error } = await supabase.rpc("admin_create_servant", {
-      p_phone: servantForm.phone,
-      p_full_name: servantForm.full_name,
-      p_gender: servantForm.gender,
-      p_password: servantForm.password,
+    setCreating(true);
+    const { error } = await supabase.rpc("admin_create_user", {
+      p_phone: form.phone,
+      p_full_name: form.full_name,
+      p_gender: form.gender,
+      p_password: form.password,
+      p_role: form.role,
+      p_has_wheelchair: form.has_wheelchair,
     });
-    setCreatingServant(false);
+    setCreating(false);
 
     if (error) {
       if (error.message.includes("unique") || error.message.includes("already")) {
@@ -123,11 +160,27 @@ export default function UsersPage() {
       return;
     }
 
-    showToast(t("admin.servant") + " ✓", "success");
-    logAction("create_servant", "user", undefined, { phone: servantForm.phone });
-    setShowServantForm(false);
-    setServantForm(emptyServantForm);
+    showToast(getRoleLabel(form.role, t) + " ✓", "success");
+    logAction("create_user", "user", undefined, { phone: form.phone, role: form.role });
+    setShowForm(false);
+    setForm(emptyPersonForm);
     loadUsers();
+  }
+
+  async function handleDeleteUser(userId: string, userName: string) {
+    if (!confirm(t("admin.confirmDeleteUser"))) return;
+
+    const { error } = await supabase.rpc("admin_delete_user", {
+      p_user_id: userId,
+    });
+
+    if (error) {
+      showToast(t("common.error"), "error");
+    } else {
+      showToast(t("admin.userDeleted"), "success");
+      logAction("delete_user", "user", userId, { name: userName });
+      loadUsers();
+    }
   }
 
   const filtered = useMemo(() => users.filter((u) => {
@@ -152,21 +205,21 @@ export default function UsersPage() {
     <div className="animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <h1 className="section-title">{t("admin.userManagement")}</h1>
-        <button onClick={() => setShowServantForm(!showServantForm)} className="btn-primary w-full sm:w-auto">
-          + {t("admin.addServant")}
+        <button onClick={() => setShowForm(!showForm)} className="btn-primary w-full sm:w-auto">
+          + {t("admin.addPerson")}
         </button>
       </div>
 
-      {showServantForm && (
+      {showForm && (
         <div className="card mb-4 animate-slide-up">
-          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">+ {t("admin.addServant")}</h3>
+          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">+ {t("admin.addPerson")}</h3>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
               <label className="label-text">{t("auth.phone")}</label>
               <input
                 className="input-field"
-                value={servantForm.phone}
-                onChange={(e) => setServantForm({ ...servantForm, phone: e.target.value })}
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="01XXXXXXXXX"
                 dir="ltr"
               />
@@ -175,19 +228,34 @@ export default function UsersPage() {
               <label className="label-text">{t("auth.fullName")}</label>
               <input
                 className="input-field"
-                value={servantForm.full_name}
-                onChange={(e) => setServantForm({ ...servantForm, full_name: e.target.value })}
+                value={form.full_name}
+                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               />
             </div>
             <div>
               <label className="label-text">{t("auth.gender")}</label>
               <select
                 className="input-field"
-                value={servantForm.gender}
-                onChange={(e) => setServantForm({ ...servantForm, gender: e.target.value as "Male" | "Female" })}
+                value={form.gender}
+                onChange={(e) => setForm({ ...form, gender: e.target.value as "Male" | "Female" })}
               >
                 <option value="Male">{t("auth.male")}</option>
                 <option value="Female">{t("auth.female")}</option>
+              </select>
+            </div>
+            <div>
+              <label className="label-text">{t("admin.role")}</label>
+              <select
+                className="input-field"
+                value={form.role}
+                onChange={(e) => {
+                  const newRole = e.target.value as UserRole;
+                  setForm({ ...form, role: newRole, has_wheelchair: newRole === "patient" ? form.has_wheelchair : false });
+                }}
+              >
+                {CREATABLE_ROLES.map((r) => (
+                  <option key={r} value={r}>{getRoleLabel(r, t)}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -195,18 +263,38 @@ export default function UsersPage() {
               <input
                 type="password"
                 className="input-field"
-                value={servantForm.password}
-                onChange={(e) => setServantForm({ ...servantForm, password: e.target.value })}
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
                 dir="ltr"
                 placeholder="••••••••"
               />
             </div>
+            {form.role === "patient" && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.has_wheelchair}
+                  onClick={() => setForm({ ...form, has_wheelchair: !form.has_wheelchair })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    form.has_wheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      form.has_wheelchair ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm text-slate-600 dark:text-gray-300">♿ {t("admin.wheelchair")}</span>
+              </div>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <button onClick={handleCreateServant} disabled={creatingServant} className="btn-primary w-full sm:w-auto">
-              {creatingServant ? t("common.loading") : t("admin.addServant")}
+            <button onClick={handleCreatePerson} disabled={creating} className="btn-primary w-full sm:w-auto">
+              {creating ? t("common.loading") : t("admin.addPerson")}
             </button>
-            <button onClick={() => { setShowServantForm(false); setServantForm(emptyServantForm); }} className="btn-secondary w-full sm:w-auto">
+            <button onClick={() => { setShowForm(false); setForm(emptyPersonForm); }} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
             </button>
           </div>
@@ -221,7 +309,7 @@ export default function UsersPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="flex gap-1 flex-wrap">
-          {["", "super_admin", "servant", "patient"].map((r) => (
+          {["", ...ALL_ROLES].map((r) => (
             <button
               key={r}
               onClick={() => setRoleFilter(r)}
@@ -231,7 +319,7 @@ export default function UsersPage() {
                   : "bg-slate-50 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700"
               }`}
             >
-              {r === "" ? t("admin.all") : r === "super_admin" ? t("admin.superAdmin") : t(`admin.${r}`)}
+              {r === "" ? t("admin.all") : getRoleLabel(r, t)}
             </button>
           ))}
         </div>
@@ -269,34 +357,54 @@ export default function UsersPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-slate-800 dark:text-gray-100 text-sm">{u.full_name}</span>
                 <span className="text-xs text-slate-400 dark:text-gray-500" dir="ltr">{u.phone}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  u.role === "super_admin" ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" :
-                  u.role === "servant" ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400" :
-                  "bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400"
-                }`}>
-                  {u.role === "super_admin" ? t("admin.superAdmin") :
-                   u.role === "servant" ? t("admin.servant") : t("admin.patient")}
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRoleBadgeClasses(u.role)}`}>
+                  {getRoleLabel(u.role, t)}
                 </span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   u.gender === "Male" ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400" : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
                 }`}>
                   {u.gender === "Male" ? t("auth.male") : t("auth.female")}
                 </span>
+                {u.has_wheelchair && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" title={t("admin.wheelchair")}>
+                    ♿
+                  </span>
+                )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {u.role !== "super_admin" && (
                   <>
-                    <button
-                      onClick={() => handleChangeRole(u.id, u.role)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
-                    >
-                      {u.role === "patient" ? t("admin.servant") : t("admin.patient")}
-                    </button>
+                    {changingRoleUserId === u.id ? (
+                      <select
+                        className="input-field !py-1 !text-xs !w-auto"
+                        defaultValue={u.role}
+                        onChange={(e) => handleChangeRole(u.id, e.target.value)}
+                        onBlur={() => setChangingRoleUserId(null)}
+                        autoFocus
+                      >
+                        {ALL_ROLES.filter((r) => r !== "super_admin").map((r) => (
+                          <option key={r} value={r}>{getRoleLabel(r, t)}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <button
+                        onClick={() => setChangingRoleUserId(u.id)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
+                      >
+                        {t("admin.changeRole")}
+                      </button>
+                    )}
                     <button
                       onClick={() => setResetUserId(u.id)}
                       className="px-2.5 py-1 rounded-lg text-xs font-medium bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-950/50 active:scale-95 transition-all duration-150"
                     >
                       {t("admin.resetPassword")}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUser(u.id, u.full_name)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
+                    >
+                      {t("common.delete")}
                     </button>
                   </>
                 )}

@@ -12,7 +12,7 @@ export default function ThemeToggle() {
   }, []);
 
   if (!mounted) {
-    return <div className="w-9 h-9" />;
+    return <div className="w-9 h-9" aria-hidden="true" />;
   }
 
   return (
@@ -20,6 +20,7 @@ export default function ThemeToggle() {
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-800 dark:text-gray-500 active:scale-95 transition-all duration-150"
       title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >
       {theme === "dark" ? (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

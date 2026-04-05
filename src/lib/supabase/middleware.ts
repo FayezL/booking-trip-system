@@ -41,26 +41,27 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
+  if (user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
+      .is("deleted_at", null)
       .single();
 
-    const url = request.nextUrl.clone();
-    url.pathname = (profile?.role === "servant" || profile?.role === "super_admin") ? "/admin" : "/trips";
-    return NextResponse.redirect(url);
-  }
+    if (!profile) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
 
-  if (user && pathname.startsWith("/admin")) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
+      const url = request.nextUrl.clone();
+      url.pathname = (profile.role === "admin" || profile.role === "super_admin") ? "/admin" : "/trips";
+      return NextResponse.redirect(url);
+    }
 
-    if (!profile || (profile.role !== "servant" && profile.role !== "super_admin")) {
+    if (pathname.startsWith("/admin") && profile.role !== "admin" && profile.role !== "super_admin") {
       const url = request.nextUrl.clone();
       url.pathname = "/trips";
       return NextResponse.redirect(url);

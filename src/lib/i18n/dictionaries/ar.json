@@ -24,7 +24,11 @@
     "phoneExists": "الرقم ده مسجل قبل كده — ممكن تحجزله",
     "logout": "خروج",
     "welcome": "أهلاً",
-    "rememberMe": "تذكرني"
+    "rememberMe": "تذكرني",
+    "userType": "نوع المستخدم",
+    "companion": "مرافق",
+    "familyAssistant": "مساعد عائلة",
+    "wheelchair": "معايا كرسي متحرك"
   },
   "trips": {
     "title": "الرحلات المتاحة",
@@ -176,7 +180,15 @@
     "availableRooms": "فيه مكان",
     "fullRooms": "مليانة",
     "assignRoom": "خصّص أوضة",
-    "removeFromRoom": "شيل من الأوضة"
+    "removeFromRoom": "شيل من الأوضة",
+    "adminRole": "مدير",
+    "companion": "مرافق",
+    "familyAssistant": "مساعد عائلة",
+    "addPerson": "شخص جديد",
+    "deleteUser": "مسح المستخدم",
+    "confirmDeleteUser": "متأكد تمسح المستخدم ده؟",
+    "userDeleted": "تم مسح المستخدم",
+    "wheelchair": "كرسي متحرك"
   },
   "common": {
     "loading": "تحميل...",

@@ -72,7 +72,7 @@ export default function MobileNav({ profile }: MobileNavProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const isAdmin = profile.role === "servant" || profile.role === "super_admin";
+  const isAdmin = profile.role === "admin" || profile.role === "super_admin";
 
   const patientTabs = [
     { key: "trips", label: t("trips.title"), href: "/trips", icon: "trips" as const },

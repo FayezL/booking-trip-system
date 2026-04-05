@@ -3,7 +3,9 @@ export type Profile = {
   phone: string;
   full_name: string;
   gender: "Male" | "Female";
-  role: "super_admin" | "servant" | "patient";
+  role: "super_admin" | "admin" | "servant" | "patient" | "companion" | "family_assistant";
+  has_wheelchair: boolean;
+  deleted_at: string | null;
   created_at: string;
 };
 

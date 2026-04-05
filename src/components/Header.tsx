@@ -17,7 +17,7 @@ export default function Header({ profile }: HeaderProps) {
   const pathname = usePathname();
   const supabase = createClient();
 
-  const isAdmin = profile.role === "servant" || profile.role === "super_admin";
+  const isAdmin = profile.role === "admin" || profile.role === "super_admin";
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -60,7 +60,7 @@ export default function Header({ profile }: HeaderProps) {
           <ThemeToggle />
           <button
             onClick={handleLogout}
-            className="p-2 rounded-lg text-slate-400 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-red-500 active:scale-95 transition-all duration-150"
+            className="p-2 rounded-lg text-slate-400 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-red-500 dark:hover:text-red-400 active:scale-95 transition-all duration-150"
             title={t("auth.logout")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

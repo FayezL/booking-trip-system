@@ -50,7 +50,7 @@ serve(async (req) => {
       .eq("id", user.id)
       .single();
 
-    if (profile?.role !== "servant") {
+    if (profile?.role !== "admin" && profile?.role !== "super_admin") {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

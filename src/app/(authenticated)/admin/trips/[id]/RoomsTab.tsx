@@ -21,7 +21,7 @@ const emptyForm: RoomForm = {
 };
 
 type BookingWithProfile = Booking & { profiles: Profile };
-type RoomWithOccupants = Room & { occupant_count: number; occupants: { id: string; full_name: string; booking_id: string }[] };
+type RoomWithOccupants = Room & { occupant_count: number; occupants: { id: string; full_name: string; has_wheelchair: boolean; booking_id: string }[] };
 
 export default function RoomsTab({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
@@ -78,6 +78,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
         occupants: roomBookings.map((b: { id: string; profiles: unknown }) => ({
           id: (b.profiles as unknown as Profile).id,
           full_name: (b.profiles as unknown as Profile).full_name,
+          has_wheelchair: (b.profiles as unknown as Profile).has_wheelchair,
           booking_id: b.id,
         })),
       };
@@ -136,12 +137,14 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
 
     setSaving(true);
 
+    let hadError = false;
+
     if (editingId) {
       const { error } = await supabase
         .from("rooms")
         .update(form)
         .eq("id", editingId);
-      if (error) showToast(t("common.error"), "error");
+      if (error) { showToast(t("common.error"), "error"); hadError = true; }
       else {
         showToast(t("admin.editRoom"), "success");
         logAction("edit_room", "room", editingId);
@@ -150,7 +153,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
       const { error } = await supabase
         .from("rooms")
         .insert({ ...form, room_type: genderTab, trip_id: tripId });
-      if (error) showToast(t("common.error"), "error");
+      if (error) { showToast(t("common.error"), "error"); hadError = true; }
       else {
         showToast(t("admin.createRoom"), "success");
         logAction("create_room", "room");
@@ -158,6 +161,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     }
 
     setSaving(false);
+    if (hadError) return;
     setShowForm(false);
     loadData();
   }
@@ -322,7 +326,10 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-slate-800 dark:text-gray-100 text-sm">{b.profiles.full_name}</span>
+                    <span className="flex items-center gap-1 font-medium text-slate-800 dark:text-gray-100 text-sm">
+                      {b.profiles.full_name}
+                      {b.profiles.has_wheelchair && <span title={t("admin.wheelchair")}>♿</span>}
+                    </span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         b.profiles.gender === "Male"
@@ -385,7 +392,10 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                     <div className="space-y-1">
                       {room.occupants.map((o) => (
                         <div key={o.id} className="flex items-center justify-between text-sm">
-                          <span className="text-slate-500 dark:text-gray-400">{o.full_name}</span>
+                          <span className="flex items-center gap-1 text-slate-500 dark:text-gray-400">
+                            {o.full_name}
+                            {o.has_wheelchair && <span title={t("admin.wheelchair")}>♿</span>}
+                          </span>
                           <button
                             onClick={() => handleRemoveFromRoom(o.booking_id)}
                             className="text-xs text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
