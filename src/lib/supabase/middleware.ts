@@ -38,7 +38,7 @@ export async function updateSession(request: NextRequest) {
   if (!user && !pathname.startsWith("/login") && !pathname.startsWith("/signup")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, supabaseResponse);
   }
 
   if (user) {
@@ -46,27 +46,28 @@ export async function updateSession(request: NextRequest) {
       .from("profiles")
       .select("role")
       .eq("id", user.id)
-      .is("deleted_at", null)
       .single();
 
-    if (!profile) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      return NextResponse.redirect(url);
-    }
-
-    if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
+    if (profile && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
       const url = request.nextUrl.clone();
       url.pathname = (profile.role === "admin" || profile.role === "super_admin") ? "/admin" : "/trips";
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url, supabaseResponse);
     }
 
-    if (pathname.startsWith("/admin") && profile.role !== "admin" && profile.role !== "super_admin") {
+    if (pathname.startsWith("/admin") && (!profile || (profile.role !== "admin" && profile.role !== "super_admin"))) {
       const url = request.nextUrl.clone();
       url.pathname = "/trips";
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url, supabaseResponse);
     }
   }
 
   return supabaseResponse;
+}
+
+function redirectWithCookies(url: URL, response: NextResponse) {
+  const redirect = NextResponse.redirect(url);
+  response.cookies.getAll().forEach((cookie) => {
+    redirect.cookies.set(cookie);
+  });
+  return redirect;
 }

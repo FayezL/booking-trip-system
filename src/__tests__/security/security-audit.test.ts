@@ -250,7 +250,7 @@ describe("Auth Security", () => {
     });
 
     it("redirects to /login if no profile is found", () => {
-      expect(layoutSrc).toMatch(/if\s*\(\s*!profile\s*\)/);
+      expect(layoutSrc).toMatch(/!profile/);
       expect(layoutSrc).toContain('redirect("/login")');
     });
   });

@@ -27,7 +27,7 @@ export default async function AuthenticatedLayout({
 
   const { data: profile } = await getProfile(user.id);
 
-  if (!profile) {
+  if (!profile || (profile as Profile).deleted_at) {
     redirect("/login");
   }
 
