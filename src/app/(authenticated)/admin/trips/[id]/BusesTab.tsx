@@ -277,7 +277,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                     </button>
                     <button
                       onClick={() => handleDelete(bus.id)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 active:scale-95 transition-all duration-150"
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
                     >
                       {t("common.delete")}
                     </button>

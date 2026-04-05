@@ -212,7 +212,7 @@ describe("SQL / Migration Security", () => {
   describe("Bookings unique constraint", () => {
     it("uses partial index WHERE cancelled_at IS NULL", () => {
       expect(bookingsSql).toMatch(
-        /CONSTRAINT\s+unique_active_booking\s+UNIQUE\s*\(\s*user_id\s*,\s*trip_id\s*\)\s*WHERE\s+cancelled_at\s+IS\s+NULL/i
+        /CREATE\s+UNIQUE\s+INDEX\s+idx_bookings_unique_active\s+ON\s+public\.bookings\s*\(\s*user_id\s*,\s*trip_id\s*\)\s+WHERE\s+cancelled_at\s+IS\s+NULL/i
       );
     });
   });

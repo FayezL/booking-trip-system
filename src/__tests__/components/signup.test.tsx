@@ -26,6 +26,17 @@ jest.mock("@/components/LanguageToggle", () => {
   };
 });
 
+jest.mock("@/components/ThemeToggle", () => {
+  return function MockThemeToggle() {
+    return <div data-testid="theme-toggle" />;
+  };
+});
+
+jest.mock("next-themes", () => ({
+  useTheme: () => ({ theme: "light", setTheme: jest.fn() }),
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 describe("SignupPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -175,7 +186,7 @@ describe("SignupPage", () => {
     render(<SignupPage />);
     const maleButton = screen.getByText("auth.male");
     await user.click(maleButton);
-    expect(maleButton.className).toContain("border-emerald-600");
+    expect(maleButton.className).toContain("border-blue-500");
   });
 
   it("selects Female when Female button is clicked", async () => {
@@ -183,7 +194,7 @@ describe("SignupPage", () => {
     render(<SignupPage />);
     const femaleButton = screen.getByText("auth.female");
     await user.click(femaleButton);
-    expect(femaleButton.className).toContain("border-emerald-600");
+    expect(femaleButton.className).toContain("border-blue-500");
   });
 
   it("switches gender selection from Male to Female", async () => {
@@ -192,9 +203,9 @@ describe("SignupPage", () => {
     const maleButton = screen.getByText("auth.male");
     const femaleButton = screen.getByText("auth.female");
     await user.click(maleButton);
-    expect(maleButton.className).toContain("border-emerald-600");
+    expect(maleButton.className).toContain("border-blue-500");
     await user.click(femaleButton);
-    expect(femaleButton.className).toContain("border-emerald-600");
-    expect(maleButton.className).not.toContain("border-emerald-600");
+    expect(femaleButton.className).toContain("border-blue-500");
+    expect(maleButton.className).not.toContain("border-blue-500");
   });
 });

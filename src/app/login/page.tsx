@@ -104,6 +104,7 @@ export default function LoginPage() {
                 id="rememberMe"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={loading}
                 className="w-4 h-4 rounded border-slate-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor="rememberMe" className="text-sm text-slate-500 dark:text-gray-400">

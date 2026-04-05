@@ -3,9 +3,9 @@ import { render, screen } from "@testing-library/react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 describe("LoadingSpinner", () => {
-  it("renders spinner SVG", () => {
+  it("renders spinner element", () => {
     const { container } = render(<LoadingSpinner />);
-    expect(container.querySelector("svg")).toBeInTheDocument();
+    expect(container.querySelector(".animate-spin")).toBeInTheDocument();
   });
 
   it("renders text when provided", () => {
