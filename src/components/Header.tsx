@@ -26,6 +26,7 @@ export default function Header({ profile }: HeaderProps) {
 
   function isActive(href: string): boolean {
     if (href === "/admin") return pathname === "/admin";
+    if (href === "/trips") return pathname === "/trips";
     return pathname.startsWith(href);
   }
 
@@ -34,10 +35,15 @@ export default function Header({ profile }: HeaderProps) {
       ? [
           { href: "/admin", label: t("admin.dashboard") },
           { href: "/admin/trips", label: t("admin.trips") },
+          { href: "/trips", label: t("trips.myBookings") },
           { href: "/admin/reports", label: t("admin.reports") },
-          ...(profile.role === "super_admin"
+          ...(profile.role === "super_admin" || profile.role === "admin"
             ? [
                 { href: "/admin/users", label: t("admin.users") },
+              ]
+            : []),
+          ...(profile.role === "super_admin"
+            ? [
                 { href: "/admin/logs", label: t("admin.activityLogs") },
               ]
             : []),

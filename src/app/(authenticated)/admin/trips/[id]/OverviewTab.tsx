@@ -36,7 +36,7 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
 
   async function loadData() {
     const [profilesRes, busesRes, bookingsRes, roomsRes] = await Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).is("deleted_at", null),
       supabase.from("buses").select("*").eq("trip_id", tripId),
       supabase.from("bookings").select("bus_id, room_id").eq("trip_id", tripId).is("cancelled_at", null),
       supabase.from("rooms").select("capacity").eq("trip_id", tripId),

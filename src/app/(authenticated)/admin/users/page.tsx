@@ -80,14 +80,11 @@ export default function UsersPage() {
   }, []);
 
   async function loadUsers() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("profiles")
       .select("*")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
-    if (error) {
-      console.error("Load users error:", error);
-    }
     setUsers((data || []) as Profile[]);
     setLoading(false);
   }
@@ -106,8 +103,7 @@ export default function UsersPage() {
     setSaving(false);
 
     if (error) {
-      console.error("Reset password error:", error);
-      showToast(t("common.error") + ": " + error.message, "error");
+      showToast(t("common.error"), "error");
     } else {
       showToast(t("admin.passwordReset"), "success");
       logAction("reset_password", "user", resetUserId);
@@ -123,15 +119,13 @@ export default function UsersPage() {
       .eq("id", userId);
 
     if (error) {
-      console.error("Change role error:", error);
-      showToast(t("common.error") + ": " + error.message, "error");
-      return;
+      showToast(t("common.error"), "error");
+    } else {
+      showToast(t("admin.changeRole"), "success");
+      logAction("change_role", "user", userId, { to: newRole });
+      setChangingRoleUserId(null);
+      loadUsers();
     }
-
-    showToast(t("admin.changeRole"), "success");
-    logAction("change_role", "user", userId, { to: newRole });
-    setChangingRoleUserId(null);
-    loadUsers();
   }
 
   async function handleCreatePerson() {
@@ -158,11 +152,10 @@ export default function UsersPage() {
     setCreating(false);
 
     if (error) {
-      console.error("Create user error:", error);
       if (error.message.includes("unique") || error.message.includes("already")) {
         showToast(t("auth.phoneExists"), "error");
       } else {
-        showToast(t("common.error") + ": " + error.message, "error");
+        showToast(t("common.error"), "error");
       }
       return;
     }
@@ -182,8 +175,7 @@ export default function UsersPage() {
     });
 
     if (error) {
-      console.error("Delete user error:", error);
-      showToast(t("common.error") + ": " + error.message, "error");
+      showToast(t("common.error"), "error");
     } else {
       showToast(t("admin.userDeleted"), "success");
       logAction("delete_user", "user", userId, { name: userName });

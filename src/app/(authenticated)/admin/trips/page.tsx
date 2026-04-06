@@ -84,23 +84,19 @@ export default function TripsManagementPage() {
         .update(payload)
         .eq("id", editingId);
       if (error) {
-        console.error("Update trip error:", error);
-        showToast(t("common.error") + ": " + error.message, "error");
-        setSaving(false);
-        return;
+        showToast(t("common.error"), "error");
+      } else {
+        showToast(t("admin.editTrip"), "success");
+        logAction("edit_trip", "trip", editingId);
       }
-      showToast(t("admin.editTrip"), "success");
-      logAction("edit_trip", "trip", editingId);
     } else {
       const { error } = await supabase.from("trips").insert(payload);
       if (error) {
-        console.error("Create trip error:", error);
-        showToast(t("common.error") + ": " + error.message, "error");
-        setSaving(false);
-        return;
+        showToast(t("common.error"), "error");
+      } else {
+        showToast(t("admin.createTrip"), "success");
+        logAction("create_trip", "trip");
       }
-      showToast(t("admin.createTrip"), "success");
-      logAction("create_trip", "trip");
     }
 
     setSaving(false);

@@ -30,7 +30,7 @@ export default function AdminDashboard() {
     async function loadStats() {
       const [tripsRes, profilesRes, busesRes, roomsRes, bookingsRes, roomBookingsRes] = await Promise.all([
         supabase.from("trips").select("*").order("trip_date", { ascending: false }),
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).is("deleted_at", null),
         supabase.from("buses").select("trip_id, capacity"),
         supabase.from("rooms").select("trip_id, capacity"),
         supabase.from("bookings").select("trip_id, bus_id").is("cancelled_at", null),

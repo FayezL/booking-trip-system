@@ -40,26 +40,20 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
 
   useEffect(() => {
     async function loadData() {
-      const [tripRes, busesRes, bookingsRes] = await Promise.all([
+      const [tripRes, busesRes, passengersRes] = await Promise.all([
         supabase.from("trips").select("*").eq("id", tripId).single(),
         supabase.from("buses").select("*").eq("trip_id", tripId),
-        supabase
-          .from("bookings")
-          .select("bus_id, profiles(full_name, has_wheelchair)")
-          .eq("trip_id", tripId)
-          .is("cancelled_at", null),
+        supabase.rpc("get_trip_passengers", { p_trip_id: tripId }),
       ]);
 
       if (tripRes.data) setTrip(tripRes.data);
 
+      type PassengerRow = { bus_id: string; full_name: string; has_wheelchair: boolean };
       const passengersByBus: Record<string, PassengerInfo[]> = {};
-      for (const b of bookingsRes.data || []) {
-        const list = passengersByBus[b.bus_id] || [];
-        if (b.profiles) {
-          const p = b.profiles as { full_name: string; has_wheelchair: boolean };
-          list.push({ full_name: p.full_name, has_wheelchair: p.has_wheelchair });
-        }
-        passengersByBus[b.bus_id] = list;
+      for (const p of (passengersRes.data || []) as PassengerRow[]) {
+        const list = passengersByBus[p.bus_id] || [];
+        list.push({ full_name: p.full_name, has_wheelchair: p.has_wheelchair });
+        passengersByBus[p.bus_id] = list;
       }
 
       const busesWithCounts: BusWithCount[] = (busesRes.data || []).map((bus: Bus) => ({

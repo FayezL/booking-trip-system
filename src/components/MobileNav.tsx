@@ -80,23 +80,30 @@ export default function MobileNav({ profile }: MobileNavProps) {
 
   const adminTabs = [
     { key: "home", label: t("admin.dashboard"), href: "/admin", icon: "home" as const },
-    { key: "trips", label: t("admin.trips"), href: "/admin/trips", icon: "trips" as const },
+    { key: "adminTrips", label: t("admin.trips"), href: "/admin/trips", icon: "trips" as const },
+    { key: "myTrips", label: t("trips.myBookings"), href: "/trips", icon: "tripsFilled" as const },
     { key: "reports", label: t("admin.reports"), href: "/admin/reports", icon: "reports" as const },
   ];
 
-  const superAdminTabs = [
+  const adminExtraTabs = [
     { key: "users", label: t("admin.users"), href: "/admin/users", icon: "users" as const },
+  ];
+
+  const superAdminTabs = [
     { key: "logs", label: t("admin.activityLogs"), href: "/admin/logs", icon: "logs" as const },
   ];
 
   const tabs = isAdmin
-    ? profile.role === "super_admin"
-      ? [...adminTabs, ...superAdminTabs]
-      : adminTabs
+    ? [
+        ...adminTabs,
+        ...(profile.role === "super_admin" || profile.role === "admin" ? adminExtraTabs : []),
+        ...(profile.role === "super_admin" ? superAdminTabs : []),
+      ]
     : patientTabs;
 
   function isActive(href: string): boolean {
     if (href === "/admin") return pathname === "/admin";
+    if (href === "/trips") return pathname === "/trips" || (pathname.startsWith("/trips/") && !pathname.startsWith("/admin/trips"));
     return pathname.startsWith(href);
   }
 
