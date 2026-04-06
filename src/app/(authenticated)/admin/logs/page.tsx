@@ -32,7 +32,7 @@ const ACTION_LABELS: Record<string, string> = {
 const ACTION_TYPES = Object.keys(ACTION_LABELS);
 
 export default function LogsPage() {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const supabase = createClient();
 
   const [logs, setLogs] = useState<LogWithAdmin[]>([]);
@@ -67,7 +67,7 @@ export default function LogsPage() {
   const paginated = logs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function formatTimestamp(ts: string) {
-    return new Date(ts).toLocaleString("ar-EG", {
+    return new Date(ts).toLocaleString(lang === "ar" ? "ar-EG" : "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",

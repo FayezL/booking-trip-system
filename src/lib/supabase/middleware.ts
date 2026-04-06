@@ -44,9 +44,15 @@ export async function updateSession(request: NextRequest) {
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, deleted_at")
       .eq("id", user.id)
       .single();
+
+    if ((profile as { deleted_at: string | null } | null)?.deleted_at) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return redirectWithCookies(url, supabaseResponse);
+    }
 
     if (profile && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
       const url = request.nextUrl.clone();

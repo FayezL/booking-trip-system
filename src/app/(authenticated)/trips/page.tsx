@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Trip, Booking } from "@/lib/types/database";
 
@@ -11,6 +12,7 @@ export default function TripsPage() {
   const { t, lang } = useTranslation();
   const router = useRouter();
   const supabase = createClient();
+  const { showToast } = useToast();
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [myBookings, setMyBookings] = useState<(Booking & { trips: Trip; buses: { area_name_ar: string; area_name_en: string } })[]>([]);
@@ -53,6 +55,7 @@ export default function TripsPage() {
     const { error } = await supabase.rpc("cancel_booking", { p_booking_id: bookingId });
     setCancellingId(null);
     if (error) {
+      showToast(t("common.error"), "error");
       return;
     }
     loadData();

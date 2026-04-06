@@ -116,7 +116,7 @@ export default function ReportsPage() {
   }
 
   if (loading) {
-    return <LoadingSpinner />;
+    return <LoadingSpinner text={t("common.loading")} />;
   }
 
   return (
