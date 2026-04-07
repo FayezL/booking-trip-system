@@ -39,10 +39,13 @@ export default function TripsManagementPage() {
   }, []);
 
   async function loadTrips() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("trips")
       .select("*")
       .order("trip_date", { ascending: false });
+    if (error) {
+      console.error("[admin/trips] Failed to load trips:", error.message);
+    }
     setTrips(data || []);
     setLoading(false);
   }

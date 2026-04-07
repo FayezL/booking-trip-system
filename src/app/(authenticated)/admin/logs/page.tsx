@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -33,7 +33,7 @@ const ACTION_TYPES = Object.keys(ACTION_LABELS);
 
 export default function LogsPage() {
   const { t, lang } = useTranslation();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [logs, setLogs] = useState<LogWithAdmin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +57,10 @@ export default function LogsPage() {
       query = query.eq("action", actionFilter);
     }
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) {
+      console.error("[admin/logs] Failed to load logs:", error.message);
+    }
     setLogs((data || []) as unknown as LogWithAdmin[]);
     setLoading(false);
     setPage(1);

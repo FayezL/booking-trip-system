@@ -63,23 +63,17 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
     const bookedIds = (allBookedRes.data || []).map((b: { user_id: string }) => b.user_id);
 
-    let profilesRes;
+    let profilesQuery = supabase
+      .from("profiles")
+      .select("*")
+      .neq("id", user.id)
+      .is("deleted_at", null);
+
     if (bookedIds.length > 0) {
-      profilesRes = await supabase
-        .from("profiles")
-        .select("*")
-        .neq("id", user.id)
-        .is("deleted_at", null)
-        .not("id", "in", `(${bookedIds.join(",")})`)
-        .order("full_name");
-    } else {
-      profilesRes = await supabase
-        .from("profiles")
-        .select("*")
-        .neq("id", user.id)
-        .is("deleted_at", null)
-        .order("full_name");
+      profilesQuery = profilesQuery.not("id", "in", `(${bookedIds.join(",")})`);
     }
+
+    const profilesRes = await profilesQuery.order("full_name");
 
     setUnbooked((profilesRes.data || []) as Profile[]);
     setBuses(busListRes.data || []);
@@ -141,7 +135,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
         setForm(emptyForm);
         loadData();
       } else {
-        showToast(error.message, "error");
+        showToast(t("common.error"), "error");
       }
       return;
     }

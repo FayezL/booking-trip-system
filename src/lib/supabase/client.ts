@@ -20,6 +20,8 @@ export function setSessionPersistence(remember: boolean) {
         sessionStorage.setItem(key, value);
         localStorage.removeItem(key);
       }
-    } catch {}
+    } catch (err) {
+      console.error("[supabase/client] Failed to set session persistence:", err);
+    }
   }
 }

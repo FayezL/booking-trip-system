@@ -20,23 +20,39 @@ export default function TripsPage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   async function loadData() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError) {
+        console.error("Failed to get user:", authError);
+      }
+      if (!user) return;
 
-    const [tripsRes, bookingsRes] = await Promise.all([
-      supabase.from("trips").select("*").eq("is_open", true).order("trip_date", { ascending: false }),
-      supabase
-        .from("bookings")
-        .select("*, trips(*), buses(area_name_ar, area_name_en)")
-        .eq("user_id", user.id)
-        .is("cancelled_at", null),
-    ]);
+      const [tripsRes, bookingsRes] = await Promise.all([
+        supabase.from("trips").select("*").eq("is_open", true).order("trip_date", { ascending: false }),
+        supabase
+          .from("bookings")
+          .select("*, trips(*), buses(area_name_ar, area_name_en)")
+          .eq("user_id", user.id)
+          .is("cancelled_at", null),
+      ]);
 
-    setTrips(tripsRes.data || []);
-    setMyBookings((bookingsRes.data || []) as unknown as typeof myBookings);
-    setLoading(false);
+      if (tripsRes.error) {
+        console.error("Failed to load trips:", tripsRes.error);
+      }
+      if (bookingsRes.error) {
+        console.error("Failed to load bookings:", bookingsRes.error);
+      }
+
+      setTrips(tripsRes.data || []);
+      setMyBookings((bookingsRes.data || []) as unknown as typeof myBookings);
+      setLoading(false);
+    } catch (err) {
+      console.error("Unexpected error in loadData:", err);
+      setLoading(false);
+    }
   }
 
   const bookedTripIds = useMemo(() => new Set(myBookings.map((b) => b.trip_id)), [myBookings]);

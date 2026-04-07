@@ -11,12 +11,15 @@ export async function logAction(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from("admin_logs").insert({
+    const { error } = await supabase.from("admin_logs").insert({
       admin_id: user.id,
       action,
-      target_type: targetType || null,
-      target_id: targetId || null,
-      details: details || {},
+      target_type: targetType ?? null,
+      target_id: targetId ?? null,
+      details: details ?? {},
     });
-  } catch {}
+    if (error) console.error("[admin-logs] Failed to insert log:", error.message);
+  } catch (err) {
+    console.error("[admin-logs] Unexpected error:", err);
+  }
 }

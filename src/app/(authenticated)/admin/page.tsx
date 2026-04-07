@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -18,10 +18,21 @@ type TripStats = {
   bookingTotal: number;
 };
 
+function groupBy<T>(arr: T[], key: (item: T) => string): Map<string, T[]> {
+  const m = new Map<string, T[]>();
+  for (const item of arr) {
+    const k = key(item);
+    const list = m.get(k) || [];
+    list.push(item);
+    m.set(k, list);
+  }
+  return m;
+}
+
 export default function AdminDashboard() {
   const { t, lang } = useTranslation();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [stats, setStats] = useState<TripStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +48,12 @@ export default function AdminDashboard() {
         supabase.from("bookings").select("trip_id, room_id").is("cancelled_at", null).not("room_id", "is", null),
       ]);
 
+      if (tripsRes.error) {
+        console.error("[admin/dashboard] Failed to load trips:", tripsRes.error.message);
+        setLoading(false);
+        return;
+      }
+
       const trips = tripsRes.data || [];
       const totalRegistered = profilesRes.count || 0;
 
@@ -48,17 +65,6 @@ export default function AdminDashboard() {
       const allRooms = (roomsRes.data || []) as RoomRow[];
       const allBookings = (bookingsRes.data || []) as BookingRow[];
       const allRoomBookings = (roomBookingsRes.data || []) as BookingRow[];
-
-      function groupBy<T>(arr: T[], key: (item: T) => string): Map<string, T[]> {
-        const m = new Map<string, T[]>();
-        for (const item of arr) {
-          const k = key(item);
-          const list = m.get(k) || [];
-          list.push(item);
-          m.set(k, list);
-        }
-        return m;
-      }
 
       const busesByTrip = groupBy(allBuses, (b) => b.trip_id);
       const roomsByTrip = groupBy(allRooms, (r) => r.trip_id);
@@ -88,7 +94,7 @@ export default function AdminDashboard() {
     }
 
     loadStats();
-  }, []);
+  }, [supabase]);
 
   if (loading) {
     return <LoadingSpinner text={t("common.loading")} />;

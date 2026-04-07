@@ -1,4 +1,4 @@
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, rgb, type PDFPage, type PDFFont } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import type { Trip, Bus, Room } from "@/lib/types/database";
 
@@ -33,54 +33,72 @@ function rightAlign(
   return PAGE_WIDTH - MARGIN_RIGHT - width;
 }
 
+type PdfContext = {
+  pdfDoc: PDFDocument;
+  font: PDFFont;
+  page: PDFPage;
+  y: number;
+};
+
+function createPdfContext(pdfDoc: PDFDocument, font: Awaited<ReturnType<PDFDocument["embedFont"]>>): PdfContext {
+  const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  return { pdfDoc, font, page, y: PAGE_HEIGHT - MARGIN_TOP };
+}
+
+function ensureSpace(ctx: PdfContext, needed: number) {
+  if (ctx.y - needed < MARGIN_BOTTOM) {
+    ctx.page = ctx.pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+    ctx.y = PAGE_HEIGHT - MARGIN_TOP;
+  }
+}
+
+function drawText(ctx: PdfContext, text: string, size: number = 12) {
+  ensureSpace(ctx, LINE_HEIGHT);
+  ctx.page.drawText(text, {
+    x: rightAlign(text, size, ctx.font),
+    y: ctx.y,
+    size,
+    font: ctx.font,
+    color: rgb(0, 0, 0),
+  });
+  ctx.y -= size > 14 ? LINE_HEIGHT + 4 : LINE_HEIGHT;
+}
+
+function drawSeparator(ctx: PdfContext) {
+  ensureSpace(ctx, 10);
+  ctx.page.drawLine({
+    start: { x: MARGIN_RIGHT, y: ctx.y + 5 },
+    end: { x: PAGE_WIDTH - MARGIN_RIGHT, y: ctx.y + 5 },
+    thickness: 0.5,
+    color: rgb(0.7, 0.7, 0.7),
+  });
+  ctx.y -= 10;
+}
+
+function drawHeader(ctx: PdfContext, title: string, trip: Trip) {
+  drawText(ctx, title, 20);
+  drawText(ctx, trip.title_ar, 16);
+  drawText(ctx, trip.trip_date, 12);
+  ctx.y -= 10;
+  drawSeparator(ctx);
+}
+
+async function initPdf(): Promise<PdfContext> {
+  const fontBytes = await loadFont();
+  const pdfDoc = await PDFDocument.create();
+  pdfDoc.registerFontkit(fontkit);
+  const font = await pdfDoc.embedFont(fontBytes);
+  return createPdfContext(pdfDoc, font);
+}
+
 export async function generateBusReportPDF(
   trip: Trip,
   buses: Bus[],
   getPassengers: (busId: string) => Promise<Passenger[]>
 ): Promise<Uint8Array> {
-  const fontBytes = await loadFont();
-  const pdfDoc = await PDFDocument.create();
-  pdfDoc.registerFontkit(fontkit);
-  const font = await pdfDoc.embedFont(fontBytes);
+  const ctx = await initPdf();
 
-  let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  let y = PAGE_HEIGHT - MARGIN_TOP;
-
-  function ensureSpace(needed: number) {
-    if (y - needed < MARGIN_BOTTOM) {
-      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-      y = PAGE_HEIGHT - MARGIN_TOP;
-    }
-  }
-
-  function drawText(text: string, size: number = 12) {
-    ensureSpace(LINE_HEIGHT);
-    page.drawText(text, {
-      x: rightAlign(text, size, font),
-      y,
-      size,
-      font,
-      color: rgb(0, 0, 0),
-    });
-    y -= size > 14 ? LINE_HEIGHT + 4 : LINE_HEIGHT;
-  }
-
-  function drawSeparator() {
-    ensureSpace(10);
-    page.drawLine({
-      start: { x: MARGIN_RIGHT, y: y + 5 },
-      end: { x: PAGE_WIDTH - MARGIN_RIGHT, y: y + 5 },
-      thickness: 0.5,
-      color: rgb(0.7, 0.7, 0.7),
-    });
-    y -= 10;
-  }
-
-  drawText("تقرير الأتوبيسات", 20);
-  drawText(trip.title_ar, 16);
-  drawText(trip.trip_date, 12);
-  y -= 10;
-  drawSeparator();
+  drawHeader(ctx, "تقرير الأتوبيسات", trip);
 
   const grouped = new Map<string, Bus[]>();
   for (const bus of buses) {
@@ -90,49 +108,35 @@ export async function generateBusReportPDF(
     grouped.set(key, group);
   }
 
-  const groupEntries = Array.from(grouped.values());
-  for (const groupBuses of groupEntries) {
+  for (const groupBuses of Array.from(grouped.values())) {
     const areaName = groupBuses[0]?.area_name_ar || "";
-    ensureSpace(LINE_HEIGHT * 2);
-    drawText("📍 " + areaName, 16);
-    y -= 5;
+    ensureSpace(ctx, LINE_HEIGHT * 2);
+    drawText(ctx, "📍 " + areaName, 16);
+    ctx.y -= 5;
 
     for (const bus of groupBuses) {
-      ensureSpace(LINE_HEIGHT * 4);
-      drawText(bus.bus_label || bus.area_name_ar, 14);
-      drawText("المسؤول: " + (bus.leader_name || "—"), 12);
+      ensureSpace(ctx, LINE_HEIGHT * 4);
+      drawText(ctx, bus.bus_label || bus.area_name_ar, 14);
+      drawText(ctx, "المسؤول: " + (bus.leader_name || "—"), 12);
 
       const passengers = await getPassengers(bus.id);
-      drawText(
-        "السعة: " + bus.capacity + " | الركاب: " + passengers.length,
-        12
-      );
+      drawText(ctx, "السعة: " + bus.capacity + " | الركاب: " + passengers.length, 12);
 
       if (passengers.length > 0) {
         for (let i = 0; i < passengers.length; i++) {
           const p = passengers[i];
-          drawText(
-            (i + 1) +
-              ". " +
-              p.full_name +
-              " (" +
-              p.phone +
-              ") [" +
-              p.gender +
-              "]",
-            11
-          );
+          drawText(ctx, `${i + 1}. ${p.full_name} (${p.phone}) [${p.gender}]`, 11);
         }
       } else {
-        drawText("لا يوجد ركاب", 11);
+        drawText(ctx, "لا يوجد ركاب", 11);
       }
 
-      y -= 5;
-      drawSeparator();
+      ctx.y -= 5;
+      drawSeparator(ctx);
     }
   }
 
-  return pdfDoc.save();
+  return ctx.pdfDoc.save();
 }
 
 export async function generateRoomReportPDF(
@@ -140,83 +144,30 @@ export async function generateRoomReportPDF(
   rooms: Room[],
   getOccupants: (roomId: string) => Promise<Passenger[]>
 ): Promise<Uint8Array> {
-  const fontBytes = await loadFont();
-  const pdfDoc = await PDFDocument.create();
-  pdfDoc.registerFontkit(fontkit);
-  const font = await pdfDoc.embedFont(fontBytes);
+  const ctx = await initPdf();
 
-  let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  let y = PAGE_HEIGHT - MARGIN_TOP;
-
-  function ensureSpace(needed: number) {
-    if (y - needed < MARGIN_BOTTOM) {
-      page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-      y = PAGE_HEIGHT - MARGIN_TOP;
-    }
-  }
-
-  function drawText(text: string, size: number = 12) {
-    ensureSpace(LINE_HEIGHT);
-    page.drawText(text, {
-      x: rightAlign(text, size, font),
-      y,
-      size,
-      font,
-      color: rgb(0, 0, 0),
-    });
-    y -= size > 14 ? LINE_HEIGHT + 4 : LINE_HEIGHT;
-  }
-
-  function drawSeparator() {
-    ensureSpace(10);
-    page.drawLine({
-      start: { x: MARGIN_RIGHT, y: y + 5 },
-      end: { x: PAGE_WIDTH - MARGIN_RIGHT, y: y + 5 },
-      thickness: 0.5,
-      color: rgb(0.7, 0.7, 0.7),
-    });
-    y -= 10;
-  }
-
-  drawText("تقرير الأوض", 20);
-  drawText(trip.title_ar, 16);
-  drawText(trip.trip_date, 12);
-  y -= 10;
-  drawSeparator();
+  drawHeader(ctx, "تقرير الأوض", trip);
 
   for (const room of rooms) {
-    ensureSpace(LINE_HEIGHT * 4);
-    drawText(room.room_label + " (" + room.room_type + ")", 14);
-    drawText("المشرف: " + (room.supervisor_name || "—"), 12);
+    ensureSpace(ctx, LINE_HEIGHT * 4);
+    drawText(ctx, room.room_label + " (" + room.room_type + ")", 14);
+    drawText(ctx, "المشرف: " + (room.supervisor_name || "—"), 12);
 
     const occupants = await getOccupants(room.id);
-    drawText(
-      "السعة: " + room.capacity + " | النزلاء: " + occupants.length,
-      12
-    );
+    drawText(ctx, "السعة: " + room.capacity + " | النزلاء: " + occupants.length, 12);
 
     if (occupants.length > 0) {
       for (let i = 0; i < occupants.length; i++) {
         const o = occupants[i];
-        drawText(
-          (i + 1) +
-            ". " +
-            o.full_name +
-            " (" +
-            o.phone +
-            ") [" +
-            o.gender +
-            "]",
-          11
-        );
+        drawText(ctx, `${i + 1}. ${o.full_name} (${o.phone}) [${o.gender}]`, 11);
       }
     } else {
-      drawText("لا يوجد نزلاء", 11);
+      drawText(ctx, "لا يوجد نزلاء", 11);
     }
 
-    y -= 5;
-    drawSeparator();
+    ctx.y -= 5;
+    drawSeparator(ctx);
   }
 
-  return pdfDoc.save();
+  return ctx.pdfDoc.save();
 }

@@ -46,7 +46,7 @@ export default function ReportsPage() {
     try {
       const trip = trips.find((tr) => tr.id === selectedTrip);
       if (!trip) {
-        setGenerating(false);
+        showToast(t("admin.selectTrip"), "error");
         return;
       }
 
@@ -98,13 +98,13 @@ export default function ReportsPage() {
       }
     } catch {
       showToast(t("common.error"), "error");
+    } finally {
+      setGenerating(false);
     }
-
-    setGenerating(false);
   }
 
   function downloadPDF(bytes: Uint8Array, filename: string) {
-    const blob = new Blob([new Uint8Array(bytes) as BlobPart], { type: "application/pdf" });
+    const blob = new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

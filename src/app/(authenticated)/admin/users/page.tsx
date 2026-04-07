@@ -80,11 +80,14 @@ export default function UsersPage() {
   }, []);
 
   async function loadUsers() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[admin/users] Failed to load users:", error.message);
+    }
     setUsers((data || []) as Profile[]);
     setLoading(false);
   }
