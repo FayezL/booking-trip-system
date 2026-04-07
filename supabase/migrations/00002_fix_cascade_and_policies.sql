@@ -112,3 +112,59 @@ CREATE POLICY "Admins can view logs" ON public.admin_logs
 
 -- 10. Drop old is_servant() if it exists
 DROP FUNCTION IF EXISTS public.is_servant();
+
+-- 11. Add move_passenger_bus RPC
+CREATE OR REPLACE FUNCTION public.move_passenger_bus(
+  p_booking_id uuid,
+  p_new_bus_id uuid
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_trip_id uuid;
+  v_current_bus_id uuid;
+  v_capacity int;
+  v_current int;
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Only admin users can move passengers';
+  END IF;
+
+  SELECT trip_id, bus_id INTO v_trip_id, v_current_bus_id
+  FROM public.bookings
+  WHERE id = p_booking_id AND cancelled_at IS NULL;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Booking not found or cancelled';
+  END IF;
+
+  IF v_current_bus_id = p_new_bus_id THEN
+    RAISE EXCEPTION 'Passenger is already on this bus';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.buses
+    WHERE id = p_new_bus_id AND trip_id = v_trip_id
+  ) THEN
+    RAISE EXCEPTION 'Target bus not found or not in same trip';
+  END IF;
+
+  SELECT capacity INTO v_capacity
+  FROM public.buses WHERE id = p_new_bus_id FOR UPDATE;
+
+  SELECT COUNT(*) INTO v_current
+  FROM public.bookings
+  WHERE bus_id = p_new_bus_id AND cancelled_at IS NULL;
+
+  IF v_current >= v_capacity THEN
+    RAISE EXCEPTION 'Target bus is full';
+  END IF;
+
+  UPDATE public.bookings
+  SET bus_id = p_new_bus_id, room_id = NULL
+  WHERE id = p_booking_id;
+END;
+$$;

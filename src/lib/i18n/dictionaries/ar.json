@@ -189,7 +189,17 @@
     "deleteUser": "مسح المستخدم",
     "confirmDeleteUser": "متأكد تمسح المستخدم ده؟",
     "userDeleted": "تم مسح المستخدم",
-    "wheelchair": "كرسي متحرك"
+    "wheelchair": "كرسي متحرك",
+    "moveToBus": "انقل لـ",
+    "removeFromBus": "شيل",
+    "confirmMove": "تنقل الراكب للباص ده؟",
+    "confirmRemoveFromBus": "تشيل الراكب من الرحلة؟ الحجز هيتلغى كلّه.",
+    "passengerMoved": "تم نقل الراكب",
+    "passengerRemoved": "تم شيل الراكب",
+    "selectBus": "اختار باص",
+    "noPassengers": "مفيش ركاب لسه",
+    "showPassengers": "عرض الركاب",
+    "hidePassengers": "إخفاء الركاب"
   },
   "common": {
     "loading": "تحميل...",
