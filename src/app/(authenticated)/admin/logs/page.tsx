@@ -44,6 +44,7 @@ export default function LogsPage() {
 
   useEffect(() => {
     loadLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionFilter]);
 
   async function loadLogs() {

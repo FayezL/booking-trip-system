@@ -32,6 +32,7 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
 
   useEffect(() => {
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId]);
 
   async function loadData() {

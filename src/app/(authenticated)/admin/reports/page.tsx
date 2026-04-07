@@ -33,6 +33,7 @@ export default function ReportsPage() {
       setLoading(false);
     }
     loadTrips();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function generateReport(type: "bus" | "room") {

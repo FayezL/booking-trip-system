@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useCallback } from "react";
 import { useI18n } from "./context";
 import ar from "./dictionaries/ar.json";
 import en from "./dictionaries/en.json";

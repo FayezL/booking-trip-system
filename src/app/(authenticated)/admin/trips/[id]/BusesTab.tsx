@@ -40,6 +40,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
 
   useEffect(() => {
     loadBuses();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId]);
 
   async function loadBuses() {
