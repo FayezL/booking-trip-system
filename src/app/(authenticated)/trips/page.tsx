@@ -8,6 +8,8 @@ import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Trip, Booking } from "@/lib/types/database";
 
+type Passenger = { bus_id: string; full_name: string; has_wheelchair: boolean };
+
 export default function TripsPage() {
   const { t, lang } = useTranslation();
   const router = useRouter();
@@ -16,6 +18,8 @@ export default function TripsPage() {
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [myBookings, setMyBookings] = useState<(Booking & { trips: Trip; buses: { area_name_ar: string; area_name_en: string } })[]>([]);
+  const [passengersByTrip, setPassengersByTrip] = useState<Record<string, Passenger[]>>({});
+  const [expandedTrips, setExpandedTrips] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
@@ -46,8 +50,21 @@ export default function TripsPage() {
         console.error("Failed to load bookings:", bookingsRes.error);
       }
 
-      setTrips(tripsRes.data || []);
+      const tripsData = tripsRes.data || [];
+      setTrips(tripsData);
       setMyBookings((bookingsRes.data || []) as unknown as typeof myBookings);
+
+      if (tripsData.length > 0) {
+        const passengerMap: Record<string, Passenger[]> = {};
+        await Promise.all(
+          tripsData.map(async (trip: Trip) => {
+            const { data } = await supabase.rpc("get_trip_passengers", { p_trip_id: trip.id });
+            passengerMap[trip.id] = (data || []) as Passenger[];
+          })
+        );
+        setPassengersByTrip(passengerMap);
+      }
+
       setLoading(false);
     } catch (err) {
       console.error("Unexpected error in loadData:", err);
@@ -98,12 +115,22 @@ export default function TripsPage() {
         <div className="space-y-4">
           {trips.map((trip) => {
             const booked = bookedTripIds.has(trip.id);
+            const passengers = passengersByTrip[trip.id] || [];
+            const isExpanded = expandedTrips.has(trip.id);
+            const visiblePassengers = isExpanded ? passengers : passengers.slice(0, 5);
+            const hiddenCount = passengers.length - 5;
+
             return (
               <div key={trip.id} className="card">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
+                  <div className="flex-1">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100">{getTripTitle(trip)}</h2>
                     <p className="text-slate-400 dark:text-gray-500 mt-1 text-sm">{t("trips.date")}: {trip.trip_date}</p>
+                    {passengers.length > 0 && (
+                      <p className="text-xs text-slate-400 dark:text-gray-500 mt-1">
+                        {t("admin.passengersList")}: {passengers.length}
+                      </p>
+                    )}
                   </div>
 
                   <div className="shrink-0">
@@ -124,6 +151,38 @@ export default function TripsPage() {
                     )}
                   </div>
                 </div>
+
+                {passengers.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800">
+                    <div className="text-sm text-slate-500 dark:text-gray-400">
+                      {visiblePassengers.map((p, i) => (
+                        <span key={i}>
+                          {p.full_name}{p.has_wheelchair && " ♿"}{i < visiblePassengers.length - 1 ? "، " : ""}
+                        </span>
+                      ))}
+                      {!isExpanded && hiddenCount > 0 && (
+                        <button
+                          onClick={() => setExpandedTrips((prev) => new Set(prev).add(trip.id))}
+                          className="text-blue-600 dark:text-blue-400 font-medium ms-1 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                        >
+                          +{hiddenCount} {t("admin.showMore")}
+                        </button>
+                      )}
+                      {isExpanded && passengers.length > 5 && (
+                        <button
+                          onClick={() => setExpandedTrips((prev) => {
+                            const next = new Set(prev);
+                            next.delete(trip.id);
+                            return next;
+                          })}
+                          className="text-blue-600 dark:text-blue-400 font-medium ms-1 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                        >
+                          {t("admin.showLess")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

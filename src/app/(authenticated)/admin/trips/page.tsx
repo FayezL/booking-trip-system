@@ -9,6 +9,8 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import type { Trip } from "@/lib/types/database";
 
+type TripWithCount = Trip & { booking_count: number };
+
 type TripForm = {
   title: string;
   trip_date: string;
@@ -27,7 +29,7 @@ export default function TripsManagementPage() {
   const supabase = createClient();
   const { showToast } = useToast();
 
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<TripWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -39,14 +41,24 @@ export default function TripsManagementPage() {
   }, []);
 
   async function loadTrips() {
-    const { data, error } = await supabase
-      .from("trips")
-      .select("*")
-      .order("trip_date", { ascending: false });
-    if (error) {
-      console.error("[admin/trips] Failed to load trips:", error.message);
+    const [tripsRes, bookingsRes] = await Promise.all([
+      supabase.from("trips").select("*").order("trip_date", { ascending: false }),
+      supabase.from("bookings").select("trip_id").is("cancelled_at", null),
+    ]);
+    if (tripsRes.error) {
+      console.error("[admin/trips] Failed to load trips:", tripsRes.error.message);
     }
-    setTrips(data || []);
+
+    const countMap: Record<string, number> = {};
+    for (const b of bookingsRes.data || []) {
+      countMap[b.trip_id] = (countMap[b.trip_id] || 0) + 1;
+    }
+
+    const tripsWithCounts = (tripsRes.data || []).map((trip: Trip) => ({
+      ...trip,
+      booking_count: countMap[trip.id] || 0,
+    }));
+    setTrips(tripsWithCounts);
     setLoading(false);
   }
 
@@ -199,6 +211,9 @@ export default function TripsManagementPage() {
               <div>
                 <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{trip.title_ar}</h3>
                 <p className="text-sm text-slate-400 dark:text-gray-500">{trip.trip_date}</p>
+                <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
+                  {trip.booking_count} {t("admin.bookedCount")}
+                </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
