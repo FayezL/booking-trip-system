@@ -265,74 +265,42 @@ docs/superpowers/
 - **i18n**: Added 12 new keys (AR + EN) for passenger management
 - Wrote this MAINPLAN.md
 
+### Phase 5: Fix Missing RPC Functions (2026-04-07)
+- **Bug**: `"No API key found in request"` error when trying to add users or do anything
+- **Root cause**: Old migration files were deleted from codebase, but the live database still had the old functions. When we ran `00002_fix_cascade_and_policies.sql`, it only fixed FKs and policies — it did NOT recreate the RPC functions that the frontend depends on.
+- **Fix**: Created `00003_add_rpc_functions.sql` with ALL 10 RPC functions:
+  - `handle_new_user()` + trigger
+  - `register_and_book()`
+  - `book_bus()`
+  - `assign_room()`
+  - `cancel_booking()`
+  - `get_trip_passengers()`
+  - `move_passenger_bus()`
+  - `admin_create_user()`
+  - `admin_delete_user()`
+  - `admin_reset_password()`
+
 ---
 
 ## Manual Supabase Steps
 
-After pulling code changes, you may need to run SQL in **Supabase SQL Editor**:
+**CRITICAL**: You must run these SQL files in Supabase SQL Editor in order:
 
-### Already done (Phase 3):
-- `00002_fix_cascade_and_policies.sql` — FK cascades + `is_admin()` + RLS policies
+### Step 1: `00002_fix_cascade_and_policies.sql` (Phase 3)
+- Fixes FK cascades (trip deletion bug)
+- Fixes `is_admin()` function
+- Recreates RLS policies
 
-### New (Phase 4):
-Run this in Supabase SQL Editor to add the `move_passenger_bus` function:
+### Step 2: `00003_add_rpc_functions.sql` (Phase 5) — **DO THIS NOW**
+- Adds all RPC functions the frontend needs
+- Without this, nothing works (create user, book bus, cancel booking, etc.)
+- Also ensures the auth trigger exists
 
-```sql
-CREATE OR REPLACE FUNCTION public.move_passenger_bus(
-  p_booking_id uuid,
-  p_new_bus_id uuid
-)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_trip_id uuid;
-  v_current_bus_id uuid;
-  v_capacity int;
-  v_current int;
-BEGIN
-  IF NOT public.is_admin() THEN
-    RAISE EXCEPTION 'Only admin users can move passengers';
-  END IF;
-
-  SELECT trip_id, bus_id INTO v_trip_id, v_current_bus_id
-  FROM public.bookings
-  WHERE id = p_booking_id AND cancelled_at IS NULL;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Booking not found or cancelled';
-  END IF;
-
-  IF v_current_bus_id = p_new_bus_id THEN
-    RAISE EXCEPTION 'Passenger is already on this bus';
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM public.buses
-    WHERE id = p_new_bus_id AND trip_id = v_trip_id
-  ) THEN
-    RAISE EXCEPTION 'Target bus not found or not in same trip';
-  END IF;
-
-  SELECT capacity INTO v_capacity
-  FROM public.buses WHERE id = p_new_bus_id FOR UPDATE;
-
-  SELECT COUNT(*) INTO v_current
-  FROM public.bookings
-  WHERE bus_id = p_new_bus_id AND cancelled_at IS NULL;
-
-  IF v_current >= v_capacity THEN
-    RAISE EXCEPTION 'Target bus is full';
-  END IF;
-
-  UPDATE public.bookings
-  SET bus_id = p_new_bus_id, room_id = NULL
-  WHERE id = p_booking_id;
-END;
-$$;
-```
+### How to run:
+1. Open **Supabase Dashboard → SQL Editor**
+2. Copy the entire contents of `00003_add_rpc_functions.sql`
+3. Paste and click **Run**
+4. Verify: Go to **Database → Functions** in Supabase dashboard — you should see all 10 functions listed under `public`
 
 ---
 

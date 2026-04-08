@@ -4,6 +4,10 @@ import { ThemeProvider } from "next-themes";
 import { I18nProvider } from "@/lib/i18n/context";
 import { ToastProvider } from "@/components/Toast";
 import { Analytics } from "@vercel/analytics/next";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "Verena Church - Trip Management",
@@ -16,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body className="min-h-screen">
         <ThemeProvider attribute="class" defaultTheme="light">
           <I18nProvider>
