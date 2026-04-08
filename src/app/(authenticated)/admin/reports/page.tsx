@@ -4,7 +4,18 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import PageBreadcrumbs from "@/components/PageBreadcrumbs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FileText, Bus as BusIcon, BedDouble, Download } from "lucide-react";
 import type { Trip, Bus, Room } from "@/lib/types/database";
 
 type Passenger = {
@@ -117,50 +128,92 @@ export default function ReportsPage() {
   }
 
   if (loading) {
-    return <LoadingSpinner text={t("common.loading")} />;
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageBreadcrumbs
+          items={[
+            { label: t("admin.dashboard"), href: "/admin" },
+            { label: t("admin.reports") },
+          ]}
+        />
+        <div className="flex items-center gap-2">
+          <FileText className="size-5 text-muted-foreground" />
+          <h1 className="text-xl font-semibold">{t("admin.reports")}</h1>
+        </div>
+        <Card>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-2/3" />
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="animate-fade-in">
-      <h1 className="section-title mb-6">{t("admin.reports")}</h1>
+    <div className="animate-fade-in space-y-6">
+      <PageBreadcrumbs
+        items={[
+          { label: t("admin.dashboard"), href: "/admin" },
+          { label: t("admin.reports") },
+        ]}
+      />
 
-      <div className="card">
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-          <div>
-            <label className="label-text">{t("admin.selectTrip")}</label>
-            <select
-              className="input-field"
-              value={selectedTrip}
-              onChange={(e) => setSelectedTrip(e.target.value)}
-            >
-              <option value="">---</option>
-              {trips.map((trip) => (
-                <option key={trip.id} value={trip.id}>
-                  {trip.title_ar}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => generateReport("bus")}
-              disabled={generating}
-              className="btn-primary w-full"
-            >
-              {generating ? <LoadingSpinner /> : t("admin.busReport")}
-            </button>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => generateReport("room")}
-              disabled={generating}
-              className="btn-primary w-full"
-            >
-              {generating ? <LoadingSpinner /> : t("admin.roomReport")}
-            </button>
-          </div>
-        </div>
+      <div className="flex items-center gap-2">
+        <FileText className="size-5 text-muted-foreground" />
+        <h1 className="text-xl font-semibold">{t("admin.reports")}</h1>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Download className="size-4" />
+            {t("admin.reports")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t("admin.selectTrip")}</label>
+              <Select
+                value={selectedTrip || null}
+                onValueChange={(val) => setSelectedTrip(val ?? "")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="---" />
+                </SelectTrigger>
+                <SelectContent>
+                  {trips.map((trip) => (
+                    <SelectItem key={trip.id} value={trip.id}>
+                      {trip.title_ar}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                className="w-full"
+                onClick={() => generateReport("bus")}
+                disabled={generating}
+              >
+                <BusIcon className="size-4" />
+                {generating ? "..." : t("admin.busReport")}
+              </Button>
+            </div>
+            <div className="flex items-end">
+              <Button
+                className="w-full"
+                onClick={() => generateReport("room")}
+                disabled={generating}
+              >
+                <BedDouble className="size-4" />
+                {generating ? "..." : t("admin.roomReport")}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

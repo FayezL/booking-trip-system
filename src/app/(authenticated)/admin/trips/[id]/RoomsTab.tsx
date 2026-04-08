@@ -6,6 +6,37 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Progress,
+  ProgressIndicator,
+  ProgressLabel,
+  ProgressTrack,
+  ProgressValue,
+} from "@/components/ui/progress";
+import { Plus, Pencil, Trash2, BedDouble, User, Search, Check, X } from "lucide-react";
 import type { Room, Booking, Profile } from "@/lib/types/database";
 
 type RoomForm = {
@@ -40,6 +71,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [roomFilter, setRoomFilter] = useState<"all" | "available" | "full">("all");
+  const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -168,7 +200,6 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm(t("admin.confirmDelete"))) return;
     const { error } = await supabase.from("rooms").delete().eq("id", id);
     if (error) showToast(t("common.error"), "error");
     else {
@@ -211,135 +242,156 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     return <LoadingSpinner text={t("common.loading")} />;
   }
 
-  const tabClass = (active: boolean) =>
-    `px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-150 ${
-      active
-        ? "bg-blue-600 text-white shadow-sm"
-        : "bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-gray-700"
-    }`;
-
-  const filterClass = (active: boolean) =>
-    `px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-      active
-        ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
-        : "bg-slate-50 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700"
-    }`;
-
   const allGenderCount = unassigned.filter((b) => b.profiles.gender === genderTab).length;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">{t("admin.rooms")}</h2>
-        <button onClick={startCreate} className="btn-primary">
-          + {t("admin.createRoom")}
-        </button>
+        <h2 className="text-lg font-bold">{t("admin.rooms")}</h2>
+        <Button onClick={startCreate}>
+          <Plus /> {t("admin.createRoom")}
+        </Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex gap-2">
-          <button onClick={() => setGenderTab("Male")} className={tabClass(genderTab === "Male")}>
-            {t("admin.boysTab")}
-          </button>
-          <button onClick={() => setGenderTab("Female")} className={tabClass(genderTab === "Female")}>
-            {t("admin.girlsTab")}
-          </button>
-        </div>
+        <Tabs value={genderTab} onValueChange={(v) => setGenderTab(v as "Male" | "Female")}>
+          <TabsList>
+            <TabsTrigger value="Male">{t("admin.boysTab")}</TabsTrigger>
+            <TabsTrigger value="Female">{t("admin.girlsTab")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <div className="flex gap-1">
-          <button onClick={() => setRoomFilter("all")} className={filterClass(roomFilter === "all")}>
+          <Button
+            variant={roomFilter === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setRoomFilter("all")}
+          >
             {t("admin.all")}
-          </button>
-          <button onClick={() => setRoomFilter("available")} className={filterClass(roomFilter === "available")}>
+          </Button>
+          <Button
+            variant={roomFilter === "available" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setRoomFilter("available")}
+          >
             {t("admin.areaActive")}
-          </button>
-          <button onClick={() => setRoomFilter("full")} className={filterClass(roomFilter === "full")}>
+          </Button>
+          <Button
+            variant={roomFilter === "full" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setRoomFilter("full")}
+          >
             {t("buses.full").split("—")[0].trim()}
-          </button>
+          </Button>
         </div>
 
-        <input
-          className="input-field flex-1 min-w-[140px] max-w-xs"
-          placeholder={t("admin.searchByName")}
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
+        <div className="relative flex-1 min-w-[140px] max-w-xs">
+          <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            placeholder={t("admin.searchByName")}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="ps-8"
+          />
+        </div>
       </div>
 
-      {showForm && (
-        <div className="card mb-4 animate-slide-up">
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingId ? t("common.edit") : t("admin.createRoom")}
+            </DialogTitle>
+          </DialogHeader>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
             <div>
-              <label className="label-text">{t("admin.roomLabel")}</label>
-              <input
-                className="input-field"
+              <Label className="mb-1.5">{t("admin.roomLabel")}</Label>
+              <Input
                 value={form.room_label}
                 onChange={(e) => setForm({ ...form, room_label: e.target.value })}
               />
             </div>
             <div>
-              <label className="label-text">{t("admin.capacity")}</label>
-              <input
+              <Label className="mb-1.5">{t("admin.capacity")}</Label>
+              <Input
                 type="number"
-                className="input-field"
                 value={form.capacity || ""}
                 onChange={(e) => setForm({ ...form, capacity: parseInt(e.target.value) || 0 })}
                 dir="ltr"
               />
             </div>
             <div>
-              <label className="label-text">{t("admin.supervisorName")}</label>
-              <input
-                className="input-field"
+              <Label className="mb-1.5">{t("admin.supervisorName")}</Label>
+              <Input
                 value={form.supervisor_name}
                 onChange={(e) => setForm({ ...form, supervisor_name: e.target.value })}
               />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <button onClick={handleSave} disabled={saving} className="btn-primary w-full sm:w-auto">
+          <DialogFooter>
+            <Button onClick={handleSave} disabled={saving}>
               {saving ? t("common.loading") : t("admin.save")}
-            </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary w-full sm:w-auto">
+            </Button>
+            <Button variant="outline" onClick={() => setShowForm(false)}>
               {t("admin.cancel")}
-            </button>
-          </div>
-        </div>
-      )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!deleteRoomId}
+        onOpenChange={(open) => {
+          if (!open) setDeleteRoomId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("admin.confirmDelete")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("admin.confirmDelete")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("admin.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (deleteRoomId) handleDelete(deleteRoomId);
+              }}
+            >
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         <div>
-          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">
+          <h3 className="text-base font-bold mb-3">
             {t("admin.unassigned")} ({filteredUnassigned.length}/{allGenderCount})
           </h3>
           <div className="space-y-2">
             {filteredUnassigned.length === 0 ? (
-              <p className="text-slate-400 dark:text-gray-500 text-center py-4 text-sm">{t("admin.noUnassigned")}</p>
+              <p className="text-muted-foreground text-center py-4 text-sm">{t("admin.noUnassigned")}</p>
             ) : (
               filteredUnassigned.map((b) => (
                 <div
                   key={b.id}
                   onClick={() => setSelectedBooking(b.id)}
-                  className={`card cursor-pointer transition-all duration-150 ${
+                  className={`cursor-pointer transition-all duration-150 rounded-xl p-4 bg-card text-card-foreground shadow-xs ring-1 ring-foreground/10 ${
                     selectedBooking === b.id
-                      ? "ring-2 ring-blue-500 dark:ring-blue-400 shadow-sm"
+                      ? "ring-2 ring-primary shadow-sm"
                       : "hover:shadow-sm"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1 font-medium text-slate-800 dark:text-gray-100 text-sm">
+                    <span className="flex items-center gap-1 font-medium text-sm">
+                      <User className="size-4 text-muted-foreground" />
                       {b.profiles.full_name}
                       {b.profiles.has_wheelchair && <span title={t("admin.wheelchair")}>♿</span>}
                     </span>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        b.profiles.gender === "Male"
-                          ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
-                          : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
-                      }`}
-                    >
+                    <Badge variant="outline" className="text-xs">
                       {b.profiles.gender === "Male" ? t("auth.male") : t("auth.female")}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
               ))
@@ -348,7 +400,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
         </div>
 
         <div>
-          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">
+          <h3 className="text-base font-bold mb-3">
             {genderTab === "Male" ? t("admin.boysTab") : t("admin.girlsTab")} — {t("admin.rooms")} ({filteredRooms.length})
           </h3>
           <div className="space-y-3">
@@ -358,64 +410,77 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
                 room.occupant_count < room.capacity;
 
               const percent = room.capacity > 0 ? (room.occupant_count / room.capacity) * 100 : 0;
-              const fillClass = percent >= 100 ? "danger" : percent > 80 ? "warning" : "";
+              const progressClassName =
+                percent >= 100
+                  ? "[&_[data-slot=progress-indicator]]:bg-destructive"
+                  : percent > 80
+                    ? "[&_[data-slot=progress-indicator]]:bg-amber-500"
+                    : "";
 
               return (
-                <div key={room.id} className="card">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                    <span className="font-bold text-slate-800 dark:text-gray-100">{room.room_label}</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => startEdit(room)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
-                      >
-                        {t("common.edit")}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(room.id)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
-                      >
-                        {t("common.delete")}
-                      </button>
+                <Card key={room.id}>
+                  <CardContent>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <BedDouble className="size-4 text-muted-foreground" />
+                        <span className="font-bold">{room.room_label}</span>
+                        <Badge variant="secondary">
+                          {room.occupant_count}/{room.capacity}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => startEdit(room)}
+                        >
+                          <Pencil /> {t("common.edit")}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="xs"
+                          onClick={() => setDeleteRoomId(room.id)}
+                        >
+                          <Trash2 /> {t("common.delete")}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-sm text-slate-400 dark:text-gray-500 mb-2">
-                    {room.occupant_count}/{room.capacity} {t("admin.occupants")}
-                    {room.supervisor_name && ` — ${room.supervisor_name}`}
-                  </div>
-                  <div className="progress-bar mb-2">
-                    <div
-                      className={`progress-bar-fill ${fillClass}`}
-                      style={{ width: `${Math.min(percent, 100)}%` }}
-                    />
-                  </div>
-                  {room.occupants.length > 0 && (
-                    <div className="space-y-1">
-                      {room.occupants.map((o) => (
-                        <div key={o.id} className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-1 text-slate-500 dark:text-gray-400">
-                            {o.full_name}
-                            {o.has_wheelchair && <span title={t("admin.wheelchair")}>♿</span>}
-                          </span>
-                          <button
-                            onClick={() => handleRemoveFromRoom(o.booking_id)}
-                            className="text-xs text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
-                          >
-                            {t("admin.removeFromRoom")}
-                          </button>
-                        </div>
-                      ))}
+                    <div className="text-sm text-muted-foreground mb-2">
+                      {room.occupant_count}/{room.capacity} {t("admin.occupants")}
+                      {room.supervisor_name && ` — ${room.supervisor_name}`}
                     </div>
-                  )}
-                  {canAssign && (
-                    <button
-                      onClick={() => handleAssign(selectedBooking, room.id)}
-                      className="btn-primary mt-3 w-full text-sm py-2"
-                    >
-                      {t("admin.assignRoom")}
-                    </button>
-                  )}
-                </div>
+                    <Progress value={Math.min(percent, 100)} className={`mb-2 ${progressClassName}`} />
+                    {room.occupants.length > 0 && (
+                      <div className="space-y-1">
+                        {room.occupants.map((o) => (
+                          <div key={o.id} className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              {o.full_name}
+                              {o.has_wheelchair && <span title={t("admin.wheelchair")}>♿</span>}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleRemoveFromRoom(o.booking_id)}
+                            >
+                              <X /> {t("admin.removeFromRoom")}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {canAssign && (
+                      <Button
+                        onClick={() => handleAssign(selectedBooking, room.id)}
+                        className="mt-3 w-full"
+                        size="sm"
+                      >
+                        <Check /> {t("admin.assignRoom")}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
