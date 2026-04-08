@@ -1,211 +1,78 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+
   html {
-    font-size: 18px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     @apply font-sans;
   }
 
   body {
-    @apply dark:bg-gray-950 dark:text-gray-100 bg-background text-foreground;
+    @apply bg-background text-foreground;
   }
 
   * {
     -webkit-tap-highlight-color: transparent;
-    @apply border-border outline-ring/50;
-  }
-  .theme {
-    --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
-  }
-  :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-  }
-  .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    @apply border-border;
   }
 }
 
-@layer components {
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-6 rounded-xl text-lg font-semibold min-h-[48px] hover:bg-blue-700 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm shadow-blue-600/20 dark:shadow-blue-400/10;
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
   }
-
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 bg-slate-100 text-slate-700 py-3 px-6 rounded-xl text-lg font-semibold min-h-[48px] hover:bg-slate-200 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700;
-  }
-
-  .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 bg-red-50 text-red-600 py-2 px-3 rounded-lg text-sm font-medium min-h-[44px] hover:bg-red-100 active:scale-[0.98] transition-all duration-150 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-950;
-  }
-
-  .input-field {
-    @apply w-full px-4 py-3 text-lg border border-slate-200 rounded-xl min-h-[48px] bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all duration-150 placeholder:text-slate-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:ring-blue-400/40 dark:focus:border-blue-400;
-  }
-
-  .label-text {
-    @apply block text-base font-medium text-slate-600 mb-1.5 dark:text-gray-400;
-  }
-
-  .card {
-    @apply bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 transition-shadow duration-200 dark:bg-gray-900 dark:border-gray-800;
-  }
-
-  .card-hover {
-    @apply card hover:shadow-md cursor-pointer active:scale-[0.99] transition-all duration-150;
-  }
-
-  .badge {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold;
-  }
-
-  .badge-blue {
-    @apply badge bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400;
-  }
-
-  .badge-green {
-    @apply badge bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400;
-  }
-
-  .badge-red {
-    @apply badge bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400;
-  }
-
-  .badge-amber {
-    @apply badge bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400;
-  }
-
-  .section-title {
-    @apply text-xl sm:text-2xl font-bold text-slate-800 dark:text-gray-100;
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.25s ease-out;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.3s ease-out;
-}
-
-.animate-slide-down {
-  animation: slideDown 0.3s ease-out;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.progress-bar {
-  @apply w-full bg-slate-100 rounded-full overflow-hidden dark:bg-gray-800;
-  height: 10px;
-}
-
-.progress-bar-fill {
-  @apply h-full rounded-full transition-all duration-500 ease-out;
-  background: linear-gradient(90deg, #3b82f6, #2563eb);
-}
-
-.progress-bar-fill.warning {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
-}
-
-.progress-bar-fill.danger {
-  background: linear-gradient(90deg, #ef4444, #dc2626);
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 ::-webkit-scrollbar {
@@ -218,7 +85,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full dark:bg-gray-700;
+  @apply bg-border rounded-full;
 }
 
 .hide-scrollbar {
