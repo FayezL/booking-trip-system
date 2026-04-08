@@ -31,10 +31,6 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Progress,
-  ProgressIndicator,
-  ProgressLabel,
-  ProgressTrack,
-  ProgressValue,
 } from "@/components/ui/progress";
 import { Plus, Pencil, Trash2, BedDouble, User, Search, Check, X } from "lucide-react";
 import type { Room, Booking, Profile } from "@/lib/types/database";

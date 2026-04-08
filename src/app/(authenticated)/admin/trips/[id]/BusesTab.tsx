@@ -37,12 +37,8 @@ import {
 } from "@/components/ui/select";
 import {
   Progress,
-  ProgressIndicator,
-  ProgressLabel,
-  ProgressTrack,
-  ProgressValue,
 } from "@/components/ui/progress";
-import { Plus, Pencil, Trash2, ChevronDown, Users, UserMinus, ArrowRightLeft, User } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown, UserMinus, ArrowRightLeft, User, Bus as BusIcon } from "lucide-react";
 import type { Bus } from "@/lib/types/database";
 
 type Passenger = {
@@ -391,7 +387,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
           </DialogHeader>
           <div>
             <Label className="mb-1.5">{t("buses.chooseBus")}</Label>
-            <Select value={selectedTargetBus} onValueChange={setSelectedTargetBus}>
+            <Select value={selectedTargetBus} onValueChange={(v) => setSelectedTargetBus(v ?? "")}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t("admin.selectBus")} />
               </SelectTrigger>
@@ -477,7 +473,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                 <CardContent>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
-                      <Bus className="size-4 text-muted-foreground" />
+                      <BusIcon className="size-4 text-muted-foreground" />
                       <h3 className="text-base font-bold">{displayName}</h3>
                       <Badge variant={statusBg}>
                         {count}/{bus.capacity}
@@ -516,12 +512,11 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                     </p>
                   )}
 
-                  <Progress value={Math.min(percent, 100)} className={progressClassName}>
-                    <div className="flex justify-between text-sm text-muted-foreground mb-1.5">
-                      <ProgressLabel>{t("admin.passengers")}: {count}/{bus.capacity}</ProgressLabel>
-                      <ProgressValue>{Math.round(percent)}%</ProgressValue>
-                    </div>
-                  </Progress>
+                  <div className="flex justify-between text-sm text-muted-foreground mb-1.5">
+                    <span>{t("admin.passengers")}: {count}/{bus.capacity}</span>
+                    <span className="ms-auto tabular-nums">{Math.round(percent)}%</span>
+                  </div>
+                  <Progress value={Math.min(percent, 100)} className={progressClassName} />
 
                   {isExpanded && (
                     <div className="mt-3 pt-3 border-t border-border">

@@ -8,12 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Progress,
-  ProgressTrack,
-  ProgressIndicator,
-  ProgressLabel,
-  ProgressValue,
 } from "@/components/ui/progress";
-import { Users, UserX, Bus, BedDouble, Plus, UserPlus } from "lucide-react";
+import { Users, UserX, Bus as BusIcon, BedDouble, Plus, UserPlus } from "lucide-react";
 import type { Bus } from "@/lib/types/database";
 
 type BusWithCount = Bus & { booking_count: number };
@@ -100,7 +96,7 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
   const stats = [
     { label: t("admin.totalBooked"), value: String(totalBooked), icon: Users, bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-700 dark:text-blue-400" },
     { label: t("admin.unbookedCount"), value: String(totalRegistered - totalBooked), icon: UserX, bg: "bg-red-50 dark:bg-red-950/30", text: "text-red-600 dark:text-red-400" },
-    { label: t("admin.busSeatsFilled"), value: `${busSeatsFilled}/${busSeatsTotal}`, icon: Bus, bg: "bg-slate-50 dark:bg-gray-800", text: "text-slate-700 dark:text-gray-300" },
+            { label: t("admin.busSeatsFilled"), value: `${busSeatsFilled}/${busSeatsTotal}`, icon: BusIcon, bg: "bg-slate-50 dark:bg-gray-800", text: "text-slate-700 dark:text-gray-300" },
     { label: t("admin.roomsAssigned"), value: `${roomsAssigned}/${roomsTotal}`, icon: BedDouble, bg: "bg-purple-50 dark:bg-purple-950/30", text: "text-purple-700 dark:text-purple-400" },
   ];
 
@@ -144,21 +140,20 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
               return (
                 <Card key={group.areaName}>
                   <CardContent>
-                    <Progress value={Math.min(percent, 100)} className={getProgressClassName(percent)}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <ProgressLabel className="text-base font-bold">
-                            {group.areaName}
-                          </ProgressLabel>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadge(percent)}`}>
-                            {group.buses.length} {t("admin.busesCount")}
-                          </span>
-                        </div>
-                        <ProgressValue>
-                          {group.totalBooked}/{group.totalCapacity}
-                        </ProgressValue>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-bold">
+                          {group.areaName}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadge(percent)}`}>
+                          {group.buses.length} {t("admin.busesCount")}
+                        </span>
                       </div>
-                    </Progress>
+                      <span className="text-sm text-muted-foreground ms-auto tabular-nums">
+                        {group.totalBooked}/{group.totalCapacity}
+                      </span>
+                    </div>
+                    <Progress value={Math.min(percent, 100)} className={getProgressClassName(percent)} />
                     <p className="text-sm text-muted-foreground mt-2">
                       {group.buses.map((b) => b.bus_label || b.area_name_ar).join("، ")}
                     </p>
