@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { useToast } from "@/components/Toast";
+import { toast } from "sonner";
 import { logAction } from "@/lib/admin-logs";
 import type { Profile } from "@/lib/types/database";
 import PageBreadcrumbs from "@/components/PageBreadcrumbs";
@@ -98,7 +98,6 @@ function getRoleBadgeVariant(role: string): "default" | "secondary" | "destructi
 export default function UsersPage() {
   const { t } = useTranslation();
   const supabase = createClient();
-  const { showToast } = useToast();
 
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,7 +136,7 @@ export default function UsersPage() {
 
   async function handleResetPassword() {
     if (!resetUserId || !newPassword || newPassword.length < 6) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
       return;
     }
 
@@ -149,9 +148,9 @@ export default function UsersPage() {
     setSaving(false);
 
     if (error) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
     } else {
-      showToast(t("admin.passwordReset"), "success");
+      toast.success(t("admin.passwordReset"));
       logAction("reset_password", "user", resetUserId);
       setResetUserId(null);
       setNewPassword("");
@@ -165,9 +164,9 @@ export default function UsersPage() {
       .eq("id", userId);
 
     if (error) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
     } else {
-      showToast(t("admin.changeRole"), "success");
+      toast.success(t("admin.changeRole"));
       logAction("change_role", "user", userId, { to: newRole });
       setChangingRoleUserId(null);
       setChangingRoleValue("");
@@ -183,7 +182,7 @@ export default function UsersPage() {
       !form.password ||
       form.password.length < 6
     ) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
       return;
     }
 
@@ -200,14 +199,14 @@ export default function UsersPage() {
 
     if (error) {
       if (error.message.includes("unique") || error.message.includes("already")) {
-        showToast(t("auth.phoneExists"), "error");
+        toast.error(t("auth.phoneExists"));
       } else {
-        showToast(t("common.error"), "error");
+        toast.error(t("common.error"));
       }
       return;
     }
 
-    showToast(getRoleLabel(form.role, t) + " ✓", "success");
+    toast.success(getRoleLabel(form.role, t) + " ✓");
     logAction("create_user", "user", undefined, { phone: form.phone, role: form.role });
     setShowForm(false);
     setForm(emptyPersonForm);
@@ -222,9 +221,9 @@ export default function UsersPage() {
     });
 
     if (error) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
     } else {
-      showToast(t("admin.userDeleted"), "success");
+      toast.success(t("admin.userDeleted"));
       logAction("delete_user", "user", deleteUserId, { name: deleteUserName });
       loadUsers();
     }

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { useToast } from "@/components/Toast";
+import { toast } from "sonner";
 import type { Bus, Trip } from "@/lib/types/database";
 import PageBreadcrumbs from "@/components/PageBreadcrumbs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,7 +49,6 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   const { t, lang } = useTranslation();
   const router = useRouter();
   const supabase = createClient();
-  const { showToast } = useToast();
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [areaGroups, setAreaGroups] = useState<AreaGroup[]>([]);
@@ -130,11 +129,11 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
 
     if (error) {
       if (error.message.includes("Already booked")) {
-        showToast(t("trips.alreadyBooked"), "error");
+        toast.error(t("trips.alreadyBooked"));
       } else if (error.message.includes("full") || error.message.includes("Full")) {
-        showToast(t("buses.full"), "error");
+        toast.error(t("buses.full"));
       } else {
-        showToast(t("common.error"), "error");
+        toast.error(t("common.error"));
       }
       setBookingBusId(null);
       return;

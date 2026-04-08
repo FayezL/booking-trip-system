@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { useToast } from "@/components/Toast";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { toast } from "sonner";
 import { logAction } from "@/lib/admin-logs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,7 +69,6 @@ const emptyForm: BusForm = {
 export default function BusesTab({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
   const supabase = createClient();
-  const { showToast } = useToast();
 
   const [buses, setBuses] = useState<BusWithPassengers[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,9 +144,9 @@ export default function BusesTab({ tripId }: { tripId: string }) {
     });
 
     if (error) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
     } else {
-      showToast(t("admin.passengerMoved"), "success");
+      toast.success(t("admin.passengerMoved"));
       logAction("move_passenger", "booking", movingPassenger, { to_bus: selectedTargetBus });
       setMovingPassenger(null);
       setSelectedTargetBus("");
@@ -165,9 +163,9 @@ export default function BusesTab({ tripId }: { tripId: string }) {
     setRemoveTarget(null);
 
     if (error) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
     } else {
-      showToast(t("admin.passengerRemoved"), "success");
+      toast.success(t("admin.passengerRemoved"));
       logAction("remove_passenger", "booking", bookingId);
       loadBuses();
     }
@@ -194,7 +192,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
   async function handleSave() {
     if (editingId) {
       if (!form.bus_label || form.capacity <= 0) {
-        showToast(t("common.error"), "error");
+        toast.error(t("common.error"));
         return;
       }
 
@@ -207,9 +205,9 @@ export default function BusesTab({ tripId }: { tripId: string }) {
           leader_name: form.leader_name || null,
         })
         .eq("id", editingId);
-      if (error) showToast(t("common.error"), "error");
+      if (error) toast.error(t("common.error"));
       else {
-        showToast(t("admin.editBus"), "success");
+        toast.success(t("admin.editBus"));
         logAction("edit_bus", "bus", editingId);
       }
       setSaving(false);
@@ -219,7 +217,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
     }
 
     if (!form.area_name || form.capacity <= 0 || form.bus_count < 1) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
       return;
     }
 
@@ -250,9 +248,9 @@ export default function BusesTab({ tripId }: { tripId: string }) {
 
     const { error } = await supabase.from("buses").insert(busesToCreate);
 
-    if (error) showToast(t("common.error"), "error");
+    if (error) toast.error(t("common.error"));
     else {
-      showToast(t("admin.createBus"), "success");
+      toast.success(t("admin.createBus"));
       logAction("bulk_create_buses", "bus", undefined, { count: form.bus_count });
     }
 
@@ -263,16 +261,21 @@ export default function BusesTab({ tripId }: { tripId: string }) {
 
   async function handleDelete(id: string) {
     const { error } = await supabase.from("buses").delete().eq("id", id);
-    if (error) showToast(t("common.error"), "error");
+    if (error) toast.error(t("common.error"));
     else {
-      showToast(t("admin.deleteBus"), "success");
+      toast.success(t("admin.deleteBus"));
       logAction("delete_bus", "bus", id);
       loadBuses();
     }
   }
 
   if (loading) {
-    return <LoadingSpinner text={t("common.loading")} />;
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-20 animate-fade-in">
+        <div className="w-12 h-12 rounded-full border-4 border-slate-100 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 animate-spin" />
+        <p className="text-lg text-slate-400 dark:text-gray-400">{t("common.loading")}</p>
+      </div>
+    );
   }
 
   const movingBusId = movingPassenger

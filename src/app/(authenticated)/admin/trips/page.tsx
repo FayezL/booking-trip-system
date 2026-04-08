@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { useToast } from "@/components/Toast";
+import { toast } from "sonner";
 import { logAction } from "@/lib/admin-logs";
 import PageBreadcrumbs from "@/components/PageBreadcrumbs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,7 +52,6 @@ export default function TripsManagementPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const supabase = createClient();
-  const { showToast } = useToast();
 
   const [trips, setTrips] = useState<TripWithCount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +105,7 @@ export default function TripsManagementPage() {
 
   async function handleSave() {
     if (!form.title || !form.trip_date) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
       return;
     }
 
@@ -125,17 +124,17 @@ export default function TripsManagementPage() {
         .update(payload)
         .eq("id", editingId);
       if (error) {
-        showToast(t("common.error"), "error");
+        toast.error(t("common.error"));
       } else {
-        showToast(t("admin.editTrip"), "success");
+        toast.success(t("admin.editTrip"));
         logAction("edit_trip", "trip", editingId);
       }
     } else {
       const { error } = await supabase.from("trips").insert(payload);
       if (error) {
-        showToast(t("common.error"), "error");
+        toast.error(t("common.error"));
       } else {
-        showToast(t("admin.createTrip"), "success");
+        toast.success(t("admin.createTrip"));
         logAction("create_trip", "trip");
       }
     }
@@ -149,9 +148,9 @@ export default function TripsManagementPage() {
     setDeleteId(null);
     const { error } = await supabase.from("trips").delete().eq("id", id);
     if (error) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
     } else {
-      showToast(t("admin.deleteTrip"), "success");
+      toast.success(t("admin.deleteTrip"));
       logAction("delete_trip", "trip", id);
       loadTrips();
     }

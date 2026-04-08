@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import LoadingSpinner from "@/components/LoadingSpinner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -90,7 +89,12 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
   }
 
   if (loading) {
-    return <LoadingSpinner text={t("common.loading")} />;
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-20 animate-fade-in">
+        <div className="w-12 h-12 rounded-full border-4 border-slate-100 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 animate-spin" />
+        <p className="text-lg text-slate-400 dark:text-gray-400">{t("common.loading")}</p>
+      </div>
+    );
   }
 
   const stats = [

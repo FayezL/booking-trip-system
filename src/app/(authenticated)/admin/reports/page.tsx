@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { useToast } from "@/components/Toast";
+import { toast } from "sonner";
 import PageBreadcrumbs from "@/components/PageBreadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,6 @@ type Passenger = {
 export default function ReportsPage() {
   const { t } = useTranslation();
   const supabase = createClient();
-  const { showToast } = useToast();
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [selectedTrip, setSelectedTrip] = useState<string>("");
@@ -49,7 +48,7 @@ export default function ReportsPage() {
 
   async function generateReport(type: "bus" | "room") {
     if (!selectedTrip) {
-      showToast(t("admin.selectTrip"), "error");
+      toast.error(t("admin.selectTrip"));
       return;
     }
 
@@ -58,7 +57,7 @@ export default function ReportsPage() {
     try {
       const trip = trips.find((tr) => tr.id === selectedTrip);
       if (!trip) {
-        showToast(t("admin.selectTrip"), "error");
+        toast.error(t("admin.selectTrip"));
         return;
       }
 
@@ -84,7 +83,7 @@ export default function ReportsPage() {
         );
 
         downloadPDF(pdfBytes, "bus-report.pdf");
-        showToast(t("admin.busReport"), "success");
+        toast.success(t("admin.busReport"));
       } else {
         const [roomsRes, bookingsRes] = await Promise.all([
           supabase.from("rooms").select("*").eq("trip_id", selectedTrip),
@@ -106,10 +105,10 @@ export default function ReportsPage() {
         );
 
         downloadPDF(pdfBytes, "room-report.pdf");
-        showToast(t("admin.roomReport"), "success");
+        toast.success(t("admin.roomReport"));
       }
     } catch {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
     } finally {
       setGenerating(false);
     }

@@ -3,8 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { useToast } from "@/components/Toast";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { toast } from "sonner";
 import { logAction } from "@/lib/admin-logs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,7 +52,6 @@ type RoomWithOccupants = Room & { occupant_count: number; occupants: { id: strin
 export default function RoomsTab({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
   const supabase = createClient();
-  const { showToast } = useToast();
 
   const [rooms, setRooms] = useState<RoomWithOccupants[]>([]);
   const [unassigned, setUnassigned] = useState<BookingWithProfile[]>([]);
@@ -160,7 +158,7 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
 
   async function handleSave() {
     if (!form.room_label || form.capacity <= 0) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
       return;
     }
 
@@ -173,18 +171,18 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
         .from("rooms")
         .update(form)
         .eq("id", editingId);
-      if (error) { showToast(t("common.error"), "error"); hadError = true; }
+      if (error) { toast.error(t("common.error")); hadError = true; }
       else {
-        showToast(t("admin.editRoom"), "success");
+        toast.success(t("admin.editRoom"));
         logAction("edit_room", "room", editingId);
       }
     } else {
       const { error } = await supabase
         .from("rooms")
         .insert({ ...form, room_type: genderTab, trip_id: tripId });
-      if (error) { showToast(t("common.error"), "error"); hadError = true; }
+      if (error) { toast.error(t("common.error")); hadError = true; }
       else {
-        showToast(t("admin.createRoom"), "success");
+        toast.success(t("admin.createRoom"));
         logAction("create_room", "room");
       }
     }
@@ -197,9 +195,9 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
 
   async function handleDelete(id: string) {
     const { error } = await supabase.from("rooms").delete().eq("id", id);
-    if (error) showToast(t("common.error"), "error");
+    if (error) toast.error(t("common.error"));
     else {
-      showToast(t("admin.deleteRoom"), "success");
+      toast.success(t("admin.deleteRoom"));
       logAction("delete_room", "room", id);
       loadData();
     }
@@ -212,9 +210,9 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     });
 
     if (error) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
     } else {
-      showToast(t("admin.assignRoom"), "success");
+      toast.success(t("admin.assignRoom"));
       logAction("assign_room", "booking", bookingId);
       setSelectedBooking(null);
       loadData();
@@ -226,16 +224,21 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
       .from("bookings")
       .update({ room_id: null })
       .eq("id", bookingId);
-    if (error) showToast(t("common.error"), "error");
+    if (error) toast.error(t("common.error"));
     else {
-      showToast(t("admin.removeFromRoom"), "success");
+      toast.success(t("admin.removeFromRoom"));
       logAction("remove_from_room", "booking", bookingId);
       loadData();
     }
   }
 
   if (loading) {
-    return <LoadingSpinner text={t("common.loading")} />;
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-20 animate-fade-in">
+        <div className="w-12 h-12 rounded-full border-4 border-slate-100 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 animate-spin" />
+        <p className="text-lg text-slate-400 dark:text-gray-400">{t("common.loading")}</p>
+      </div>
+    );
   }
 
   const allGenderCount = unassigned.filter((b) => b.profiles.gender === genderTab).length;

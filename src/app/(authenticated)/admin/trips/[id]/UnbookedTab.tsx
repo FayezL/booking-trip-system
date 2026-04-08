@@ -3,8 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { useToast } from "@/components/Toast";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { toast } from "sonner";
 import { logAction } from "@/lib/admin-logs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,7 +51,6 @@ const emptyForm: RegisterForm = {
 export default function UnbookedTab({ tripId }: { tripId: string }) {
   const { t, lang } = useTranslation();
   const supabase = createClient();
-  const { showToast } = useToast();
 
   const [unbooked, setUnbooked] = useState<Profile[]>([]);
   const [buses, setBuses] = useState<Bus[]>([]);
@@ -108,7 +106,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
   async function confirmBookForUser() {
     if (!bookingUser || !selectedBus) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
       return;
     }
 
@@ -119,9 +117,9 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     });
 
     if (error) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
     } else {
-      showToast(t("admin.book"), "success");
+      toast.success(t("admin.book"));
       logAction("book_user", "booking", undefined, { user_id: bookingUser });
       setBookingUser(null);
       loadData();
@@ -130,7 +128,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
   async function handleRegister() {
     if (!form.phone || !/^\d{8,15}$/.test(form.phone) || !form.full_name || !form.password || form.password.length < 6) {
-      showToast(t("common.error"), "error");
+      toast.error(t("common.error"));
       return;
     }
 
@@ -151,17 +149,17 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
     if (error) {
       if (error.message.includes("already registered") || error.message.includes("unique")) {
-        showToast(t("auth.phoneExists"), "error");
+        toast.error(t("auth.phoneExists"));
         setShowRegister(false);
         setForm(emptyForm);
         loadData();
       } else {
-        showToast(t("common.error"), "error");
+        toast.error(t("common.error"));
       }
       return;
     }
 
-    showToast(t("admin.registerPatient"), "success");
+    toast.success(t("admin.registerPatient"));
     logAction("register_patient", "user", undefined, { phone: form.phone });
     setShowRegister(false);
     setForm(emptyForm);
@@ -192,7 +190,12 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   }), [unbooked]);
 
   if (loading) {
-    return <LoadingSpinner text={t("common.loading")} />;
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-20 animate-fade-in">
+        <div className="w-12 h-12 rounded-full border-4 border-slate-100 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 animate-spin" />
+        <p className="text-lg text-slate-400 dark:text-gray-400">{t("common.loading")}</p>
+      </div>
+    );
   }
 
   return (
