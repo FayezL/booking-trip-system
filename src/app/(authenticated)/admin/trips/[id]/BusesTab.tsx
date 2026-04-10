@@ -3,41 +3,9 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { toast } from "sonner";
+import { useToast } from "@/components/Toast";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Progress,
-} from "@/components/ui/progress";
-import { Plus, Pencil, Trash2, ChevronDown, UserMinus, ArrowRightLeft, User, Bus as BusIcon } from "lucide-react";
 import type { Bus } from "@/lib/types/database";
 
 type Passenger = {
@@ -69,6 +37,7 @@ const emptyForm: BusForm = {
 export default function BusesTab({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
   const supabase = createClient();
+  const { showToast } = useToast();
 
   const [buses, setBuses] = useState<BusWithPassengers[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,8 +49,6 @@ export default function BusesTab({ tripId }: { tripId: string }) {
   const [movingPassenger, setMovingPassenger] = useState<string | null>(null);
   const [selectedTargetBus, setSelectedTargetBus] = useState<string>("");
   const [removingPassenger, setRemovingPassenger] = useState<string | null>(null);
-  const [deleteBusId, setDeleteBusId] = useState<string | null>(null);
-  const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadBuses();
@@ -144,9 +111,9 @@ export default function BusesTab({ tripId }: { tripId: string }) {
     });
 
     if (error) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
     } else {
-      toast.success(t("admin.passengerMoved"));
+      showToast(t("admin.passengerMoved"), "success");
       logAction("move_passenger", "booking", movingPassenger, { to_bus: selectedTargetBus });
       setMovingPassenger(null);
       setSelectedTargetBus("");
@@ -160,15 +127,19 @@ export default function BusesTab({ tripId }: { tripId: string }) {
       p_booking_id: bookingId,
     });
     setRemovingPassenger(null);
-    setRemoveTarget(null);
 
     if (error) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
     } else {
-      toast.success(t("admin.passengerRemoved"));
+      showToast(t("admin.passengerRemoved"), "success");
       logAction("remove_passenger", "booking", bookingId);
       loadBuses();
     }
+  }
+
+  function handleRemovePassenger(bookingId: string, passengerName: string) {
+    if (!confirm(`${t("admin.confirmRemoveFromBus")}\n\n${passengerName}`)) return;
+    confirmRemove(bookingId);
   }
 
   function startEdit(bus: Bus) {
@@ -192,7 +163,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
   async function handleSave() {
     if (editingId) {
       if (!form.bus_label || form.capacity <= 0) {
-        toast.error(t("common.error"));
+        showToast(t("common.error"), "error");
         return;
       }
 
@@ -205,9 +176,9 @@ export default function BusesTab({ tripId }: { tripId: string }) {
           leader_name: form.leader_name || null,
         })
         .eq("id", editingId);
-      if (error) toast.error(t("common.error"));
+      if (error) showToast(t("common.error"), "error");
       else {
-        toast.success(t("admin.editBus"));
+        showToast(t("admin.editBus"), "success");
         logAction("edit_bus", "bus", editingId);
       }
       setSaving(false);
@@ -217,7 +188,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
     }
 
     if (!form.area_name || form.capacity <= 0 || form.bus_count < 1) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
       return;
     }
 
@@ -248,9 +219,9 @@ export default function BusesTab({ tripId }: { tripId: string }) {
 
     const { error } = await supabase.from("buses").insert(busesToCreate);
 
-    if (error) toast.error(t("common.error"));
+    if (error) showToast(t("common.error"), "error");
     else {
-      toast.success(t("admin.createBus"));
+      showToast(t("admin.createBus"), "success");
       logAction("bulk_create_buses", "bus", undefined, { count: form.bus_count });
     }
 
@@ -260,50 +231,37 @@ export default function BusesTab({ tripId }: { tripId: string }) {
   }
 
   async function handleDelete(id: string) {
+    if (!confirm(t("admin.confirmDelete"))) return;
     const { error } = await supabase.from("buses").delete().eq("id", id);
-    if (error) toast.error(t("common.error"));
+    if (error) showToast(t("common.error"), "error");
     else {
-      toast.success(t("admin.deleteBus"));
+      showToast(t("admin.deleteBus"), "success");
       logAction("delete_bus", "bus", id);
       loadBuses();
     }
   }
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-20 animate-fade-in">
-        <div className="w-12 h-12 rounded-full border-4 border-slate-100 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 animate-spin" />
-        <p className="text-lg text-slate-400 dark:text-gray-400">{t("common.loading")}</p>
-      </div>
-    );
+    return <LoadingSpinner text={t("common.loading")} />;
   }
-
-  const movingBusId = movingPassenger
-    ? buses.find((b) => b.passengers.some((p) => p.booking_id === movingPassenger))?.id
-    : null;
-  const moveTargetBuses = movingBusId ? buses.filter((b) => b.id !== movingBusId) : buses;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold">{t("admin.buses")}</h2>
-        <Button onClick={startCreate}>
-          <Plus /> {t("admin.createBus")}
-        </Button>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">{t("admin.buses")}</h2>
+        <button onClick={startCreate} className="btn-primary">
+          + {t("admin.createBus")}
+        </button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingId ? t("common.edit") : t("admin.createBus")}
-            </DialogTitle>
-          </DialogHeader>
+      {showForm && (
+        <div className="card mb-4 animate-slide-up">
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {editingId ? (
               <div>
-                <Label className="mb-1.5">{t("admin.busLabel")}</Label>
-                <Input
+                <label className="label-text">{t("admin.busLabel")}</label>
+                <input
+                  className="input-field"
                   value={form.bus_label}
                   onChange={(e) => setForm({ ...form, bus_label: e.target.value })}
                 />
@@ -311,143 +269,64 @@ export default function BusesTab({ tripId }: { tripId: string }) {
             ) : (
               <>
                 <div>
-                  <Label className="mb-1.5">{t("admin.areaName")}</Label>
-                  <Input
+                  <label className="label-text">{t("admin.areaName")}</label>
+                  <input
+                    className="input-field"
                     value={form.area_name}
                     onChange={(e) => setForm({ ...form, area_name: e.target.value })}
                   />
                 </div>
                 <div>
-                  <Label className="mb-1.5">{t("admin.numberOfBuses")}</Label>
-                  <Input
+                  <label className="label-text">{t("admin.numberOfBuses")}</label>
+                  <input
                     type="number"
+                    className="input-field"
                     value={form.bus_count || ""}
                     onChange={(e) => setForm({ ...form, bus_count: parseInt(e.target.value) || 1 })}
                     dir="ltr"
-                    min={1}
-                    max={20}
+                    min="1"
+                    max="20"
                   />
                 </div>
               </>
             )}
             <div>
-              <Label className="mb-1.5">{t("admin.capacity")}</Label>
-              <Input
+              <label className="label-text">{t("admin.capacity")}</label>
+              <input
                 type="number"
+                className="input-field"
                 value={form.capacity || ""}
                 onChange={(e) => setForm({ ...form, capacity: parseInt(e.target.value) || 0 })}
                 dir="ltr"
               />
             </div>
             <div>
-              <Label className="mb-1.5">{t("admin.leaderName")}</Label>
-              <Input
+              <label className="label-text">{t("admin.leaderName")}</label>
+              <input
+                className="input-field"
                 value={form.leader_name}
                 onChange={(e) => setForm({ ...form, leader_name: e.target.value })}
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleSave} disabled={saving}>
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button onClick={handleSave} disabled={saving} className="btn-primary w-full sm:w-auto">
               {saving ? t("common.loading") : t("admin.save")}
-            </Button>
-            <Button variant="outline" onClick={() => setShowForm(false)}>
+            </button>
+            <button onClick={() => setShowForm(false)} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={!!deleteBusId}
-        onOpenChange={(open) => {
-          if (!open) setDeleteBusId(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("admin.confirmDelete")}</AlertDialogTitle>
-            <AlertDialogDescription>{t("admin.confirmDelete")}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("admin.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                if (deleteBusId) handleDelete(deleteBusId);
-              }}
-            >
-              {t("common.delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={!!movingPassenger} onOpenChange={(open) => { if (!open) setMovingPassenger(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("admin.moveToBus")}</DialogTitle>
-          </DialogHeader>
-          <div>
-            <Label className="mb-1.5">{t("buses.chooseBus")}</Label>
-            <Select value={selectedTargetBus} onValueChange={(v) => setSelectedTargetBus(v ?? "")}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t("admin.selectBus")} />
-              </SelectTrigger>
-              <SelectContent>
-                {moveTargetBuses.map((ob) => (
-                  <SelectItem key={ob.id} value={ob.id}>
-                    {ob.bus_label || ob.area_name_ar} ({ob.passengers.length}/{ob.capacity})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            </button>
           </div>
-          <DialogFooter>
-            <Button onClick={confirmMove} disabled={!selectedTargetBus}>
-              {t("admin.book")}
-            </Button>
-            <Button variant="outline" onClick={() => setMovingPassenger(null)}>
-              {t("admin.cancel")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={!!removeTarget}
-        onOpenChange={(open) => {
-          if (!open) setRemoveTarget(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("admin.confirmRemoveFromBus")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {removeTarget?.name}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("admin.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                if (removeTarget) confirmRemove(removeTarget.id);
-              }}
-            >
-              {t("admin.removeFromBus")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        </div>
+      )}
 
       {buses.length === 0 ? (
         <div className="text-center py-10">
-          <p className="text-lg text-muted-foreground mb-2">{t("admin.noBusesYet")}</p>
-          <p className="text-sm text-muted-foreground/60 mb-4">{t("admin.addBusesFirst")}</p>
-          <Button onClick={startCreate}>
-            <Plus /> {t("admin.createBus")}
-          </Button>
+          <p className="text-lg text-slate-400 dark:text-gray-500 mb-2">{t("admin.noBusesYet")}</p>
+          <p className="text-sm text-slate-300 dark:text-gray-600 mb-4">{t("admin.addBusesFirst")}</p>
+          <button onClick={startCreate} className="btn-primary">
+            + {t("admin.createBus")}
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -456,130 +335,158 @@ export default function BusesTab({ tripId }: { tripId: string }) {
             const percent = bus.capacity > 0 ? (count / bus.capacity) * 100 : 0;
             const displayName = bus.bus_label || bus.area_name_ar;
             const isExpanded = expandedBusIds.has(bus.id);
+            const otherBuses = buses.filter((b) => b.id !== bus.id);
 
             const statusBg =
               percent >= 100
-                ? "destructive"
+                ? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
                 : percent >= 80
-                  ? "secondary"
-                  : "outline";
-
-            const progressClassName =
-              percent >= 100
-                ? "[&_[data-slot=progress-indicator]]:bg-destructive"
-                : percent >= 80
-                  ? "[&_[data-slot=progress-indicator]]:bg-amber-500"
-                  : "";
+                  ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
+                  : "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400";
+            const fillClass = percent >= 100 ? "danger" : percent >= 80 ? "warning" : "";
 
             return (
-              <Card key={bus.id}>
-                <CardContent>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <BusIcon className="size-4 text-muted-foreground" />
-                      <h3 className="text-base font-bold">{displayName}</h3>
-                      <Badge variant={statusBg}>
-                        {count}/{bus.capacity}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={() => toggleExpand(bus.id)}
-                      >
-                        <ChevronDown className={`transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-                        {isExpanded ? t("admin.hidePassengers") : t("admin.showPassengers")}
-                        {count > 0 && <span className="ms-1">({count})</span>}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={() => startEdit(bus)}
-                      >
-                        <Pencil /> {t("common.edit")}
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="xs"
-                        onClick={() => setDeleteBusId(bus.id)}
-                      >
-                        <Trash2 /> {t("common.delete")}
-                      </Button>
-                    </div>
+              <div key={bus.id} className="card">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{displayName}</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBg}`}>
+                      {count}/{bus.capacity}
+                    </span>
                   </div>
-
-                  {bus.leader_name && (
-                    <p className="text-sm text-muted-foreground mb-1">
-                      {t("admin.leaderName")}: {bus.leader_name}
-                    </p>
-                  )}
-
-                  <div className="flex justify-between text-sm text-muted-foreground mb-1.5">
-                    <span>{t("admin.passengers")}: {count}/{bus.capacity}</span>
-                    <span className="ms-auto tabular-nums">{Math.round(percent)}%</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleExpand(bus.id)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 active:scale-95 transition-all duration-150"
+                    >
+                      {isExpanded ? t("admin.hidePassengers") : t("admin.showPassengers")}
+                      {count > 0 && <span className="ms-1">({count})</span>}
+                    </button>
+                    <button
+                      onClick={() => startEdit(bus)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
+                    >
+                      {t("common.edit")}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(bus.id)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
+                    >
+                      {t("common.delete")}
+                    </button>
                   </div>
-                  <Progress value={Math.min(percent, 100)} className={progressClassName} />
+                </div>
 
-                  {isExpanded && (
-                    <div className="mt-3 pt-3 border-t border-border">
-                      {count === 0 ? (
-                        <p className="text-sm text-muted-foreground">{t("admin.noPassengers")}</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {bus.passengers.map((p) => (
-                            <div
-                              key={p.booking_id}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg bg-muted/50"
-                            >
-                              <div className="flex items-center gap-2">
-                                <User className="size-4 text-muted-foreground" />
-                                <span className="text-sm font-medium">
-                                  {p.full_name}
-                                </span>
-                                <Badge variant="outline" className="text-xs">
-                                  {p.gender === "Male" ? "♂" : "♀"}
-                                </Badge>
-                                {p.has_wheelchair && (
-                                  <Badge variant="secondary" className="text-xs">♿</Badge>
-                                )}
-                              </div>
+                {bus.leader_name && (
+                  <p className="text-sm text-slate-400 dark:text-gray-500 mb-1">
+                    {t("admin.leaderName")}: {bus.leader_name}
+                  </p>
+                )}
 
-                              <div className="flex items-center gap-2">
-                                {removingPassenger === p.booking_id ? (
-                                  <span className="text-xs text-muted-foreground">{t("common.loading")}</span>
-                                ) : (
-                                  <>
-                                    {buses.filter((b) => b.id !== bus.id).length > 0 && (
-                                      <Button
-                                        variant="outline"
-                                        size="xs"
-                                        onClick={() => startMove(p.booking_id)}
-                                      >
-                                        <ArrowRightLeft /> {t("admin.moveToBus")}
-                                      </Button>
-                                    )}
-                                    <Button
-                                      variant="destructive"
-                                      size="xs"
-                                      onClick={() => setRemoveTarget({ id: p.booking_id, name: p.full_name })}
-                                    >
-                                      <UserMinus /> {t("admin.removeFromBus")}
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
+                <div className="flex justify-between text-sm text-slate-400 dark:text-gray-500 mb-1.5">
+                  <span>{t("admin.passengers")}: {count}/{bus.capacity}</span>
+                  <span>{Math.round(percent)}%</span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className={`progress-bar-fill ${fillClass}`}
+                    style={{ width: `${Math.min(percent, 100)}%` }}
+                  />
+                </div>
+
+                {isExpanded && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800 animate-slide-up">
+                    {count === 0 ? (
+                      <p className="text-sm text-slate-400 dark:text-gray-500">{t("admin.noPassengers")}</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {bus.passengers.map((p) => (
+                          <div
+                            key={p.booking_id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 dark:bg-gray-800/50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-slate-700 dark:text-gray-200">
+                                {p.full_name}
+                              </span>
+                              <span
+                                className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                                  p.gender === "Male"
+                                    ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
+                                    : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
+                                }`}
+                              >
+                                {p.gender === "Male" ? "♂" : "♀"}
+                              </span>
+                              {p.has_wheelchair && (
+                                <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400">♿</span>
+                              )}
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+
+                            <div className="flex items-center gap-2">
+                              {movingPassenger === p.booking_id ? (
+                                <div className="flex items-center gap-2">
+                                  <select
+                                    className="input-field !py-1 !text-xs !w-auto min-w-[120px]"
+                                    value={selectedTargetBus}
+                                    onChange={(e) => setSelectedTargetBus(e.target.value)}
+                                  >
+                                    <option value="">{t("admin.selectBus")}</option>
+                                    {otherBuses.map((ob) => (
+                                      <option key={ob.id} value={ob.id}>
+                                        {ob.bus_label || ob.area_name_ar} ({ob.passengers.length}/{ob.capacity})
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    onClick={confirmMove}
+                                    disabled={!selectedTargetBus}
+                                    className="px-2 py-1 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-all duration-150"
+                                  >
+                                    {t("admin.book")}
+                                  </button>
+                                  <button
+                                    onClick={() => setMovingPassenger(null)}
+                                    className="px-2 py-1 rounded-lg text-xs font-medium bg-slate-200 dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-600 active:scale-95 transition-all duration-150"
+                                  >
+                                    {t("admin.cancel")}
+                                  </button>
+                                </div>
+                              ) : removingPassenger === p.booking_id ? (
+                                <span className="text-xs text-slate-400 dark:text-gray-500">{t("common.loading")}</span>
+                              ) : (
+                                <>
+                                  {otherBuses.length > 0 && (
+                                    <button
+                                      onClick={() => startMove(p.booking_id)}
+                                      className="px-2 py-1 rounded-lg text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50 active:scale-95 transition-all duration-150"
+                                    >
+                                      {t("admin.moveToBus")}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleRemovePassenger(p.booking_id, p.full_name)}
+                                    className="px-2 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
+                                  >
+                                    {t("admin.removeFromBus")}
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
+      )}
+
+      {movingPassenger && (
+        <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setMovingPassenger(null)} />
       )}
     </div>
   );

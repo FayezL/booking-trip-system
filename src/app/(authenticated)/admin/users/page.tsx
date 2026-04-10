@@ -3,50 +3,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { toast } from "sonner";
+import { useToast } from "@/components/Toast";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import type { Profile } from "@/lib/types/database";
-import PageBreadcrumbs from "@/components/PageBreadcrumbs";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, Search, Pencil, Trash2, KeyRound, Shield } from "lucide-react";
 
 type UserRole = "admin" | "servant" | "patient" | "companion" | "family_assistant";
 
@@ -83,21 +43,22 @@ function getRoleLabel(role: string, t: (key: string) => string): string {
   }
 }
 
-function getRoleBadgeVariant(role: string): "default" | "secondary" | "destructive" | "outline" {
+function getRoleBadgeClasses(role: string): string {
   switch (role) {
-    case "super_admin": return "default";
-    case "admin": return "secondary";
-    case "servant": return "outline";
-    case "patient": return "secondary";
-    case "companion": return "outline";
-    case "family_assistant": return "secondary";
-    default: return "secondary";
+    case "super_admin": return "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400";
+    case "admin": return "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400";
+    case "servant": return "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400";
+    case "patient": return "bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400";
+    case "companion": return "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400";
+    case "family_assistant": return "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400";
+    default: return "bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400";
   }
 }
 
 export default function UsersPage() {
   const { t } = useTranslation();
   const supabase = createClient();
+  const { showToast } = useToast();
 
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,10 +71,7 @@ export default function UsersPage() {
   const [form, setForm] = useState<PersonForm>(emptyPersonForm);
   const [creating, setCreating] = useState(false);
   const [changingRoleUserId, setChangingRoleUserId] = useState<string | null>(null);
-  const [changingRoleValue, setChangingRoleValue] = useState<string>("");
   const [page, setPage] = useState(1);
-  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
-  const [deleteUserName, setDeleteUserName] = useState("");
 
   const PAGE_SIZE = 20;
 
@@ -136,7 +94,7 @@ export default function UsersPage() {
 
   async function handleResetPassword() {
     if (!resetUserId || !newPassword || newPassword.length < 6) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
       return;
     }
 
@@ -148,9 +106,9 @@ export default function UsersPage() {
     setSaving(false);
 
     if (error) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
     } else {
-      toast.success(t("admin.passwordReset"));
+      showToast(t("admin.passwordReset"), "success");
       logAction("reset_password", "user", resetUserId);
       setResetUserId(null);
       setNewPassword("");
@@ -164,12 +122,11 @@ export default function UsersPage() {
       .eq("id", userId);
 
     if (error) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
     } else {
-      toast.success(t("admin.changeRole"));
+      showToast(t("admin.changeRole"), "success");
       logAction("change_role", "user", userId, { to: newRole });
       setChangingRoleUserId(null);
-      setChangingRoleValue("");
       loadUsers();
     }
   }
@@ -182,7 +139,7 @@ export default function UsersPage() {
       !form.password ||
       form.password.length < 6
     ) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
       return;
     }
 
@@ -199,36 +156,34 @@ export default function UsersPage() {
 
     if (error) {
       if (error.message.includes("unique") || error.message.includes("already")) {
-        toast.error(t("auth.phoneExists"));
+        showToast(t("auth.phoneExists"), "error");
       } else {
-        toast.error(t("common.error"));
+        showToast(t("common.error"), "error");
       }
       return;
     }
 
-    toast.success(getRoleLabel(form.role, t) + " ✓");
+    showToast(getRoleLabel(form.role, t) + " ✓", "success");
     logAction("create_user", "user", undefined, { phone: form.phone, role: form.role });
     setShowForm(false);
     setForm(emptyPersonForm);
     loadUsers();
   }
 
-  async function handleDeleteUser() {
-    if (!deleteUserId) return;
+  async function handleDeleteUser(userId: string, userName: string) {
+    if (!confirm(t("admin.confirmDeleteUser"))) return;
 
     const { error } = await supabase.rpc("admin_delete_user", {
-      p_user_id: deleteUserId,
+      p_user_id: userId,
     });
 
     if (error) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
     } else {
-      toast.success(t("admin.userDeleted"));
-      logAction("delete_user", "user", deleteUserId, { name: deleteUserName });
+      showToast(t("admin.userDeleted"), "success");
+      logAction("delete_user", "user", userId, { name: userName });
       loadUsers();
     }
-    setDeleteUserId(null);
-    setDeleteUserName("");
   }
 
   const filtered = useMemo(() => users.filter((u) => {
@@ -246,67 +201,26 @@ export default function UsersPage() {
   useEffect(() => { setPage(1); }, [search, roleFilter]);
 
   if (loading) {
-    return (
-      <div className="animate-fade-in">
-        <PageBreadcrumbs items={[{ label: t("admin.dashboard"), href: "/admin" }, { label: t("admin.users") }]} />
-        <div className="flex items-center justify-between mb-6 mt-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-9 w-36" />
-        </div>
-        <div className="flex gap-3 mb-4">
-          <Skeleton className="h-9 w-64" />
-          <Skeleton className="h-9 w-40" />
-        </div>
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-12" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-24" /></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-14" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-12" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-6" /></TableCell>
-                  <TableCell><div className="flex gap-1"><Skeleton className="h-7 w-16" /><Skeleton className="h-7 w-16" /><Skeleton className="h-7 w-16" /></div></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
-    );
+    return <LoadingSpinner text={t("common.loading")} />;
   }
 
   return (
     <div className="animate-fade-in">
-      <PageBreadcrumbs items={[{ label: t("admin.dashboard"), href: "/admin" }, { label: t("admin.users") }]} />
-
-      <div className="flex items-center justify-between mb-6 mt-4">
-        <h1 className="text-2xl font-bold">{t("admin.userManagement")}</h1>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus /> {t("admin.addPerson")}
-        </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <h1 className="section-title">{t("admin.userManagement")}</h1>
+        <button onClick={() => setShowForm(!showForm)} className="btn-primary w-full sm:w-auto">
+          + {t("admin.addPerson")}
+        </button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t("admin.addPerson")}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+      {showForm && (
+        <div className="card mb-4 animate-slide-up">
+          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">+ {t("admin.addPerson")}</h3>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
-              <Label className="mb-1.5">{t("auth.phone")}</Label>
-              <Input
+              <label className="label-text">{t("auth.phone")}</label>
+              <input
+                className="input-field"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="01XXXXXXXXX"
@@ -314,50 +228,44 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <Label className="mb-1.5">{t("auth.fullName")}</Label>
-              <Input
+              <label className="label-text">{t("auth.fullName")}</label>
+              <input
+                className="input-field"
                 value={form.full_name}
                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               />
             </div>
             <div>
-              <Label className="mb-1.5">{t("auth.gender")}</Label>
-              <Select
+              <label className="label-text">{t("auth.gender")}</label>
+              <select
+                className="input-field"
                 value={form.gender}
-                onValueChange={(val: string | null) => setForm({ ...form, gender: (val ?? "Male") as "Male" | "Female" })}
+                onChange={(e) => setForm({ ...form, gender: e.target.value as "Male" | "Female" })}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">{t("auth.male")}</SelectItem>
-                  <SelectItem value="Female">{t("auth.female")}</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="Male">{t("auth.male")}</option>
+                <option value="Female">{t("auth.female")}</option>
+              </select>
             </div>
             <div>
-              <Label className="mb-1.5">{t("admin.role")}</Label>
-              <Select
+              <label className="label-text">{t("admin.role")}</label>
+              <select
+                className="input-field"
                 value={form.role}
-                onValueChange={(val: string | null) => {
-                  const newRole = (val ?? "patient") as UserRole;
+                onChange={(e) => {
+                  const newRole = e.target.value as UserRole;
                   setForm({ ...form, role: newRole, has_wheelchair: newRole === "patient" ? form.has_wheelchair : false });
                 }}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CREATABLE_ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>{getRoleLabel(r, t)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {CREATABLE_ROLES.map((r) => (
+                  <option key={r} value={r}>{getRoleLabel(r, t)}</option>
+                ))}
+              </select>
             </div>
             <div>
-              <Label className="mb-1.5">{t("auth.password")}</Label>
-              <Input
+              <label className="label-text">{t("auth.password")}</label>
+              <input
                 type="password"
+                className="input-field"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 dir="ltr"
@@ -365,249 +273,176 @@ export default function UsersPage() {
               />
             </div>
             {form.role === "patient" && (
-              <div className="flex items-center gap-3 sm:col-span-2">
-                <Switch
-                  checked={form.has_wheelchair}
-                  onCheckedChange={(checked: boolean) => setForm({ ...form, has_wheelchair: checked })}
-                />
-                <Label>♿ {t("admin.wheelchair")}</Label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.has_wheelchair}
+                  onClick={() => setForm({ ...form, has_wheelchair: !form.has_wheelchair })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    form.has_wheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      form.has_wheelchair ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm text-slate-600 dark:text-gray-300">♿ {t("admin.wheelchair")}</span>
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button onClick={handleCreatePerson} disabled={creating}>
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button onClick={handleCreatePerson} disabled={creating} className="btn-primary w-full sm:w-auto">
               {creating ? t("common.loading") : t("admin.addPerson")}
-            </Button>
-            <Button variant="outline" onClick={() => { setShowForm(false); setForm(emptyPersonForm); }}>
+            </button>
+            <button onClick={() => { setShowForm(false); setForm(emptyPersonForm); }} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={!!resetUserId}
-        onOpenChange={(open) => { if (!open) { setResetUserId(null); setNewPassword(""); } }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("admin.resetPassword")}</DialogTitle>
-          </DialogHeader>
-          <div>
-            <Label className="mb-1.5">{t("admin.newPassword")}</Label>
-            <Input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              dir="ltr"
-              placeholder="••••••••"
-            />
+            </button>
           </div>
-          <DialogFooter>
-            <Button onClick={handleResetPassword} disabled={saving}>
-              {saving ? t("common.loading") : t("admin.resetPassword")}
-            </Button>
-            <Button variant="outline" onClick={() => { setResetUserId(null); setNewPassword(""); }}>
-              {t("admin.cancel")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={!!changingRoleUserId}
-        onOpenChange={(open) => { if (!open) { setChangingRoleUserId(null); setChangingRoleValue(""); } }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("admin.changeRole")}</DialogTitle>
-          </DialogHeader>
-          <div>
-            <Label className="mb-1.5">{t("admin.role")}</Label>
-            <Select
-              value={changingRoleValue}
-              onValueChange={(val: string | null) => setChangingRoleValue(val ?? "")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ALL_ROLES.filter((r) => r !== "super_admin").map((r) => (
-                  <SelectItem key={r} value={r}>{getRoleLabel(r, t)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => {
-                if (changingRoleUserId && changingRoleValue) {
-                  handleChangeRole(changingRoleUserId, changingRoleValue);
-                }
-              }}
-              disabled={!changingRoleValue}
-            >
-              {t("admin.save")}
-            </Button>
-            <Button variant="outline" onClick={() => { setChangingRoleUserId(null); setChangingRoleValue(""); }}>
-              {t("admin.cancel")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={!!deleteUserId}
-        onOpenChange={(open) => { if (!open) { setDeleteUserId(null); setDeleteUserName(""); } }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("admin.confirmDeleteUser")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteUserName}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("admin.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={handleDeleteUser}
-            >
-              {t("common.delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            className="ps-9"
-            placeholder={t("admin.searchUsers")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <input
+          className="input-field flex-1 min-w-[140px] max-w-xs"
+          placeholder={t("admin.searchUsers")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="flex gap-1 flex-wrap">
+          {["", ...ALL_ROLES].map((r) => (
+            <button
+              key={r}
+              onClick={() => setRoleFilter(r)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                roleFilter === r
+                  ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
+                  : "bg-slate-50 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700"
+              }`}
+            >
+              {r === "" ? t("admin.all") : getRoleLabel(r, t)}
+            </button>
+          ))}
         </div>
-        <Select
-          value={roleFilter || undefined}
-          onValueChange={(val: string | null) => setRoleFilter(val || "")}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder={t("admin.all")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">{t("admin.all")}</SelectItem>
-            {ALL_ROLES.map((r) => (
-              <SelectItem key={r} value={r}>{getRoleLabel(r, t)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("auth.fullName")}</TableHead>
-              <TableHead>{t("auth.phone")}</TableHead>
-              <TableHead>{t("admin.role")}</TableHead>
-              <TableHead>{t("auth.gender")}</TableHead>
-              <TableHead>♿</TableHead>
-              <TableHead>{t("admin.actions") || ""}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginated.map((u) => (
-              <TableRow key={u.id}>
-                <TableCell className="font-medium">{u.full_name}</TableCell>
-                <TableCell dir="ltr" className="text-muted-foreground">{u.phone}</TableCell>
-                <TableCell>
-                  <Badge variant={getRoleBadgeVariant(u.role)}>
-                    {getRoleLabel(u.role, t)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={u.gender === "Male" ? "secondary" : "outline"}>
-                    {u.gender === "Male" ? t("auth.male") : t("auth.female")}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {u.has_wheelchair && (
-                    <Badge variant="outline">♿</Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    {u.role === "super_admin" ? (
-                      <Badge variant="secondary">
-                        <Shield className="size-3" />
-                        {t("admin.protectedAccount")}
-                      </Badge>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setChangingRoleUserId(u.id);
-                            setChangingRoleValue(u.role);
-                          }}
-                        >
-                          <Pencil /> {t("admin.changeRole")}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setResetUserId(u.id)}
-                        >
-                          <KeyRound /> {t("admin.resetPassword")}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            setDeleteUserId(u.id);
-                            setDeleteUserName(u.full_name);
-                          }}
-                        >
-                          <Trash2 /> {t("common.delete")}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {filtered.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            {t("admin.noUsers")}
+      {resetUserId && (
+        <div className="card mb-4 animate-slide-up">
+          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">{t("admin.resetPassword")}</h3>
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+            <div className="flex-1">
+              <label className="label-text">{t("admin.newPassword")}</label>
+              <input
+                type="password"
+                className="input-field"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                dir="ltr"
+                placeholder="••••••••"
+              />
+            </div>
+            <button onClick={handleResetPassword} disabled={saving} className="btn-primary w-full sm:w-auto">
+              {saving ? t("common.loading") : t("admin.resetPassword")}
+            </button>
+            <button onClick={() => { setResetUserId(null); setNewPassword(""); }} className="btn-secondary w-full sm:w-auto">
+              {t("admin.cancel")}
+            </button>
           </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {paginated.map((u) => (
+          <div key={u.id} className="card">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium text-slate-800 dark:text-gray-100 text-sm">{u.full_name}</span>
+                <span className="text-xs text-slate-400 dark:text-gray-500" dir="ltr">{u.phone}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRoleBadgeClasses(u.role)}`}>
+                  {getRoleLabel(u.role, t)}
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  u.gender === "Male" ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400" : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
+                }`}>
+                  {u.gender === "Male" ? t("auth.male") : t("auth.female")}
+                </span>
+                {u.has_wheelchair && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" title={t("admin.wheelchair")}>
+                    ♿
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {u.role !== "super_admin" && (
+                  <>
+                    {changingRoleUserId === u.id ? (
+                      <select
+                        className="input-field !py-1 !text-xs !w-auto"
+                        defaultValue={u.role}
+                        onChange={(e) => handleChangeRole(u.id, e.target.value)}
+                        onBlur={() => setChangingRoleUserId(null)}
+                        autoFocus
+                      >
+                        {ALL_ROLES.filter((r) => r !== "super_admin").map((r) => (
+                          <option key={r} value={r}>{getRoleLabel(r, t)}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <button
+                        onClick={() => setChangingRoleUserId(u.id)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
+                      >
+                        {t("admin.changeRole")}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setResetUserId(u.id)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-950/50 active:scale-95 transition-all duration-150"
+                    >
+                      {t("admin.resetPassword")}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUser(u.id, u.full_name)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
+                    >
+                      {t("common.delete")}
+                    </button>
+                  </>
+                )}
+                {u.role === "super_admin" && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg">
+                    {t("admin.protectedAccount")}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <p className="text-slate-400 dark:text-gray-500 text-center py-4 text-sm">{t("admin.noUsers")}</p>
         )}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 py-4 border-t">
-            <Button
-              variant="outline"
-              size="sm"
+          <div className="flex items-center justify-center gap-2 pt-4">
+            <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
             >
               ←
-            </Button>
-            <span className="text-sm text-muted-foreground px-2">{page} / {totalPages}</span>
-            <Button
-              variant="outline"
-              size="sm"
+            </button>
+            <span className="text-sm text-slate-500 dark:text-gray-400">{page} / {totalPages}</span>
+            <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
             >
               →
-            </Button>
+            </button>
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

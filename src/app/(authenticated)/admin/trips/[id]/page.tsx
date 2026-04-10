@@ -8,10 +8,7 @@ import OverviewTab from "./OverviewTab";
 import BusesTab from "./BusesTab";
 import RoomsTab from "./RoomsTab";
 import UnbookedTab from "./UnbookedTab";
-import PageBreadcrumbs from "@/components/PageBreadcrumbs";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Trip } from "@/lib/types/database";
 
 type Tab = "overview" | "buses" | "rooms" | "unbooked";
@@ -44,19 +41,12 @@ export default function TripDetailPage({
   }, [tripId]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-20 animate-fade-in">
-        <div className="w-12 h-12 rounded-full border-4 border-slate-100 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 animate-spin" />
-        <p className="text-lg text-slate-400 dark:text-gray-400">{t("common.loading")}</p>
-      </div>
-    );
+    return <LoadingSpinner text={t("common.loading")} />;
   }
 
   if (!trip) {
-    return <p className="text-center py-20 text-muted-foreground">{t("common.error")}</p>;
+    return <p className="text-center py-20 text-slate-400 dark:text-gray-500">{t("common.error")}</p>;
   }
-
-  const tripTitle = lang === "ar" ? trip.title_ar : trip.title_en;
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "overview", label: t("admin.overview") },
@@ -67,49 +57,41 @@ export default function TripDetailPage({
 
   return (
     <div className="animate-fade-in">
-      <PageBreadcrumbs
-        items={[
-          { label: t("admin.dashboard"), href: "/admin" },
-          { label: t("admin.trips"), href: "/admin/trips" },
-          { label: tripTitle },
-        ]}
-      />
-
-      <Button
-        variant="ghost"
-        size="sm"
+      <button
         onClick={() => router.push("/admin/trips")}
-        className="mt-3 mb-1"
+        className="mb-4 text-blue-600 dark:text-blue-400 font-semibold text-base hover:text-blue-700 dark:hover:text-blue-300 transition-colors inline-flex items-center gap-1"
       >
-        <ArrowRight className="rtl:rotate-180" />
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l7-7-7-7" />
+        </svg>
         {t("admin.backToTrips")}
-      </Button>
+      </button>
 
-      <h1 className="section-title mb-1">{tripTitle}</h1>
-      <p className="text-muted-foreground mb-4 text-sm">{trip.trip_date}</p>
+      <h1 className="section-title mb-1">
+        {lang === "ar" ? trip.title_ar : trip.title_en}
+      </h1>
+      <p className="text-slate-400 dark:text-gray-500 mb-4 text-sm">{trip.trip_date}</p>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
-        <TabsList variant="line" className="mb-6 w-full justify-start overflow-x-auto">
-          {tabs.map((tab) => (
-            <TabsTrigger key={tab.key} value={tab.key}>
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <div className="flex gap-1 mb-6 border-b border-slate-200 dark:border-gray-800 overflow-x-auto hide-scrollbar -mx-4 px-4">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2.5 text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
+              activeTab === tab.key
+                ? "border-blue-600 dark:border-blue-400 text-blue-700 dark:text-blue-400"
+                : "border-transparent text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value="overview">
-          <OverviewTab tripId={tripId} onSwitchTab={setActiveTab} />
-        </TabsContent>
-        <TabsContent value="buses">
-          <BusesTab tripId={tripId} />
-        </TabsContent>
-        <TabsContent value="rooms">
-          <RoomsTab tripId={tripId} />
-        </TabsContent>
-        <TabsContent value="unbooked">
-          <UnbookedTab tripId={tripId} />
-        </TabsContent>
-      </Tabs>
+      {activeTab === "overview" && <OverviewTab tripId={tripId} onSwitchTab={setActiveTab} />}
+      {activeTab === "buses" && <BusesTab tripId={tripId} />}
+      {activeTab === "rooms" && <RoomsTab tripId={tripId} />}
+      {activeTab === "unbooked" && <UnbookedTab tripId={tripId} />}
     </div>
   );
 }

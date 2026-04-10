@@ -3,26 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import PageBreadcrumbs from "@/components/PageBreadcrumbs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollText, Filter } from "lucide-react";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import type { AdminLog } from "@/lib/types/database";
 
 type LogWithAdmin = AdminLog & { profiles: { full_name: string } };
@@ -50,23 +31,13 @@ const ACTION_LABELS: Record<string, string> = {
 
 const ACTION_TYPES = Object.keys(ACTION_LABELS);
 
-function getActionBadgeVariant(action: string) {
-  if (action.startsWith("create") || action === "register_patient" || action === "book_user")
-    return "default";
-  if (action.startsWith("edit") || action === "toggle_trip" || action === "assign_room" || action === "change_role")
-    return "secondary";
-  if (action.startsWith("delete") || action === "cancel_booking")
-    return "destructive";
-  return "outline";
-}
-
 export default function LogsPage() {
   const { t, lang } = useTranslation();
   const supabase = useMemo(() => createClient(), []);
 
   const [logs, setLogs] = useState<LogWithAdmin[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionFilter, setActionFilter] = useState<string>("");
+  const [actionFilter, setActionFilter] = useState("");
   const [page, setPage] = useState(1);
 
   const PAGE_SIZE = 30;
@@ -110,129 +81,72 @@ export default function LogsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="animate-fade-in space-y-6">
-        <PageBreadcrumbs
-          items={[
-            { label: t("admin.dashboard"), href: "/admin" },
-            { label: t("admin.activityLogs") },
-          ]}
-        />
-        <div className="flex items-center gap-2">
-          <ScrollText className="size-5 text-muted-foreground" />
-          <h1 className="text-xl font-semibold">{t("admin.activityLogs")}</h1>
-        </div>
-        <div className="space-y-2">
-          <Skeleton className="h-10 w-full" />
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text={t("common.loading")} />;
   }
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <PageBreadcrumbs
-        items={[
-          { label: t("admin.dashboard"), href: "/admin" },
-          { label: t("admin.activityLogs") },
-        ]}
-      />
+    <div className="animate-fade-in">
+      <h1 className="section-title mb-6">{t("admin.activityLogs")}</h1>
 
-      <div className="flex items-center gap-2">
-        <ScrollText className="size-5 text-muted-foreground" />
-        <h1 className="text-xl font-semibold">{t("admin.activityLogs")}</h1>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Filter className="size-4 text-muted-foreground" />
-        <Select
-          value={actionFilter || null}
-          onValueChange={(val) => setActionFilter(val ?? "")}
+      <div className="mb-4">
+        <select
+          className="input-field max-w-xs"
+          value={actionFilter}
+          onChange={(e) => setActionFilter(e.target.value)}
         >
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder={t("admin.filterByAction")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">
-              {t("admin.filterByAction")}
-            </SelectItem>
-            {ACTION_TYPES.map((a) => (
-              <SelectItem key={a} value={a}>
-                {t(`admin.${ACTION_LABELS[a]}`)} ({a})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <option value="">— {t("admin.filterByAction")} —</option>
+          {ACTION_TYPES.map((a) => (
+            <option key={a} value={a}>
+              {t(`admin.${ACTION_LABELS[a]}`)} ({a})
+            </option>
+          ))}
+        </select>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("admin.timestamp")}</TableHead>
-            <TableHead>{t("admin.admin")}</TableHead>
-            <TableHead>{t("admin.action")}</TableHead>
-            <TableHead>{t("admin.targetType")}</TableHead>
-            <TableHead>{t("admin.targetId")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {paginated.map((log) => (
-            <TableRow key={log.id}>
-              <TableCell className="text-xs text-muted-foreground" dir="ltr">
+      <div className="space-y-2">
+        {paginated.map((log) => (
+          <div key={log.id} className="card">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-400 dark:text-gray-500" dir="ltr">
                 {formatTimestamp(log.created_at)}
-              </TableCell>
-              <TableCell className="font-medium text-sm">
+              </span>
+              <span className="font-medium text-sm text-slate-700 dark:text-gray-300">
                 {log.profiles?.full_name || "—"}
-              </TableCell>
-              <TableCell>
-                <Badge variant={getActionBadgeVariant(log.action)}>
-                  {t(`admin.${ACTION_LABELS[log.action] || "action"}`)}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
-                {log.target_type || "—"}
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground font-mono">
-                {log.target_id ? log.target_id.slice(0, 8) + "..." : "—"}
-              </TableCell>
-            </TableRow>
-          ))}
-          {logs.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                {t("admin.noLogs")}
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            ←
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {page} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-          >
-            →
-          </Button>
-        </div>
-      )}
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-medium">
+                {t(`admin.${ACTION_LABELS[log.action] || "action"}`)}
+              </span>
+              {log.target_type && (
+                <span className="text-xs text-slate-400 dark:text-gray-500">
+                  {log.target_type}{log.target_id ? `: ${log.target_id.slice(0, 8)}...` : ""}
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+        {logs.length === 0 && (
+          <p className="text-slate-400 dark:text-gray-500 text-center py-4 text-sm">{t("admin.noLogs")}</p>
+        )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-4">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
+            >
+              ←
+            </button>
+            <span className="text-sm text-slate-500 dark:text-gray-400">{page} / {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
+            >
+              →
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

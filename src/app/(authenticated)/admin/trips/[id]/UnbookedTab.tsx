@@ -3,29 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { toast } from "sonner";
+import { useToast } from "@/components/Toast";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, Plus, User, BookOpen } from "lucide-react";
 import type { Profile, Bus } from "@/lib/types/database";
 
 type RegisterForm = {
@@ -51,6 +31,7 @@ const emptyForm: RegisterForm = {
 export default function UnbookedTab({ tripId }: { tripId: string }) {
   const { t, lang } = useTranslation();
   const supabase = createClient();
+  const { showToast } = useToast();
 
   const [unbooked, setUnbooked] = useState<Profile[]>([]);
   const [buses, setBuses] = useState<Bus[]>([]);
@@ -106,7 +87,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
   async function confirmBookForUser() {
     if (!bookingUser || !selectedBus) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
       return;
     }
 
@@ -117,9 +98,9 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     });
 
     if (error) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
     } else {
-      toast.success(t("admin.book"));
+      showToast(t("admin.book"), "success");
       logAction("book_user", "booking", undefined, { user_id: bookingUser });
       setBookingUser(null);
       loadData();
@@ -128,7 +109,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
   async function handleRegister() {
     if (!form.phone || !/^\d{8,15}$/.test(form.phone) || !form.full_name || !form.password || form.password.length < 6) {
-      toast.error(t("common.error"));
+      showToast(t("common.error"), "error");
       return;
     }
 
@@ -149,17 +130,17 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
     if (error) {
       if (error.message.includes("already registered") || error.message.includes("unique")) {
-        toast.error(t("auth.phoneExists"));
+        showToast(t("auth.phoneExists"), "error");
         setShowRegister(false);
         setForm(emptyForm);
         loadData();
       } else {
-        toast.error(t("common.error"));
+        showToast(t("common.error"), "error");
       }
       return;
     }
 
-    toast.success(t("admin.registerPatient"));
+    showToast(t("admin.registerPatient"), "success");
     logAction("register_patient", "user", undefined, { phone: form.phone });
     setShowRegister(false);
     setForm(emptyForm);
@@ -190,37 +171,31 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   }), [unbooked]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-20 animate-fade-in">
-        <div className="w-12 h-12 rounded-full border-4 border-slate-100 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 animate-spin" />
-        <p className="text-lg text-slate-400 dark:text-gray-400">{t("common.loading")}</p>
-      </div>
-    );
+    return <LoadingSpinner text={t("common.loading")} />;
   }
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-lg font-bold">{t("admin.unbooked")}</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">{t("admin.unbooked")}</h2>
+          <p className="text-sm text-slate-400 dark:text-gray-500">
             {unbooked.length} {t("admin.unbooked")} ({maleCount}M, {femaleCount}F)
           </p>
         </div>
-        <Button onClick={() => setShowRegister(true)} className="w-full sm:w-auto">
-          <Plus /> {t("admin.registerPatient")}
-        </Button>
+        <button onClick={() => setShowRegister(!showRegister)} className="btn-primary w-full sm:w-auto">
+          + {t("admin.registerPatient")}
+        </button>
       </div>
 
-      <Dialog open={showRegister} onOpenChange={setShowRegister}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t("admin.registerPatient")}</DialogTitle>
-          </DialogHeader>
+      {showRegister && (
+        <div className="card mb-4 animate-slide-up">
+          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">{t("admin.registerPatient")}</h3>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
-              <Label className="mb-1.5">{t("auth.phone")}</Label>
-              <Input
+              <label className="label-text">{t("auth.phone")}</label>
+              <input
+                className="input-field"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="01XXXXXXXXX"
@@ -228,16 +203,17 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               />
             </div>
             <div>
-              <Label className="mb-1.5">{t("auth.fullName")}</Label>
-              <Input
+              <label className="label-text">{t("auth.fullName")}</label>
+              <input
+                className="input-field"
                 value={form.full_name}
                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               />
             </div>
             <div>
-              <Label className="mb-1.5">{t("auth.gender")}</Label>
+              <label className="label-text">{t("auth.gender")}</label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                className="input-field"
                 value={form.gender}
                 onChange={(e) =>
                   setForm({ ...form, gender: e.target.value as "Male" | "Female" })
@@ -248,9 +224,9 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               </select>
             </div>
             <div>
-              <Label className="mb-1.5">{t("admin.role")}</Label>
+              <label className="label-text">{t("admin.role")}</label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                className="input-field"
                 value={form.role}
                 onChange={(e) => {
                   const newRole = e.target.value;
@@ -264,26 +240,38 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
             </div>
             {form.role === "patient" && (
               <div className="flex items-center gap-3">
-                <Switch
-                  checked={form.has_wheelchair}
-                  onCheckedChange={(checked: boolean) => setForm({ ...form, has_wheelchair: checked })}
-                />
-                <span className="text-sm text-muted-foreground">♿ {t("admin.wheelchair")}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.has_wheelchair}
+                  onClick={() => setForm({ ...form, has_wheelchair: !form.has_wheelchair })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    form.has_wheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      form.has_wheelchair ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm text-slate-600 dark:text-gray-300">♿ {t("admin.wheelchair")}</span>
               </div>
             )}
             <div>
-              <Label className="mb-1.5">{t("auth.password")}</Label>
-              <Input
+              <label className="label-text">{t("auth.password")}</label>
+              <input
                 type="password"
+                className="input-field"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 dir="ltr"
               />
             </div>
             <div className="md:col-span-2">
-              <Label className="mb-1.5">{t("buses.chooseBus")} ({t("admin.cancel")})</Label>
+              <label className="label-text">{t("buses.chooseBus")} ({t("admin.cancel")})</label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                className="input-field"
                 value={form.bus_id}
                 onChange={(e) => setForm({ ...form, bus_id: e.target.value })}
               >
@@ -296,122 +284,119 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               </select>
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleRegister} disabled={saving}>
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button onClick={handleRegister} disabled={saving} className="btn-primary w-full sm:w-auto">
               {saving ? t("common.loading") : t("admin.registerPatient")}
-            </Button>
-            <Button variant="outline" onClick={() => setShowRegister(false)}>
+            </button>
+            <button onClick={() => setShowRegister(false)} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!bookingUser} onOpenChange={(open) => { if (!open) setBookingUser(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("admin.book")}</DialogTitle>
-          </DialogHeader>
-          <div>
-            <Label className="mb-1.5">{t("buses.chooseBus")}</Label>
-            <Select value={selectedBus} onValueChange={(v) => setSelectedBus(v ?? "")}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {buses.map((bus) => (
-                  <SelectItem key={bus.id} value={bus.id}>
-                    {bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            </button>
           </div>
-          <DialogFooter>
-            <Button onClick={confirmBookForUser}>
-              <BookOpen /> {t("admin.book")}
-            </Button>
-            <Button variant="outline" onClick={() => setBookingUser(null)}>
+        </div>
+      )}
+
+      {bookingUser && (
+        <div className="card mb-4 animate-slide-up">
+          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">{t("admin.book")}</h3>
+          <div>
+            <label className="label-text">{t("buses.chooseBus")}</label>
+            <select
+              className="input-field"
+              value={selectedBus}
+              onChange={(e) => setSelectedBus(e.target.value)}
+            >
+              {buses.map((bus) => (
+                <option key={bus.id} value={bus.id}>
+                  {bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button onClick={confirmBookForUser} className="btn-primary w-full sm:w-auto">
+              {t("admin.book")}
+            </button>
+            <button onClick={() => setBookingUser(null)} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="relative flex-1 min-w-[140px] max-w-xs">
-          <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            placeholder={t("admin.searchByName")}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="ps-8"
-          />
-        </div>
+        <input
+          className="input-field flex-1 min-w-[140px] max-w-xs"
+          placeholder={t("admin.searchByName")}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
         <div className="flex gap-1">
           {(["", "Male", "Female"] as const).map((g) => (
-            <Button
+            <button
               key={g}
-              variant={genderFilter === g ? "default" : "outline"}
-              size="sm"
               onClick={() => setGenderFilter(g)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                genderFilter === g
+                  ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
+                  : "bg-slate-50 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700"
+              }`}
             >
               {g === "" ? t("admin.all") : g === "Male" ? t("auth.male") : t("auth.female")}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <p className="text-muted-foreground text-center py-4 text-sm">{t("admin.noBookings")}</p>
+          <p className="text-slate-400 dark:text-gray-500 text-center py-4 text-sm">{t("admin.noBookings")}</p>
         ) : (
           <>
             {paginated.map((p) => (
-              <Card key={p.id}>
-                <CardContent>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <User className="size-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">{p.full_name}</span>
-                      <span className="text-xs text-muted-foreground" dir="ltr">{p.phone}</span>
-                      {p.has_wheelchair && (
-                        <Badge variant="secondary" className="text-xs" title={t("admin.wheelchair")}>♿</Badge>
-                      )}
-                      <Badge variant="outline" className="text-xs">
-                        {p.gender === "Male" ? t("auth.male") : t("auth.female")}
-                      </Badge>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => startBookForUser(p.id)}
-                      className="w-full sm:w-auto"
+              <div key={p.id} className="card">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-slate-800 dark:text-gray-100 text-sm">{p.full_name}</span>
+                    <span className="text-xs text-slate-400 dark:text-gray-500" dir="ltr">{p.phone}</span>
+                    {p.has_wheelchair && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" title={t("admin.wheelchair")}>♿</span>
+                    )}
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        p.gender === "Male"
+                          ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
+                          : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
+                      }`}
                     >
-                      <BookOpen /> {t("admin.book")}
-                    </Button>
+                      {p.gender === "Male" ? t("auth.male") : t("auth.female")}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
+                  <button
+                    onClick={() => startBookForUser(p.id)}
+                    className="btn-primary text-sm py-2 px-4 w-full sm:w-auto"
+                  >
+                    {t("admin.book")}
+                  </button>
+                </div>
+              </div>
             ))}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
                 >
                   ←
-                </Button>
-                <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
-                <Button
-                  variant="outline"
-                  size="sm"
+                </button>
+                <span className="text-sm text-slate-500 dark:text-gray-400">{page} / {totalPages}</span>
+                <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
                 >
                   →
-                </Button>
+                </button>
               </div>
             )}
           </>

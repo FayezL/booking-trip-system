@@ -2,17 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { UserPlus, Phone, User, KeyRound } from "lucide-react";
 
 type SignupRole = "patient" | "companion" | "family_assistant";
 
@@ -84,155 +77,163 @@ export default function SignupPage() {
     router.push("/trips");
   }
 
-  const roleLabels: Record<SignupRole, string> = {
-    patient: "admin.patient",
-    companion: "admin.companion",
-    family_assistant: "admin.familyAssistant",
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 p-4">
       <div className="w-full max-w-md animate-slide-up">
-        <div className="flex justify-end mb-4 gap-2">
+        <div className="flex justify-end mb-4">
           <ThemeToggle />
           <LanguageToggle />
         </div>
-        <Card>
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <UserPlus className="w-8 h-8 text-primary" />
+        <div className="card">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
             </div>
-            <h1 className="text-2xl font-bold">{t("auth.signup")}</h1>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSignup} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="phone">{t("auth.phone")}</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="01XXXXXXXXX"
-                    dir="ltr"
-                    disabled={loading}
-                    className="ps-10"
-                  />
-                </div>
-              </div>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-gray-100">
+              {t("auth.signup")}
+            </h1>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fullName">{t("auth.fullName")}</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    disabled={loading}
-                    className="ps-10"
-                  />
-                </div>
-              </div>
+          <form onSubmit={handleSignup} className="space-y-5">
+            <div>
+              <label className="label-text">{t("auth.phone")}</label>
+              <input
+                type="tel"
+                className="input-field"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="01XXXXXXXXX"
+                dir="ltr"
+                disabled={loading}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label>{t("auth.gender")}</Label>
-                <div className="flex gap-3">
-                  <Button
+            <div>
+              <label className="label-text">{t("auth.fullName")}</label>
+              <input
+                type="text"
+                className="input-field"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label className="label-text">{t("auth.gender")}</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setGender("Male")}
+                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
+                    ${gender === "Male"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600"
+                    }`}
+                  disabled={loading}
+                >
+                  {t("auth.male")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGender("Female")}
+                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
+                    ${gender === "Female"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600"
+                    }`}
+                  disabled={loading}
+                >
+                  {t("auth.female")}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="label-text">{t("auth.userType")}</label>
+              <div className="flex gap-2 flex-wrap">
+                {(["patient", "companion", "family_assistant"] as const).map((r) => (
+                  <button
+                    key={r}
                     type="button"
-                    variant={gender === "Male" ? "default" : "outline"}
-                    onClick={() => setGender("Male")}
+                    onClick={() => {
+                      setRole(r);
+                      if (r !== "patient") setHasWheelchair(false);
+                    }}
+                    className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[48px] min-w-[90px]
+                      ${role === r
+                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600"
+                      }`}
                     disabled={loading}
-                    className="flex-1"
                   >
-                    {t("auth.male")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={gender === "Female" ? "default" : "outline"}
-                    onClick={() => setGender("Female")}
-                    disabled={loading}
-                    className="flex-1"
-                  >
-                    {t("auth.female")}
-                  </Button>
-                </div>
+                    {t(`admin.${r === "patient" ? "patient" : r === "companion" ? "companion" : "familyAssistant"}`)}
+                  </button>
+                ))}
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label>{t("auth.userType")}</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {(["patient", "companion", "family_assistant"] as const).map((r) => (
-                    <Button
-                      key={r}
-                      type="button"
-                      variant={role === r ? "default" : "outline"}
-                      onClick={() => {
-                        setRole(r);
-                        if (r !== "patient") setHasWheelchair(false);
-                      }}
-                      disabled={loading}
-                      className="flex-1 min-w-[90px]"
-                    >
-                      {t(roleLabels[r])}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {role === "patient" && (
-                <div className="flex items-center gap-3">
-                  <Switch
-                    id="wheelchair"
-                    checked={hasWheelchair}
-                    onCheckedChange={setHasWheelchair}
-                    disabled={loading}
+            {role === "patient" && (
+              <div className="flex items-center gap-3 py-2">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hasWheelchair}
+                  onClick={() => setHasWheelchair(!hasWheelchair)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    hasWheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
+                  }`}
+                  disabled={loading}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      hasWheelchair ? "translate-x-5" : "translate-x-0"
+                    }`}
                   />
-                  <Label htmlFor="wheelchair" className="cursor-pointer">
-                    {t("auth.wheelchair")}
-                  </Label>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="password">{t("auth.password")}</Label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    dir="ltr"
-                    disabled={loading}
-                    className="ps-10"
-                  />
-                </div>
+                </button>
+                <span className="text-sm text-slate-600 dark:text-gray-300">
+                  ♿ {t("auth.wheelchair")}
+                </span>
               </div>
+            )}
 
-              {error && (
-                <div className="bg-destructive/10 text-destructive p-3 rounded-xl text-center text-sm font-medium" role="alert">
-                  {error}
-                </div>
-              )}
+            <div>
+              <label className="label-text">{t("auth.password")}</label>
+              <input
+                type="password"
+                className="input-field"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                dir="ltr"
+                disabled={loading}
+              />
+            </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? t("auth.signingUp") : t("auth.signupButton")}
-              </Button>
-            </form>
+            {error && (
+              <div className="bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 p-3 rounded-xl text-center text-base font-medium animate-fade-in">
+                {error}
+              </div>
+            )}
 
-            <p className="text-center mt-6 text-sm text-muted-foreground">
-              {t("auth.hasAccount")}{" "}
-              <Link href="/login" className="text-primary hover:underline">
-                {t("auth.loginHere")}
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+            <button
+              type="submit"
+              className="btn-primary w-full"
+              disabled={loading}
+            >
+              {loading ? t("auth.signingUp") : t("auth.signupButton")}
+            </button>
+          </form>
+
+          <p className="text-center mt-6 text-base text-slate-500 dark:text-gray-400">
+            {t("auth.hasAccount")}{" "}
+            <a href="/login" className="text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+              {t("auth.loginHere")}
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );
