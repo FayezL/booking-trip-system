@@ -8,7 +8,7 @@ import { PHONE_REGEX, PASSWORD_MIN_LENGTH } from "@/lib/constants";
 import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
 
-type SignupRole = "patient" | "companion" | "family_assistant";
+type SignupRole = "patient" | "servant" | "companion" | "family_assistant";
 
 export default function SignupPage() {
   const { t } = useTranslation();
@@ -165,8 +165,8 @@ export default function SignupPage() {
 
             <div>
               <label className="label-text">{t("auth.userType")}</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(["patient", "companion", "family_assistant"] as const).map((r) => (
+              <div className="grid grid-cols-2 gap-2">
+                {(["patient", "servant", "companion", "family_assistant"] as const).map((r) => (
                   <button
                     key={r}
                     type="button"
@@ -181,7 +181,7 @@ export default function SignupPage() {
                       }`}
                     disabled={loading}
                   >
-                    {t(`admin.${r === "patient" ? "patient" : r === "companion" ? "companion" : "familyAssistant"}`)}
+                    {t(`admin.${r === "patient" ? "patient" : r === "servant" ? "servant" : r === "companion" ? "companion" : "familyAssistant"}`)}
                   </button>
                 ))}
               </div>

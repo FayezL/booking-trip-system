@@ -445,6 +445,13 @@ Use `src/lib/constants.ts` for:
 - `src/lib/i18n/dictionaries/ar.json`
 - `src/lib/i18n/dictionaries/en.json`
 
+### Servant Role on Signup
+
+- Added `servant` to signup role options alongside patient, companion, and family_assistant
+- Changed role grid from 3-col to 2x2 grid for better mobile layout with 4 options
+- Servant has same permissions as patient (no admin panel access) — it's just a label in the system
+- Database already accepted servant — no migration needed
+
 ---
 
 ## Known Warnings (non-blocking)
