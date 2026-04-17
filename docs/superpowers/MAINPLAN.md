@@ -1,7 +1,7 @@
 # MAINPLAN.md — Booking0Trip System
 
 > Complete project reference. Everything we built, why, and how it works.
-> Last updated: 2026-04-07
+> Last updated: 2026-04-17
 
 ---
 
@@ -315,6 +315,138 @@ docs/superpowers/
 
 ---
 
+## Phase 6: Code Quality Audit + Security Fixes (2026-04-17)
+
+### Security Fixes (CRITICAL — requires running `00003_add_rpc_functions.sql` on live DB)
+
+- **`book_bus()` RPC**: Added `is_admin() OR auth.uid() = p_user_id` check — any authenticated user can no longer book buses on behalf of other users
+- **`cancel_booking()` RPC**: Added ownership check (`is_admin() OR auth.uid() = booking_owner`) — any authenticated user can no longer cancel others' bookings
+- **`assign_room()` RPC**: Added `is_admin()` check — any authenticated user can no longer assign rooms
+- Applied to both `00001_initial_schema.sql` and `00003_add_rpc_functions.sql`
+
+### Error Handling
+
+- Wrapped all `loadData()`/`loadBuses()`/`loadTrips()`/`loadUsers()`/`loadLogs()` functions with try/catch in 11 files
+- Added error state + retry button to `OverviewTab`
+- All other pages show toast or gracefully degrade on failure
+- Files changed: `OverviewTab`, `BusesTab`, `RoomsTab`, `UnbookedTab`, `trips/page.tsx`, `trips/[tripId]/buses/page.tsx`, `admin/page.tsx`, `admin/trips/page.tsx`, `admin/trips/[id]/page.tsx`, `admin/users/page.tsx`, `admin/logs/page.tsx`, `admin/reports/page.tsx`
+
+### ESLint Fixes (0 warnings now — was 6)
+
+- Replaced `useEffect` with inline functions + `eslint-disable` comments with `useCallback` pattern
+- All `loadData` functions are now stable `useCallback` references passed to `useEffect`
+- All dependency arrays include stable references (`supabase`, `showToast`, `t`)
+
+### TypeScript Fixes (0 errors now — was 16 in tests)
+
+- Installed missing `@testing-library/dom` peer dependency
+- Added explicit `HTMLElement` type annotations to `.find()` callbacks in `login.test.tsx` and `signup.test.tsx`
+
+### Accessibility
+
+- Added `role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, `role="tabpanel"` to admin trip detail tabs
+- Added `role="progressbar"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax` to bus capacity bars
+
+### New Files
+
+- `src/lib/constants.ts` — shared constants (`PHONE_REGEX`, `PASSWORD_MIN_LENGTH`, `PAGE_SIZE_*`, `TOAST_DURATION_MS`, `DEBOUNCE_MS`, etc.)
+
+### Other Fixes
+
+- Toast cleanup: added `clearTimeout` return to prevent state updates on unmounted components
+
+### Commit
+
+`e91c497` — fix: security, error handling, ESLint, and accessibility improvements
+
+---
+
+## Coding Conventions (follow these in all future work)
+
+### Data Loading Pattern
+
+All page data loading functions MUST use this pattern:
+
+```tsx
+const loadData = useCallback(async () => {
+  try {
+    // fetch data
+  } catch {
+    showToast(t("common.error"), "error");
+  } finally {
+    setLoading(false);
+  }
+}, [tripId, supabase, showToast, t]);
+
+useEffect(() => {
+  loadData();
+}, [loadData]);
+```
+
+- NEVER use `// eslint-disable-next-line react-hooks/exhaustive-deps`
+- NEVER use inline async functions inside `useEffect`
+- ALWAYS wrap data fetching in try/catch
+- ALWAYS include stable deps in useCallback array
+
+### Shared Constants
+
+Use `src/lib/constants.ts` for:
+- `PHONE_REGEX`, `PASSWORD_MIN_LENGTH` — validation
+- `PAGE_SIZE_USERS`, `PAGE_SIZE_LOGS`, `PAGE_SIZE_UNBOOKED` — pagination
+- `TOAST_DURATION_MS`, `DEBOUNCE_MS` — timeouts
+
+### Type Safety
+
+- NEVER use implicit `any` — always annotate callback parameters
+- Prefer proper types over `as unknown as` casts (future: generate Supabase types)
+
+### SQL / RPC Functions
+
+- ALL `SECURITY DEFINER` functions MUST check authorization (`is_admin()` or `auth.uid()` ownership)
+- NEVER trust that RLS alone protects `SECURITY DEFINER` functions (they bypass RLS)
+
+### Accessibility
+
+- Tab interfaces MUST have `role="tablist"`, `role="tab"`, `aria-selected`
+- Progress bars MUST have `role="progressbar"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`
+
+---
+
+## Phase 7: Mobile-Friendly Auth UX (2026-04-17)
+
+### Login & Signup — Numbers-Only Phone Input
+
+- Phone input now forces numeric keypad on mobile: `inputMode="numeric"` + `pattern="[0-9]*"`
+- `handlePhoneChange()` strips all non-digit characters and caps at 15 digits — no spaces or letters possible
+- Phone displayed in centered monospace font (`text-xl tracking-widest font-mono`) for easy readability
+- Used `PHONE_REGEX` and `PASSWORD_MIN_LENGTH` from `constants.ts` instead of inline regex/numbers
+
+### Mobile UX Improvements
+
+- All inputs centered with larger text for easy thumb-typing
+- Helper hint text below phone field ("اكتب رقمك من غير مسافات" / "Enter numbers only, no spaces")
+- Helper hint text below password field ("6 حروف على الأقل" / "At least 6 characters")
+- Larger checkbox (20px) for "Remember Me" with `text-base` label
+- Larger wheelchair toggle (28x48px) with `text-base` label
+- User type buttons use `grid grid-cols-3` for even sizing on small screens
+- Removed `hover:` states on selection buttons, replaced with `active:` for touch feedback
+- Reduced form spacing from `space-y-5` to `space-y-4` on signup to fit more on small screens
+- Added `gap-2` between Theme/Language toggles
+
+### New i18n Keys
+
+- `auth.phoneHint` — "اكتب رقمك من غير مسافات" / "Enter numbers only, no spaces"
+- `auth.passwordHint` — "6 حروف على الأقل" / "At least 6 characters"
+
+### Files Changed
+
+- `src/app/login/page.tsx`
+- `src/app/signup/page.tsx`
+- `src/lib/i18n/dictionaries/ar.json`
+- `src/lib/i18n/dictionaries/en.json`
+
+---
+
 ## Known Warnings (non-blocking)
 
-ESLint `react-hooks/exhaustive-deps` warnings on 6 pages — these are intentional (omitting `loadData` from useEffect deps to prevent infinite loops). Safe to ignore.
+None — 0 ESLint warnings, 0 TypeScript errors as of Phase 7.

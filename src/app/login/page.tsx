@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient, setSessionPersistence } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { PHONE_REGEX, PASSWORD_MIN_LENGTH } from "@/lib/constants";
 import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -16,21 +17,26 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function handlePhoneChange(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 15);
+    setPhone(digits);
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (!phone.trim() || !/^\d{8,15}$/.test(phone.trim())) {
+    if (!PHONE_REGEX.test(phone)) {
       setError(t("auth.phoneRequired"));
       return;
     }
-    if (!password.trim() || password.length < 6) {
+    if (password.length < PASSWORD_MIN_LENGTH) {
       setError(t("auth.passwordRequired"));
       return;
     }
 
     setLoading(true);
-    const email = `${phone.trim()}@church.local`;
+    const email = `${phone}@church.local`;
     const supabase = createClient();
 
     const { error: authError } = await supabase.auth.signInWithPassword({
@@ -55,7 +61,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 p-4">
       <div className="w-full max-w-md animate-slide-up">
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end gap-2 mb-4">
           <ThemeToggle />
           <LanguageToggle />
         </div>
@@ -76,38 +82,47 @@ export default function LoginPage() {
               <label className="label-text">{t("auth.phone")}</label>
               <input
                 type="tel"
-                className="input-field"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="tel"
+                className="input-field text-center text-xl tracking-widest font-mono"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => handlePhoneChange(e.target.value)}
                 placeholder="01XXXXXXXXX"
                 dir="ltr"
                 disabled={loading}
               />
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 text-center">
+                {t("auth.phoneHint")}
+              </p>
             </div>
 
             <div>
               <label className="label-text">{t("auth.password")}</label>
               <input
                 type="password"
-                className="input-field"
+                className="input-field text-center text-xl tracking-wider"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 dir="ltr"
                 disabled={loading}
               />
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 text-center">
+                {t("auth.passwordHint")}
+              </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <input
                 type="checkbox"
                 id="rememberMe"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
                 disabled={loading}
-                className="w-4 h-4 rounded border-slate-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400"
+                className="w-5 h-5 rounded border-slate-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400"
               />
-              <label htmlFor="rememberMe" className="text-sm text-slate-500 dark:text-gray-400">
+              <label htmlFor="rememberMe" className="text-base text-slate-500 dark:text-gray-400">
                 {t("auth.rememberMe")}
               </label>
             </div>
@@ -120,7 +135,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="btn-primary w-full"
+              className="btn-primary w-full text-lg"
               disabled={loading}
             >
               {loading ? t("auth.loggingIn") : t("auth.loginButton")}

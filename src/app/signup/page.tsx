@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { PHONE_REGEX, PASSWORD_MIN_LENGTH } from "@/lib/constants";
 import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -21,11 +22,16 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function handlePhoneChange(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 15);
+    setPhone(digits);
+  }
+
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (!phone.trim() || !/^\d{8,15}$/.test(phone.trim())) {
+    if (!PHONE_REGEX.test(phone)) {
       setError(t("auth.phoneRequired"));
       return;
     }
@@ -41,13 +47,13 @@ export default function SignupPage() {
       setError(t("auth.userType"));
       return;
     }
-    if (!password.trim() || password.length < 6) {
+    if (password.length < PASSWORD_MIN_LENGTH) {
       setError(t("auth.passwordRequired"));
       return;
     }
 
     setLoading(true);
-    const email = `${phone.trim()}@church.local`;
+    const email = `${phone}@church.local`;
     const supabase = createClient();
 
     const { error: authError } = await supabase.auth.signUp({
@@ -80,7 +86,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 p-4">
       <div className="w-full max-w-md animate-slide-up">
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end gap-2 mb-4">
           <ThemeToggle />
           <LanguageToggle />
         </div>
@@ -96,25 +102,31 @@ export default function SignupPage() {
             </h1>
           </div>
 
-          <form onSubmit={handleSignup} className="space-y-5">
+          <form onSubmit={handleSignup} className="space-y-4">
             <div>
               <label className="label-text">{t("auth.phone")}</label>
               <input
                 type="tel"
-                className="input-field"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="tel"
+                className="input-field text-center text-xl tracking-widest font-mono"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => handlePhoneChange(e.target.value)}
                 placeholder="01XXXXXXXXX"
                 dir="ltr"
                 disabled={loading}
               />
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 text-center">
+                {t("auth.phoneHint")}
+              </p>
             </div>
 
             <div>
               <label className="label-text">{t("auth.fullName")}</label>
               <input
                 type="text"
-                className="input-field"
+                className="input-field text-center text-lg"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 disabled={loading}
@@ -130,7 +142,7 @@ export default function SignupPage() {
                   className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
                     ${gender === "Male"
                       ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600"
+                      : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
                     }`}
                   disabled={loading}
                 >
@@ -142,7 +154,7 @@ export default function SignupPage() {
                   className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
                     ${gender === "Female"
                       ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600"
+                      : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
                     }`}
                   disabled={loading}
                 >
@@ -153,7 +165,7 @@ export default function SignupPage() {
 
             <div>
               <label className="label-text">{t("auth.userType")}</label>
-              <div className="flex gap-2 flex-wrap">
+              <div className="grid grid-cols-3 gap-2">
                 {(["patient", "companion", "family_assistant"] as const).map((r) => (
                   <button
                     key={r}
@@ -162,10 +174,10 @@ export default function SignupPage() {
                       setRole(r);
                       if (r !== "patient") setHasWheelchair(false);
                     }}
-                    className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[48px] min-w-[90px]
+                    className={`py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[48px]
                       ${role === r
                         ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600"
+                        : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
                       }`}
                     disabled={loading}
                   >
@@ -176,24 +188,24 @@ export default function SignupPage() {
             </div>
 
             {role === "patient" && (
-              <div className="flex items-center gap-3 py-2">
+              <div className="flex items-center justify-center gap-3 py-2">
                 <button
                   type="button"
                   role="switch"
                   aria-checked={hasWheelchair}
                   onClick={() => setHasWheelchair(!hasWheelchair)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                     hasWheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
                   }`}
                   disabled={loading}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       hasWheelchair ? "translate-x-5" : "translate-x-0"
                     }`}
                   />
                 </button>
-                <span className="text-sm text-slate-600 dark:text-gray-300">
+                <span className="text-base text-slate-600 dark:text-gray-300">
                   ♿ {t("auth.wheelchair")}
                 </span>
               </div>
@@ -203,13 +215,16 @@ export default function SignupPage() {
               <label className="label-text">{t("auth.password")}</label>
               <input
                 type="password"
-                className="input-field"
+                className="input-field text-center text-xl tracking-wider"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 dir="ltr"
                 disabled={loading}
               />
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 text-center">
+                {t("auth.passwordHint")}
+              </p>
             </div>
 
             {error && (
@@ -220,7 +235,7 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              className="btn-primary w-full"
+              className="btn-primary w-full text-lg"
               disabled={loading}
             >
               {loading ? t("auth.signingUp") : t("auth.signupButton")}
