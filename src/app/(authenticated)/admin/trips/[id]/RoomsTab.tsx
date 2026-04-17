@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
@@ -41,56 +41,60 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
   const [search, setSearch] = useState("");
   const [roomFilter, setRoomFilter] = useState<"all" | "available" | "full">("all");
 
+  const loadData = useCallback(async () => {
+    try {
+      const [roomsRes, bookingsRes] = await Promise.all([
+        supabase.from("rooms").select("*").eq("trip_id", tripId),
+        supabase
+          .from("bookings")
+          .select("*, profiles(*)")
+          .eq("trip_id", tripId)
+          .is("cancelled_at", null),
+      ]);
+
+      const allBookings = bookingsRes.data || [];
+
+      const bookingsByRoom = new Map<string, typeof allBookings>();
+      for (const b of allBookings) {
+        if (!b.room_id) continue;
+        const list = bookingsByRoom.get(b.room_id) || ([] as typeof allBookings);
+        list.push(b);
+        bookingsByRoom.set(b.room_id, list);
+      }
+
+      const roomsWithOccupants: RoomWithOccupants[] = (roomsRes.data || []).map((room: Room) => {
+        const roomBookings = bookingsByRoom.get(room.id) || ([] as typeof allBookings);
+        return {
+          ...room,
+          occupant_count: roomBookings.length,
+          occupants: roomBookings.map((b: { id: string; profiles: unknown }) => ({
+            id: (b.profiles as unknown as Profile).id,
+            full_name: (b.profiles as unknown as Profile).full_name,
+            has_wheelchair: (b.profiles as unknown as Profile).has_wheelchair,
+            booking_id: b.id,
+          })),
+        };
+      });
+
+      const unassignedBookings = allBookings.filter((b: { room_id: string | null }) => b.room_id === null);
+
+      setRooms(roomsWithOccupants);
+      setUnassigned(unassignedBookings as unknown as BookingWithProfile[]);
+    } catch {
+      showToast(t("common.error"), "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [tripId, supabase, showToast, t]);
+
   useEffect(() => {
     loadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tripId]);
+  }, [loadData]);
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput), 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
-
-  async function loadData() {
-    const [roomsRes, bookingsRes] = await Promise.all([
-      supabase.from("rooms").select("*").eq("trip_id", tripId),
-      supabase
-        .from("bookings")
-        .select("*, profiles(*)")
-        .eq("trip_id", tripId)
-        .is("cancelled_at", null),
-    ]);
-
-    const allBookings = bookingsRes.data || [];
-
-    const bookingsByRoom = new Map<string, typeof allBookings>();
-    for (const b of allBookings) {
-      if (!b.room_id) continue;
-      const list = bookingsByRoom.get(b.room_id) || ([] as typeof allBookings);
-      list.push(b);
-      bookingsByRoom.set(b.room_id, list);
-    }
-
-    const roomsWithOccupants: RoomWithOccupants[] = (roomsRes.data || []).map((room: Room) => {
-      const roomBookings = bookingsByRoom.get(room.id) || ([] as typeof allBookings);
-      return {
-        ...room,
-        occupant_count: roomBookings.length,
-        occupants: roomBookings.map((b: { id: string; profiles: unknown }) => ({
-          id: (b.profiles as unknown as Profile).id,
-          full_name: (b.profiles as unknown as Profile).full_name,
-          has_wheelchair: (b.profiles as unknown as Profile).has_wheelchair,
-          booking_id: b.id,
-        })),
-      };
-    });
-
-    const unassignedBookings = allBookings.filter((b: { room_id: string | null }) => b.room_id === null);
-
-    setRooms(roomsWithOccupants);
-    setUnassigned(unassignedBookings as unknown as BookingWithProfile[]);
-    setLoading(false);
-  }
 
   const filteredUnassigned = useMemo(() => {
     return unassigned.filter((b) => {

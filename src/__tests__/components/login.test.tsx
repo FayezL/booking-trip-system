@@ -183,7 +183,7 @@ describe("SignupPage", () => {
     render(<SignupPage />);
     await user.type(screen.getByPlaceholderText("01XXXXXXXXX"), "01234567890");
     const nameInput = screen.getAllByRole("textbox").find(
-      (el) => el.getAttribute("type") === "text"
+      (el: HTMLElement) => el.getAttribute("type") === "text"
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByRole("button", { name: "auth.signupButton" }));
@@ -195,7 +195,7 @@ describe("SignupPage", () => {
     render(<SignupPage />);
     await user.type(screen.getByPlaceholderText("01XXXXXXXXX"), "01234567890");
     const nameInput = screen.getAllByRole("textbox").find(
-      (el) => el.getAttribute("type") === "text"
+      (el: HTMLElement) => el.getAttribute("type") === "text"
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByText("auth.male"));
@@ -210,7 +210,7 @@ describe("SignupPage", () => {
     render(<SignupPage />);
     await user.type(screen.getByPlaceholderText("01XXXXXXXXX"), "01234567890");
     const nameInput = screen.getAllByRole("textbox").find(
-      (el) => el.getAttribute("type") === "text"
+      (el: HTMLElement) => el.getAttribute("type") === "text"
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByText("auth.male"));
@@ -239,7 +239,7 @@ describe("SignupPage", () => {
     render(<SignupPage />);
     await user.type(screen.getByPlaceholderText("01XXXXXXXXX"), "01234567890");
     const nameInput = screen.getAllByRole("textbox").find(
-      (el) => el.getAttribute("type") === "text"
+      (el: HTMLElement) => el.getAttribute("type") === "text"
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByText("auth.male"));
@@ -259,7 +259,7 @@ describe("SignupPage", () => {
     render(<SignupPage />);
     await user.type(screen.getByPlaceholderText("01XXXXXXXXX"), "01234567890");
     const nameInput = screen.getAllByRole("textbox").find(
-      (el) => el.getAttribute("type") === "text"
+      (el: HTMLElement) => el.getAttribute("type") === "text"
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByText("auth.male"));
@@ -282,7 +282,7 @@ describe("SignupPage", () => {
     render(<SignupPage />);
     await user.type(screen.getByPlaceholderText("01XXXXXXXXX"), "01234567890");
     const nameInput = screen.getAllByRole("textbox").find(
-      (el) => el.getAttribute("type") === "text"
+      (el: HTMLElement) => el.getAttribute("type") === "text"
     );
     await user.type(nameInput!, "John Doe");
     await user.click(screen.getByText("auth.male"));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
@@ -48,37 +48,42 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
   const PAGE_SIZE = 20;
 
+  const loadData = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const [allBookedRes, busListRes] = await Promise.all([
+        supabase.from("bookings").select("user_id").eq("trip_id", tripId).is("cancelled_at", null),
+        supabase.from("buses").select("*").eq("trip_id", tripId),
+      ]);
+
+      const bookedIds = (allBookedRes.data || []).map((b: { user_id: string }) => b.user_id);
+
+      let profilesQuery = supabase
+        .from("profiles")
+        .select("*")
+        .neq("id", user.id)
+        .is("deleted_at", null);
+
+      if (bookedIds.length > 0) {
+        profilesQuery = profilesQuery.not("id", "in", `(${bookedIds.join(",")})`);
+      }
+
+      const profilesRes = await profilesQuery.order("full_name");
+
+      setUnbooked((profilesRes.data || []) as Profile[]);
+      setBuses(busListRes.data || []);
+    } catch {
+      showToast(t("common.error"), "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [tripId, supabase, showToast, t]);
+
   useEffect(() => {
     loadData();
-  }, [tripId]);
-
-  async function loadData() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const [allBookedRes, busListRes] = await Promise.all([
-      supabase.from("bookings").select("user_id").eq("trip_id", tripId).is("cancelled_at", null),
-      supabase.from("buses").select("*").eq("trip_id", tripId),
-    ]);
-
-    const bookedIds = (allBookedRes.data || []).map((b: { user_id: string }) => b.user_id);
-
-    let profilesQuery = supabase
-      .from("profiles")
-      .select("*")
-      .neq("id", user.id)
-      .is("deleted_at", null);
-
-    if (bookedIds.length > 0) {
-      profilesQuery = profilesQuery.not("id", "in", `(${bookedIds.join(",")})`);
-    }
-
-    const profilesRes = await profilesQuery.order("full_name");
-
-    setUnbooked((profilesRes.data || []) as Profile[]);
-    setBuses(busListRes.data || []);
-    setLoading(false);
-  }
+  }, [loadData]);
 
   function startBookForUser(userId: string) {
     setBookingUser(userId);

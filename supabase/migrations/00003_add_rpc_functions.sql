@@ -115,6 +115,10 @@ DECLARE
   v_current int;
   v_booking_id uuid;
 BEGIN
+  IF NOT public.is_admin() AND auth.uid() != p_user_id THEN
+    RAISE EXCEPTION 'You can only book for yourself';
+  END IF;
+
   IF NOT EXISTS (SELECT 1 FROM public.trips WHERE id = p_trip_id AND is_open = true) THEN
     RAISE EXCEPTION 'Trip is not open';
   END IF;
@@ -164,6 +168,10 @@ DECLARE
   v_room_capacity int;
   v_current_occupants int;
 BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Only admin users can assign rooms';
+  END IF;
+
   SELECT p.gender INTO v_gender
   FROM public.bookings b
   JOIN public.profiles p ON p.id = b.user_id
@@ -205,14 +213,22 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+DECLARE
+  v_user_id uuid;
 BEGIN
-  UPDATE public.bookings
-  SET cancelled_at = now(), room_id = NULL
-  WHERE id = p_booking_id AND cancelled_at IS NULL;
+  SELECT user_id INTO v_user_id FROM public.bookings WHERE id = p_booking_id AND cancelled_at IS NULL;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Booking not found or already cancelled';
   END IF;
+
+  IF NOT public.is_admin() AND auth.uid() != v_user_id THEN
+    RAISE EXCEPTION 'You can only cancel your own booking';
+  END IF;
+
+  UPDATE public.bookings
+  SET cancelled_at = now(), room_id = NULL
+  WHERE id = p_booking_id AND cancelled_at IS NULL;
 END;
 $$;
 

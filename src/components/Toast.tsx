@@ -26,9 +26,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const showToast = useCallback((message: string, type: ToastType = "success") => {
     const id = ++toastId;
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3500);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

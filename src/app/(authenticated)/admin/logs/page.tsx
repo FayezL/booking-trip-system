@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -42,30 +42,32 @@ export default function LogsPage() {
 
   const PAGE_SIZE = 30;
 
+  const loadLogs = useCallback(async () => {
+    try {
+      let query = supabase
+        .from("admin_logs")
+        .select("*, profiles!admin_logs_admin_id_fkey(full_name)")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      if (actionFilter) {
+        query = query.eq("action", actionFilter);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setLogs((data || []) as unknown as LogWithAdmin[]);
+    } catch {
+      setLogs([]);
+    } finally {
+      setLoading(false);
+      setPage(1);
+    }
+  }, [actionFilter, supabase]);
+
   useEffect(() => {
     loadLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actionFilter]);
-
-  async function loadLogs() {
-    let query = supabase
-      .from("admin_logs")
-      .select("*, profiles!admin_logs_admin_id_fkey(full_name)")
-      .order("created_at", { ascending: false })
-      .limit(500);
-
-    if (actionFilter) {
-      query = query.eq("action", actionFilter);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      console.error("[admin/logs] Failed to load logs:", error.message);
-    }
-    setLogs((data || []) as unknown as LogWithAdmin[]);
-    setLoading(false);
-    setPage(1);
-  }
+  }, [loadLogs]);
 
   const totalPages = Math.ceil(logs.length / PAGE_SIZE);
   const paginated = logs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

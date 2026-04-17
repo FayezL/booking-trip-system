@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -27,18 +27,24 @@ export default function TripDetailPage({
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadTrip() {
+  const loadTrip = useCallback(async () => {
+    try {
       const { data } = await supabase
         .from("trips")
         .select("*")
         .eq("id", tripId)
         .single();
       setTrip(data);
+    } catch {
+      setTrip(null);
+    } finally {
       setLoading(false);
     }
+  }, [tripId, supabase]);
+
+  useEffect(() => {
     loadTrip();
-  }, [tripId]);
+  }, [loadTrip]);
 
   if (loading) {
     return <LoadingSpinner text={t("common.loading")} />;
@@ -72,10 +78,13 @@ export default function TripDetailPage({
       </h1>
       <p className="text-slate-400 dark:text-gray-500 mb-4 text-sm">{trip.trip_date}</p>
 
-      <div className="flex gap-1 mb-6 border-b border-slate-200 dark:border-gray-800 overflow-x-auto hide-scrollbar -mx-4 px-4">
+      <div className="flex gap-1 mb-6 border-b border-slate-200 dark:border-gray-800 overflow-x-auto hide-scrollbar -mx-4 px-4" role="tablist">
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            aria-controls={`tabpanel-${tab.key}`}
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2.5 text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === tab.key
@@ -88,10 +97,13 @@ export default function TripDetailPage({
         ))}
       </div>
 
+      <div role="tabpanel" id={`tabpanel-${activeTab}`}>
+
       {activeTab === "overview" && <OverviewTab tripId={tripId} onSwitchTab={setActiveTab} />}
       {activeTab === "buses" && <BusesTab tripId={tripId} />}
       {activeTab === "rooms" && <RoomsTab tripId={tripId} />}
       {activeTab === "unbooked" && <UnbookedTab tripId={tripId} />}
+      </div>
     </div>
   );
 }

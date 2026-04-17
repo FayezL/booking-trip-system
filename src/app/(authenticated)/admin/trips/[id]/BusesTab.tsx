@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
@@ -50,43 +50,47 @@ export default function BusesTab({ tripId }: { tripId: string }) {
   const [selectedTargetBus, setSelectedTargetBus] = useState<string>("");
   const [removingPassenger, setRemovingPassenger] = useState<string | null>(null);
 
+  const loadBuses = useCallback(async () => {
+    try {
+      const [busesRes, bookingsRes] = await Promise.all([
+        supabase.from("buses").select("*").eq("trip_id", tripId),
+        supabase
+          .from("bookings")
+          .select("id, bus_id, user_id, profiles(full_name, gender, has_wheelchair)")
+          .eq("trip_id", tripId)
+          .is("cancelled_at", null),
+      ]);
+
+      const passengersByBus: Record<string, Passenger[]> = {};
+      for (const b of bookingsRes.data || []) {
+        const list = passengersByBus[b.bus_id] || [];
+        const p = b.profiles as unknown as { full_name: string; gender: string; has_wheelchair: boolean };
+        list.push({
+          booking_id: b.id,
+          user_id: b.user_id,
+          full_name: p.full_name,
+          gender: p.gender,
+          has_wheelchair: p.has_wheelchair,
+        });
+        passengersByBus[b.bus_id] = list;
+      }
+
+      const busesWithPassengers = (busesRes.data || []).map((bus: Bus) => ({
+        ...bus,
+        passengers: passengersByBus[bus.id] || [],
+      }));
+
+      setBuses(busesWithPassengers);
+    } catch {
+      showToast(t("common.error"), "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [tripId, supabase, showToast, t]);
+
   useEffect(() => {
     loadBuses();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tripId]);
-
-  async function loadBuses() {
-    const [busesRes, bookingsRes] = await Promise.all([
-      supabase.from("buses").select("*").eq("trip_id", tripId),
-      supabase
-        .from("bookings")
-        .select("id, bus_id, user_id, profiles(full_name, gender, has_wheelchair)")
-        .eq("trip_id", tripId)
-        .is("cancelled_at", null),
-    ]);
-
-    const passengersByBus: Record<string, Passenger[]> = {};
-    for (const b of bookingsRes.data || []) {
-      const list = passengersByBus[b.bus_id] || [];
-      const p = b.profiles as unknown as { full_name: string; gender: string; has_wheelchair: boolean };
-      list.push({
-        booking_id: b.id,
-        user_id: b.user_id,
-        full_name: p.full_name,
-        gender: p.gender,
-        has_wheelchair: p.has_wheelchair,
-      });
-      passengersByBus[b.bus_id] = list;
-    }
-
-    const busesWithPassengers = (busesRes.data || []).map((bus: Bus) => ({
-      ...bus,
-      passengers: passengersByBus[bus.id] || [],
-    }));
-
-    setBuses(busesWithPassengers);
-    setLoading(false);
-  }
+  }, [loadBuses]);
 
   function toggleExpand(busId: string) {
     setExpandedBusIds((prev) => {

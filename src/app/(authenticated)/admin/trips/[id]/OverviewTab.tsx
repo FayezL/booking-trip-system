@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -29,62 +29,77 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
   const [roomsTotal, setRoomsTotal] = useState(0);
   const [areaGroups, setAreaGroups] = useState<AreaGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [profilesRes, busesRes, bookingsRes, roomsRes] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }).is("deleted_at", null),
+        supabase.from("buses").select("*").eq("trip_id", tripId),
+        supabase.from("bookings").select("bus_id, room_id").eq("trip_id", tripId).is("cancelled_at", null),
+        supabase.from("rooms").select("capacity").eq("trip_id", tripId),
+      ]);
+
+      const registered = profilesRes.count || 0;
+      const allBookings = bookingsRes.data || [];
+      const booked = allBookings.length;
+      const allBuses = (busesRes.data || []) as Bus[];
+      const allRooms = roomsRes.data || [];
+
+      const bookingCounts: Record<string, number> = {};
+      for (const b of allBookings) {
+        if (b.bus_id) bookingCounts[b.bus_id] = (bookingCounts[b.bus_id] || 0) + 1;
+      }
+
+      const busesWithCounts: BusWithCount[] = allBuses.map((bus) => ({
+        ...bus,
+        booking_count: bookingCounts[bus.id] || 0,
+      }));
+
+      const groupMap = new Map<string, AreaGroup>();
+      for (const bus of busesWithCounts) {
+        const key = bus.area_name_ar;
+        const group = groupMap.get(key) || { areaName: key, buses: [], totalCapacity: 0, totalBooked: 0 };
+        group.buses.push(bus);
+        group.totalCapacity += bus.capacity;
+        group.totalBooked += bus.booking_count;
+        groupMap.set(key, group);
+      }
+
+      const totalSeats = allBuses.reduce((s, b) => s + b.capacity, 0);
+      const totalRoomCap = allRooms.reduce((s: number, r: { capacity: number }) => s + r.capacity, 0);
+      const assigned = allBookings.filter((b: { room_id: string | null }) => b.room_id !== null).length;
+
+      setTotalRegistered(registered);
+      setTotalBooked(booked);
+      setBusSeatsTotal(totalSeats);
+      setBusSeatsFilled(booked);
+      setRoomsAssigned(assigned);
+      setRoomsTotal(totalRoomCap);
+      setAreaGroups(Array.from(groupMap.values()));
+      setError(false);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [tripId, supabase]);
 
   useEffect(() => {
     loadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tripId]);
-
-  async function loadData() {
-    const [profilesRes, busesRes, bookingsRes, roomsRes] = await Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }).is("deleted_at", null),
-      supabase.from("buses").select("*").eq("trip_id", tripId),
-      supabase.from("bookings").select("bus_id, room_id").eq("trip_id", tripId).is("cancelled_at", null),
-      supabase.from("rooms").select("capacity").eq("trip_id", tripId),
-    ]);
-
-    const registered = profilesRes.count || 0;
-    const allBookings = bookingsRes.data || [];
-    const booked = allBookings.length;
-    const allBuses = (busesRes.data || []) as Bus[];
-    const allRooms = roomsRes.data || [];
-
-    const bookingCounts: Record<string, number> = {};
-    for (const b of allBookings) {
-      if (b.bus_id) bookingCounts[b.bus_id] = (bookingCounts[b.bus_id] || 0) + 1;
-    }
-
-    const busesWithCounts: BusWithCount[] = allBuses.map((bus) => ({
-      ...bus,
-      booking_count: bookingCounts[bus.id] || 0,
-    }));
-
-    const groupMap = new Map<string, AreaGroup>();
-    for (const bus of busesWithCounts) {
-      const key = bus.area_name_ar;
-      const group = groupMap.get(key) || { areaName: key, buses: [], totalCapacity: 0, totalBooked: 0 };
-      group.buses.push(bus);
-      group.totalCapacity += bus.capacity;
-      group.totalBooked += bus.booking_count;
-      groupMap.set(key, group);
-    }
-
-    const totalSeats = allBuses.reduce((s, b) => s + b.capacity, 0);
-    const totalRoomCap = allRooms.reduce((s: number, r: { capacity: number }) => s + r.capacity, 0);
-    const assigned = allBookings.filter((b: { room_id: string | null }) => b.room_id !== null).length;
-
-    setTotalRegistered(registered);
-    setTotalBooked(booked);
-    setBusSeatsTotal(totalSeats);
-    setBusSeatsFilled(booked);
-    setRoomsAssigned(assigned);
-    setRoomsTotal(totalRoomCap);
-    setAreaGroups(Array.from(groupMap.values()));
-    setLoading(false);
-  }
+  }, [loadData]);
 
   if (loading) {
     return <LoadingSpinner text={t("common.loading")} />;
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-slate-400 dark:text-gray-500 mb-2">{t("common.error")}</p>
+        <button onClick={loadData} className="btn-primary">{t("admin.save")}</button>
+      </div>
+    );
   }
 
   const stats = [

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
@@ -75,22 +75,25 @@ export default function UsersPage() {
 
   const PAGE_SIZE = 20;
 
+  const loadUsers = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setUsers((data || []) as Profile[]);
+    } catch {
+      showToast(t("common.error"), "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase, showToast, t]);
+
   useEffect(() => {
     loadUsers();
-  }, []);
-
-  async function loadUsers() {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-    if (error) {
-      console.error("[admin/users] Failed to load users:", error.message);
-    }
-    setUsers((data || []) as Profile[]);
-    setLoading(false);
-  }
+  }, [loadUsers]);
 
   async function handleResetPassword() {
     if (!resetUserId || !newPassword || newPassword.length < 6) {

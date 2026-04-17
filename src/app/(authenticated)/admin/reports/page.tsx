@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
@@ -23,18 +23,23 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
-  useEffect(() => {
-    async function loadTrips() {
+  const loadTrips = useCallback(async () => {
+    try {
       const { data } = await supabase
         .from("trips")
         .select("*")
         .order("trip_date", { ascending: false });
       setTrips(data || []);
+    } catch {
+      showToast(t("common.error"), "error");
+    } finally {
       setLoading(false);
     }
+  }, [supabase, showToast, t]);
+
+  useEffect(() => {
     loadTrips();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadTrips]);
 
   async function generateReport(type: "bus" | "room") {
     if (!selectedTrip) {

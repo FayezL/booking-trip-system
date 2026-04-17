@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -23,16 +23,13 @@ export default function TripsPage() {
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
-      if (authError) {
-        console.error("Failed to get user:", authError);
-      }
-      if (!user) return;
+      if (authError || !user) return;
 
       const [tripsRes, bookingsRes] = await Promise.all([
         supabase.from("trips").select("*").eq("is_open", true).order("trip_date", { ascending: false }),
@@ -42,13 +39,6 @@ export default function TripsPage() {
           .eq("user_id", user.id)
           .is("cancelled_at", null),
       ]);
-
-      if (tripsRes.error) {
-        console.error("Failed to load trips:", tripsRes.error);
-      }
-      if (bookingsRes.error) {
-        console.error("Failed to load bookings:", bookingsRes.error);
-      }
 
       const tripsData = tripsRes.data || [];
       setTrips(tripsData);
@@ -64,19 +54,18 @@ export default function TripsPage() {
         );
         setPassengersByTrip(passengerMap);
       }
-
-      setLoading(false);
     } catch (err) {
       console.error("Unexpected error in loadData:", err);
+    } finally {
       setLoading(false);
     }
-  }
+  }, [supabase]);
 
   const bookedTripIds = useMemo(() => new Set(myBookings.map((b) => b.trip_id)), [myBookings]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   function getTripTitle(trip: Trip): string {
     return lang === "ar" ? trip.title_ar : trip.title_en;

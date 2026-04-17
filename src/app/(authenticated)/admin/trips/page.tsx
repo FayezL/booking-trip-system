@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -36,31 +36,33 @@ export default function TripsManagementPage() {
   const [form, setForm] = useState<TripForm>(emptyForm);
   const [saving, setSaving] = useState(false);
 
+  const loadTrips = useCallback(async () => {
+    try {
+      const [tripsRes, bookingsRes] = await Promise.all([
+        supabase.from("trips").select("*").order("trip_date", { ascending: false }),
+        supabase.from("bookings").select("trip_id").is("cancelled_at", null),
+      ]);
+
+      const countMap: Record<string, number> = {};
+      for (const b of bookingsRes.data || []) {
+        countMap[b.trip_id] = (countMap[b.trip_id] || 0) + 1;
+      }
+
+      const tripsWithCounts = (tripsRes.data || []).map((trip: Trip) => ({
+        ...trip,
+        booking_count: countMap[trip.id] || 0,
+      }));
+      setTrips(tripsWithCounts);
+    } catch {
+      showToast(t("common.error"), "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase, showToast, t]);
+
   useEffect(() => {
     loadTrips();
-  }, []);
-
-  async function loadTrips() {
-    const [tripsRes, bookingsRes] = await Promise.all([
-      supabase.from("trips").select("*").order("trip_date", { ascending: false }),
-      supabase.from("bookings").select("trip_id").is("cancelled_at", null),
-    ]);
-    if (tripsRes.error) {
-      console.error("[admin/trips] Failed to load trips:", tripsRes.error.message);
-    }
-
-    const countMap: Record<string, number> = {};
-    for (const b of bookingsRes.data || []) {
-      countMap[b.trip_id] = (countMap[b.trip_id] || 0) + 1;
-    }
-
-    const tripsWithCounts = (tripsRes.data || []).map((trip: Trip) => ({
-      ...trip,
-      booking_count: countMap[trip.id] || 0,
-    }));
-    setTrips(tripsWithCounts);
-    setLoading(false);
-  }
+  }, [loadTrips]);
 
   function startEdit(trip: Trip) {
     setEditingId(trip.id);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -38,8 +38,8 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
   const [expandedBuses, setExpandedBuses] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    async function loadData() {
+  const loadData = useCallback(async () => {
+    try {
       const [tripRes, busesRes, passengersRes] = await Promise.all([
         supabase.from("trips").select("*").eq("id", tripId).single(),
         supabase.from("buses").select("*").eq("trip_id", tripId),
@@ -72,11 +72,16 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
       }
 
       setAreaGroups(Array.from(groupMap.values()));
+    } catch {
+      showToast(t("common.error"), "error");
+    } finally {
       setLoading(false);
     }
+  }, [tripId, lang, supabase, showToast, t]);
 
+  useEffect(() => {
     loadData();
-  }, [tripId, lang]);
+  }, [loadData]);
 
   function toggleExpand(busId: string) {
     setExpandedBuses((prev) => {
@@ -240,7 +245,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                           <span>{t("buses.availableSeats")}: {available}</span>
                           <span>{bus.booking_count}/{bus.capacity}</span>
                         </div>
-                        <div className="progress-bar">
+                        <div className="progress-bar" role="progressbar" aria-valuenow={Math.round(percent)} aria-valuemin={0} aria-valuemax={100}>
                           <div
                             className={`progress-bar-fill ${fillClass}`}
                             style={{ width: `${percent}%` }}

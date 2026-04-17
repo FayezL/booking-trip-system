@@ -1,0 +1,11 @@
+export const PHONE_REGEX = /^\d{8,15}$/;
+export const PASSWORD_MIN_LENGTH = 6;
+export const TOAST_DURATION_MS = 3500;
+export const DEBOUNCE_MS = 300;
+export const PAGE_SIZE_USERS = 20;
+export const PAGE_SIZE_LOGS = 30;
+export const PAGE_SIZE_UNBOOKED = 20;
+export const LOG_FETCH_LIMIT = 500;
+export const MAX_BUS_BATCH = 20;
+export const COOKIE_EXPIRY_DAYS = 365;
+export const CHURCH_EMAIL_DOMAIN = "@church.local";
