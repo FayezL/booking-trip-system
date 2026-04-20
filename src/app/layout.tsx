@@ -6,8 +6,8 @@ import { ToastProvider } from "@/components/Toast";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
-  title: "Verena Church - Trip Management",
-  description: "Verena Church Trip & Room Management System",
+  title: "Saint Demiana - Trip Management",
+  description: "Saint Demiana Trip & Room Management System",
 };
 
 export default function RootLayout({

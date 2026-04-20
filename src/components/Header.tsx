@@ -59,9 +59,9 @@ export default function Header({ profile }: HeaderProps) {
           className="text-lg font-bold text-blue-700 dark:text-blue-400 cursor-pointer"
           onClick={() => router.push(isAdmin ? "/admin" : "/trips")}
         >
-          Verena Church
-        </h1>
-        <div className="flex items-center gap-2">
+          Saint Demiana | القديسة ديمانه
+         </h1>
+         <div className="flex items-center gap-2">
           <LanguageToggle />
           <ThemeToggle />
           <button
@@ -83,7 +83,7 @@ export default function Header({ profile }: HeaderProps) {
             className="text-xl font-bold text-blue-700 dark:text-blue-400 cursor-pointer hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
             onClick={() => router.push(isAdmin ? "/admin" : "/trips")}
           >
-            Verena Church
+            Saint Demiana | القديسة ديمانه
           </h1>
           {!isAdmin && (
             <button
