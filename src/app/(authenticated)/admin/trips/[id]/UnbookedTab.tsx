@@ -17,7 +17,6 @@ type RegisterForm = {
   role: string;
   has_wheelchair: boolean;
   sector_id: string;
-  companion_count: number;
 };
 
 const emptyForm: RegisterForm = {
@@ -29,7 +28,6 @@ const emptyForm: RegisterForm = {
   role: "patient",
   has_wheelchair: false,
   sector_id: "",
-  companion_count: 0,
 };
 
 export default function UnbookedTab({ tripId }: { tripId: string }) {
@@ -138,7 +136,6 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       p_role: form.role,
       p_has_wheelchair: form.has_wheelchair,
       p_sector_id: form.sector_id || null,
-      p_companion_count: form.companion_count || 0,
     });
 
     setSaving(false);
@@ -296,20 +293,6 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 dir="ltr"
               />
-            </div>
-            <div>
-              <label className="label-text">{t("companions.label")}</label>
-              <input
-                type="number"
-                className="input-field"
-                value={form.companion_count || ""}
-                onChange={(e) => setForm({ ...form, companion_count: Math.min(Math.max(parseInt(e.target.value) || 0, 0), 5) })}
-                dir="ltr"
-                min="0"
-                max="5"
-                placeholder="0"
-              />
-              <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{t("companions.hint")}</p>
             </div>
             <div className="md:col-span-2">
               <label className="label-text">{t("buses.chooseBus")} ({t("admin.cancel")})</label>

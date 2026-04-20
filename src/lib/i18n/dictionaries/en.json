@@ -83,11 +83,6 @@
     "editCar": "Car",
     "carSaved": "Car settings saved"
   },
-  "companions": {
-    "label": "Number of companions",
-    "hint": "People traveling with you without an account",
-    "with": "with"
-  },
   "trips": {
     "title": "Available Trips",
     "bookNow": "Book Now",

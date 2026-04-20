@@ -13,7 +13,6 @@ type CarPassenger = {
   user_id: string;
   full_name: string;
   gender: string;
-  companion_count: number;
 };
 
 type CarWithPassengers = Car & {
@@ -48,7 +47,7 @@ export default function CarsTab({ tripId }: { tripId: string }) {
         supabase.from("cars").select("*").eq("trip_id", tripId),
         supabase
           .from("bookings")
-          .select("id, user_id, car_id, companion_count, profiles(full_name, gender)")
+          .select("id, user_id, car_id, profiles(full_name, gender)")
           .eq("trip_id", tripId)
           .is("cancelled_at", null),
         supabase.from("profiles").select("id, full_name, has_car, car_seats, role").is("deleted_at", null),
@@ -70,7 +69,6 @@ export default function CarsTab({ tripId }: { tripId: string }) {
           user_id: b.user_id,
           full_name: prof.full_name,
           gender: prof.gender,
-          companion_count: (b as { companion_count: number }).companion_count || 0,
         };
 
         if (b.car_id) {
@@ -246,7 +244,7 @@ export default function CarsTab({ tripId }: { tripId: string }) {
       ) : (
         <div className="space-y-3">
           {cars.map((car) => {
-            const seatsTaken = car.passengers.reduce((sum, p) => sum + 1 + p.companion_count, 0);
+            const seatsTaken = car.passengers.length;
             const available = car.capacity - seatsTaken;
             const isFull = available <= 0;
 
@@ -296,9 +294,6 @@ export default function CarsTab({ tripId }: { tripId: string }) {
                           <span className="text-sm font-medium text-slate-700 dark:text-gray-200">
                             {p.full_name}
                           </span>
-                          {p.companion_count > 0 && (
-                            <span className="text-xs text-teal-600 dark:text-teal-400">(+{p.companion_count})</span>
-                          )}
                           <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                             p.gender === "Male"
                               ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"

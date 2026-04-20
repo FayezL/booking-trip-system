@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { MAX_COMPANIONS } from "@/lib/constants";
 import type { Bus, Trip } from "@/lib/types/database";
 
 type PassengerInfo = { full_name: string; has_wheelchair: boolean; sector_name: string };
@@ -38,11 +37,8 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   const [bookingBusId, setBookingBusId] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
   const [expandedBuses, setExpandedBuses] = useState<Set<string>>(new Set());
-  const [companionCount, setCompanionCount] = useState(0);
-  const [showCompanionInput, setShowCompanionInput] = useState<string | null>(null);
   const [userHasCar, setUserHasCar] = useState(false);
   const [bookingCar, setBookingCar] = useState(false);
-  const [carCompanionCount, setCarCompanionCount] = useState(0);
 
   const loadData = useCallback(async () => {
     try {
@@ -115,12 +111,8 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   }
 
   async function handleBook(bus: BusWithCount) {
-    const currentCompanions = showCompanionInput === bus.id ? companionCount : 0;
     const displayName = bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en);
-    const confirmText = currentCompanions > 0
-      ? `${t("buses.choose")}: ${displayName} (+${currentCompanions} ${t("companions.label")})?`
-      : `${t("buses.choose")}: ${displayName}?`;
-    const confirmed = confirm(confirmText);
+    const confirmed = confirm(`${t("buses.choose")}: ${displayName}?`);
     if (!confirmed) return;
 
     setBookingBusId(bus.id);
@@ -137,7 +129,6 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
       p_user_id: user.id,
       p_trip_id: tripId,
       p_bus_id: bus.id,
-      p_companion_count: currentCompanions,
     });
 
     if (error) {
@@ -161,12 +152,11 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   }
 
   async function handleBookCar() {
-    if (!confirm(`${t("cars.imDriving")}${carCompanionCount > 0 ? ` (+${carCompanionCount} ${t("companions.label")})` : ""}?`)) return;
+    if (!confirm(`${t("cars.imDriving")}?`)) return;
 
     setBookingCar(true);
     const { error } = await supabase.rpc("book_with_car", {
       p_trip_id: tripId,
-      p_companion_count: carCompanionCount,
     });
 
     if (error) {
@@ -249,28 +239,13 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
               <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{t("cars.imDriving")}</h3>
               <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{t("cars.register")}</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-slate-400 dark:text-gray-500 whitespace-nowrap">{t("companions.label")}:</label>
-                <input
-                  type="number"
-                  min="0"
-                  max={MAX_COMPANIONS}
-                  value={carCompanionCount}
-                  onChange={(e) => setCarCompanionCount(Math.min(Math.max(parseInt(e.target.value) || 0, 0), MAX_COMPANIONS))}
-                  className="input-field !w-16 !py-1.5 !text-sm text-center"
-                  dir="ltr"
-                  disabled={bookingCar}
-                />
-              </div>
-              <button
-                onClick={handleBookCar}
-                disabled={bookingCar}
-                className="btn-primary w-full sm:w-auto"
-              >
-                {bookingCar ? t("common.loading") : t("cars.imDriving")}
-              </button>
-            </div>
+            <button
+              onClick={handleBookCar}
+              disabled={bookingCar}
+              className="btn-primary w-full sm:w-auto"
+            >
+              {bookingCar ? t("common.loading") : t("cars.imDriving")}
+            </button>
           </div>
         </div>
       )}
@@ -317,38 +292,13 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                             {t("buses.full")}
                           </span>
                         ) : (
-                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
-                            <div className="flex items-center gap-2">
-                              <label className="text-xs text-slate-400 dark:text-gray-500 whitespace-nowrap">{t("companions.label")}:</label>
-                              <input
-                                type="number"
-                                min="0"
-                                max={MAX_COMPANIONS}
-                                value={showCompanionInput === bus.id ? companionCount : 0}
-                                onChange={(e) => {
-                                  const val = Math.min(Math.max(parseInt(e.target.value) || 0, 0), MAX_COMPANIONS);
-                                  setShowCompanionInput(bus.id);
-                                  setCompanionCount(val);
-                                }}
-                                onFocus={() => {
-                                  if (showCompanionInput !== bus.id) {
-                                    setShowCompanionInput(bus.id);
-                                    setCompanionCount(0);
-                                  }
-                                }}
-                                className="input-field !w-16 !py-1.5 !text-sm text-center"
-                                dir="ltr"
-                                disabled={bookingBusId !== null}
-                              />
-                            </div>
-                            <button
-                              onClick={() => handleBook(bus)}
-                              disabled={bookingBusId !== null}
-                              className="btn-primary w-full sm:w-auto"
-                            >
-                              {bookingBusId === bus.id ? t("common.loading") : t("buses.choose")}
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleBook(bus)}
+                            disabled={bookingBusId !== null}
+                            className="btn-primary shrink-0 self-start sm:self-auto"
+                          >
+                            {bookingBusId === bus.id ? t("common.loading") : t("buses.choose")}
+                          </button>
                         )}
                       </div>
 

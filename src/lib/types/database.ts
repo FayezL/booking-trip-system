@@ -75,7 +75,6 @@ export type Booking = {
   bus_id: string | null;
   room_id: string | null;
   car_id: string | null;
-  companion_count: number;
   created_at: string;
   cancelled_at: string | null;
 };

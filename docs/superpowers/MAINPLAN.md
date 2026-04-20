@@ -1,7 +1,7 @@
 # MAINPLAN.md — Booking0Trip System
 
 > Complete project reference. Everything we built, why, and how it works.
-> Last updated: 2026-04-17
+> Last updated: 2026-04-20
 
 ---
 
@@ -10,13 +10,15 @@
 A bilingual (Arabic/English) web app for managing church trip bookings — buses, rooms, and passengers. Built for ~40 concurrent users with elderly-friendly design.
 
 **Live routes:**
-- `/login` and `/signup` — public auth
+- `/login` and `/signup` — public auth (with sector selection on signup)
+- `/settings` — user settings (sector self-change, car settings for servants)
 - `/trips` — patient-facing: browse trips, see passengers, book buses
-- `/trips/[tripId]/buses` — patient: choose bus, see who's on it
+- `/trips/[tripId]/buses` — patient: choose bus / "I'm driving" + see who's on it
 - `/admin` — admin dashboard
 - `/admin/trips` — trip CRUD with booking count per trip
-- `/admin/trips/[id]` — trip detail (overview / buses / rooms / unbooked tabs)
-- `/admin/users` — user management (admin+ only)
+- `/admin/trips/[id]` — trip detail (overview / buses / rooms / cars / unbooked tabs)
+- `/admin/sectors` — sector CRUD
+- `/admin/users` — user management (admin+), car settings for servants
 - `/admin/logs` — activity logs (super_admin only)
 - `/admin/reports` — PDF generation
 
@@ -42,7 +44,7 @@ A bilingual (Arabic/English) web app for managing church trip bookings — buses
 |------|:-----------:|------|
 | `super_admin` | Yes | Everything + manage admins + view logs |
 | `admin` | Yes | Manage trips/buses/rooms/bookings/users |
-| `servant` | No | Same as patient (just a label) |
+| `servant` | No | Same as patient + can register car and drive passengers |
 | `patient` | No | Book trips, view own bookings |
 | `companion` | No | Same as patient |
 | `family_assistant` | No | Same as patient |
@@ -62,6 +64,9 @@ Database-level: `is_admin()` returns true for `admin` and `super_admin` only.
 - `gender` text CHECK IN ('Male','Female')
 - `role` text CHECK IN ('super_admin','admin','servant','patient','companion','family_assistant')
 - `has_wheelchair` boolean DEFAULT false
+- `sector_id` uuid FK → sectors(id) ON DELETE SET NULL
+- `has_car` boolean DEFAULT false
+- `car_seats` int (nullable, CHECK > 0 when set)
 - `deleted_at` timestamptz (soft delete)
 - `created_at` timestamptz
 
@@ -96,17 +101,33 @@ Database-level: `is_admin()` returns true for `admin` and `super_admin` only.
 
 **bookings** — Passenger bookings
 - `id` uuid PK
-- `user_id` uuid FK → profiles(id)
+- `user_id` uuid FK → profiles(id) ON DELETE CASCADE
 - `trip_id` uuid FK → trips(id) ON DELETE CASCADE
-- `bus_id` uuid FK → buses(id) ON DELETE CASCADE
+- `bus_id` uuid FK → buses(id) ON DELETE CASCADE (nullable — car passengers have no bus)
 - `room_id` uuid FK → rooms(id) ON DELETE SET NULL
+- `car_id` uuid FK → cars(id) ON DELETE SET NULL
 - `created_at` timestamptz
 - `cancelled_at` timestamptz (soft delete)
 - UNIQUE (user_id, trip_id) WHERE cancelled_at IS NULL — one active booking per user per trip
 
+**sectors** — Church sectors/areas
+- `id` uuid PK
+- `name` text NOT NULL
+- `code` text NOT NULL UNIQUE
+- `is_active` boolean DEFAULT true
+- `sort_order` int DEFAULT 0
+
+**cars** — Servant cars per trip
+- `id` uuid PK
+- `trip_id` uuid FK → trips(id) ON DELETE CASCADE
+- `driver_id` uuid FK → profiles(id) ON DELETE SET NULL
+- `capacity` int CHECK > 0
+- `car_label` text
+- `created_at` timestamptz
+
 **admin_logs** — Audit trail
 - `id` uuid PK
-- `admin_id` uuid FK → profiles(id)
+- `admin_id` uuid FK → profiles(id) ON DELETE CASCADE
 - `action` text NOT NULL
 - `target_type`, `target_id` text/uuid
 - `details` jsonb DEFAULT '{}'
@@ -132,15 +153,23 @@ All run as `SECURITY DEFINER` with `SET search_path = ''` for security.
 |----------|------|-------------|
 | `is_admin()` | Returns true if current user is admin/super_admin and not soft-deleted | Used internally by RLS |
 | `handle_new_user()` | Auto-creates profile when auth.users row is created | Trigger |
-| `register_and_book(phone, name, gender, password, trip_id, bus_id, role, wheelchair)` | Creates user + profile + optional booking in one transaction | admin |
+| `register_and_book(phone, name, gender, password, trip_id, bus_id, role, wheelchair, sector_id)` | Creates user + profile + optional booking in one transaction | admin |
 | `book_bus(user_id, trip_id, bus_id)` | Books a bus seat with capacity/trip checks | Any authenticated user |
 | `assign_room(booking_id, room_id)` | Assigns room with gender+capacity validation | admin |
-| `cancel_booking(booking_id)` | Soft-deletes booking (sets cancelled_at) | admin or own user |
-| `get_trip_passengers(trip_id)` | Returns all active passengers for a trip | admin |
+| `cancel_booking(booking_id)` | Cancels booking + deletes car if driver | admin or own user |
+| `get_trip_passengers(trip_id)` | Returns all active passengers for a trip with sector_name + gender | admin |
 | `move_passenger_bus(booking_id, new_bus_id)` | Moves passenger to another bus (same trip, capacity check) | admin |
-| `admin_create_user(phone, name, gender, password, role, wheelchair)` | Creates user with any role | admin |
-| `admin_delete_user(user_id)` | Soft-deletes user (sets deleted_at) | admin |
+| `admin_create_user(phone, name, gender, password, role, wheelchair, sector_id)` | Creates user with any role | admin |
+| `admin_delete_user(user_id)` | Hard deletes user (auth + profile + bookings) | admin |
 | `admin_reset_password(user_id, new_password)` | Resets password | admin |
+| `get_sectors()` | Returns all sectors ordered by sort_order | authenticated |
+| `update_own_sector(sector_id)` | User updates their own sector | authenticated |
+| `update_own_car_settings(has_car, car_seats)` | Servant updates their car settings | authenticated |
+| `admin_update_car_settings(user_id, has_car, car_seats)` | Admin updates any servant's car settings | admin |
+| `book_with_car(trip_id)` | Servant creates car + booking in one step | servant with has_car |
+| `assign_car_passenger(booking_id, car_id)` | Admin assigns passenger to car | admin |
+| `remove_car(car_id)` | Admin removes car from trip | admin |
+| `admin_create_car(trip_id, driver_id, capacity)` | Admin manually creates car | admin |
 
 ---
 
@@ -164,28 +193,31 @@ src/
     page.tsx                                # Redirect → /trips
     globals.css                             # Tailwind + component classes + dark mode
     login/page.tsx                          # Phone + password
-    signup/page.tsx                         # Registration (user type + wheelchair)
+    signup/page.tsx                         # Registration (user type + sector + wheelchair)
     (authenticated)/
       layout.tsx                            # Auth guard + Header + MobileNav
+      settings/page.tsx                     # Sector self-change + car settings (servants)
       trips/
         page.tsx                            # Patient: list trips + passengers + book
-        [tripId]/buses/page.tsx             # Patient: choose bus + see passengers
+        [tripId]/buses/page.tsx             # Patient: choose bus / "I'm driving" + see passengers
       admin/
         page.tsx                            # Dashboard with trip stats
+        sectors/page.tsx                    # Sector CRUD
         trips/
           page.tsx                          # Trip CRUD with booking count
           [id]/
-            page.tsx                        # Trip detail hub (4 tabs)
+            page.tsx                        # Trip detail hub (5 tabs)
             OverviewTab.tsx                 # Area overview + stats
             BusesTab.tsx                    # Bus CRUD + passenger list + move/remove
             RoomsTab.tsx                    # Room CRUD + assign
-            UnbookedTab.tsx                 # Unbooked users + register
-        users/page.tsx                      # User management (admin+)
+            CarsTab.tsx                     # Car management (create, assign, remove)
+            UnbookedTab.tsx                 # Unbooked users + register + sector filter
+        users/page.tsx                      # User management (admin+) + car settings
         logs/page.tsx                       # Activity logs (super_admin)
         reports/page.tsx                    # PDF reports
   components/
-    Header.tsx                              # Desktop nav
-    MobileNav.tsx                           # Mobile bottom nav
+    Header.tsx                              # Desktop nav (sectors + settings links)
+    MobileNav.tsx                           # Mobile bottom nav (sectors + settings tabs)
     LanguageToggle.tsx                      # AR/EN
     ThemeToggle.tsx                         # Light/Dark
     LoadingSpinner.tsx
@@ -202,19 +234,26 @@ src/
     pdf/generate-report.ts                 # Client-side PDF
     admin-logs.ts                           # logAction() helper
     types/database.ts                       # TypeScript interfaces
+    constants.ts                            # Shared constants
   middleware.ts                             # Next.js middleware entry
 
 supabase/
   migrations/
     00001_initial_schema.sql               # Full schema (fresh installs)
     00002_fix_cascade_and_policies.sql     # Live DB patches + move_passenger_bus RPC
+    00003_add_rpc_functions.sql            # All RPC functions
+    00004_part1_infrastructure.sql         # Sectors table + seed + schema changes
+    00004_part2_functions.sql              # Updated RPCs with sector support
+    00006_part1_cars_schema.sql            # Cars table + profile has_car + bookings.car_id
+    00006_part2_cars_functions.sql         # Car RPCs + updated cancel_booking
+    00007_hard_delete_user.sql             # Hard delete instead of soft delete
+    00008_fix_user_delete_cascade.sql      # FK cascade fix for bookings + admin_logs
   functions/
     generate-report/index.ts               # Edge Function (Deno)
 
 docs/superpowers/
   SYSTEM.md                                # Technical reference
   MAINPLAN.md                              # This file — everything we did
-  plans/2026-04-07-consolidation-fixes.md  # Execution log
 ```
 
 ---
@@ -222,14 +261,16 @@ docs/superpowers/
 ## Key Design Decisions
 
 1. **Phone as login**: `{phone}@church.local` — Supabase Auth requires email, so we fake it
-2. **Soft deletes**: Users via `deleted_at`, bookings via `cancelled_at`. Trips/buses/rooms are hard-deleted with CASCADE
-3. **Servant = patient**: Servant role exists but has no special permissions (no admin panel)
-4. **One active booking per user per trip**: Enforced by unique partial index
-5. **Gender-separated rooms**: Room assignment validates gender match
-6. **Wheelchair tracking**: `has_wheelchair` flag, shown with ♿ icon
-7. **Dark mode**: `next-themes` with class strategy, toggle in header
-8. **i18n**: Custom dictionary in localStorage, no URL prefixes, Arabic default
-9. **Elderly-friendly**: 18px base font, 48px min buttons, simple Arabic labels, high contrast
+2. **Hard deletes for users**: Admin delete removes auth account + profile + bookings completely, freeing the phone number
+3. **Soft deletes for bookings**: `cancelled_at` on bookings. Trips/buses/rooms are hard-deleted with CASCADE
+4. **Servant = patient with car**: Servant role can register a car and drive patients, no admin panel access
+5. **One active booking per user per trip**: Enforced by unique partial index
+6. **Gender-separated rooms**: Room assignment validates gender match
+7. **Wheelchair tracking**: `has_wheelchair` flag, shown with ♿ icon
+8. **Sectors**: Optional sector/area assignment for users, displayed as badges
+9. **Dark mode**: `next-themes` with class strategy, toggle in header
+10. **i18n**: Custom dictionary in localStorage, no URL prefixes, Arabic default
+11. **Elderly-friendly**: 18px base font, 48px min buttons, simple Arabic labels, high contrast
 
 ---
 
@@ -291,16 +332,29 @@ docs/superpowers/
 - Fixes `is_admin()` function
 - Recreates RLS policies
 
-### Step 2: `00003_add_rpc_functions.sql` (Phase 5) — **DO THIS NOW**
+### Step 2: `00003_add_rpc_functions.sql` (Phase 5)
 - Adds all RPC functions the frontend needs
-- Without this, nothing works (create user, book bus, cancel booking, etc.)
-- Also ensures the auth trigger exists
+
+### Step 3: `00004_part1_infrastructure.sql` then `00004_part2_functions.sql` (Phase 8A)
+- Sectors table + seed data + sector_id on profiles
+- Updated RPCs with sector support
+- **Already deployed**
+
+### Step 4: `00006_part1_cars_schema.sql` then `00006_part2_cars_functions.sql` (Phase 8D)
+- Cars table, profile has_car, bookings.car_id
+- Car RPCs + updated cancel_booking
+
+### Step 5: `00007_hard_delete_user.sql` (Phase 8E)
+- Hard delete instead of soft delete
+
+### Step 6: `00008_fix_user_delete_cascade.sql` (Phase 8E)
+- FK cascade fix so hard delete works
 
 ### How to run:
 1. Open **Supabase Dashboard → SQL Editor**
-2. Copy the entire contents of `00003_add_rpc_functions.sql`
+2. Copy the entire contents of the SQL file
 3. Paste and click **Run**
-4. Verify: Go to **Database → Functions** in Supabase dashboard — you should see all 10 functions listed under `public`
+4. Verify: Go to **Database → Functions** in Supabase dashboard
 
 ---
 
@@ -456,4 +510,78 @@ Use `src/lib/constants.ts` for:
 
 ## Known Warnings (non-blocking)
 
-None — 0 ESLint warnings, 0 TypeScript errors as of Phase 7.
+None — 0 ESLint warnings, 0 TypeScript errors as of Phase 8.
+
+---
+
+## Phase 8: Sectors, Settings, Cars, Hard Delete (2026-04-20)
+
+### Phase 8A: Sectors Foundation
+
+- **New `sectors` table** with 16 Arabic sector names (كنيسة مارجرجس, كنيسة العذراء, etc.)
+- **`sector_id` (nullable FK)** added to `profiles`
+- **Signup**: required sector dropdown
+- **Admin**: new `/admin/sectors` CRUD page (list, add, edit, toggle active)
+- **Admin users page**: sector column + sector filter + sector in create form
+- **Updated RPCs**: `handle_new_user`, `register_and_book`, `admin_create_user`, `get_trip_passengers` (now returns `sector_name` + `gender`)
+- **New RPCs**: `get_sectors`, `update_own_sector`
+
+### Phase 8B: Settings + Sector Self-Service
+
+- **New `/settings` page**: sector self-change for all users, car settings for servants only
+- **Navigation**: settings link in Header + MobileNav for all users
+- **Sector badge** displayed on passenger names across all views (patient trips, bus selection, BusesTab, UnbookedTab)
+- **Sector filter** in UnbookedTab and admin users page
+
+### Phase 8C: Companions — REMOVED
+
+- Originally added `companion_count` on bookings and seats-based capacity formula
+- **Removed** per user request — capacity is back to simple passenger count (`COUNT(*)`)
+- All companion UI inputs, i18n keys, types, and SQL migrations deleted
+
+### Phase 8D: Cars (Servants Driving Patients)
+
+- **`has_car` boolean + `car_seats` int** on `profiles`
+- **New `cars` table** (separate from buses, `ON DELETE SET NULL` for bookings)
+- **`bookings.bus_id`** made nullable, **`bookings.car_id`** added
+- **New RPCs**: `update_own_car_settings`, `admin_update_car_settings`, `book_with_car`, `assign_car_passenger`, `remove_car`, `admin_create_car`
+- **Updated `cancel_booking`**: when driver cancels, their car is deleted too
+- **Settings page**: car toggle + seats input (servants only)
+- **CarsTab**: admin can create cars, assign passengers, remove cars
+- **Bus selection page**: "I'm driving" card for servants with `has_car=true`
+- **Admin users page**: inline car settings for servant profiles (🚗 badge + edit form)
+
+### Phase 8E: Hard Delete Users + FK Cascade Fix
+
+- Changed `admin_delete_user` from soft delete (`deleted_at`) to **hard delete**:
+  1. Deletes all user's bookings
+  2. Deletes the profile
+  3. Deletes the `auth.users` record (frees the phone number)
+- Fixed FK cascades on `bookings.user_id` and `admin_logs.admin_id` to `ON DELETE CASCADE` — was missing, causing "Database error deleting user" in Supabase dashboard
+
+### SQL Migrations (run in order)
+
+| File | Status | What |
+|------|--------|------|
+| `00004_part1_infrastructure.sql` | Deployed | Sectors table + seed + sector_id column + RLS |
+| `00004_part2_functions.sql` | Deployed | Updated RPCs with sector support |
+| `00006_part1_cars_schema.sql` | Not yet run | Cars table + profile has_car + bookings.car_id |
+| `00006_part2_cars_functions.sql` | Not yet run | Car RPCs + updated cancel_booking |
+| `00007_hard_delete_user.sql` | Not yet run | Hard delete instead of soft delete |
+| `00008_fix_user_delete_cascade.sql` | Not yet run | FK cascade fix for bookings + admin_logs |
+
+### Key Files Added
+
+- `src/app/(authenticated)/admin/sectors/page.tsx` — sector CRUD
+- `src/app/(authenticated)/settings/page.tsx` — sector self-change + car settings
+- `src/app/(authenticated)/admin/trips/[id]/CarsTab.tsx` — car management per trip
+
+### Key Files Modified
+
+- `src/lib/types/database.ts` — `Sector`, `Car` types; `Profile` has `sector_id`, `has_car`, `car_seats`; `Booking` has `car_id`, nullable `bus_id`
+- `src/lib/i18n/dictionaries/ar.json` + `en.json` — sectors, settings, cars sections
+- `src/components/Header.tsx` + `MobileNav.tsx` — sectors + settings navigation
+- `src/app/signup/page.tsx` — sector dropdown
+- `src/app/(authenticated)/admin/users/page.tsx` — sector column, filter, car settings
+- `src/app/(authenticated)/trips/[tripId]/buses/page.tsx` — "I'm driving" for servants
+- `src/app/(authenticated)/admin/trips/[id]/page.tsx` — 5 tabs (overview/buses/rooms/cars/unbooked)

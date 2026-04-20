@@ -1,5 +1,5 @@
 -- 00006: Cars feature — Part 1: Schema changes
--- Run AFTER 00005_part1 and 00005_part2
+-- Run AFTER 00004_part1 and 00004_part2
 
 -- ============================================================
 -- 1. Add has_car + car_seats to profiles (idempotent)

@@ -6,7 +6,7 @@
 -- ============================================================
 DROP FUNCTION IF EXISTS public.update_own_car_settings(boolean, int);
 DROP FUNCTION IF EXISTS public.admin_update_car_settings(uuid, boolean, int);
-DROP FUNCTION IF EXISTS public.book_with_car(uuid, uuid, int);
+DROP FUNCTION IF EXISTS public.book_with_car(uuid);
 DROP FUNCTION IF EXISTS public.assign_car_passenger(uuid, uuid);
 DROP FUNCTION IF EXISTS public.remove_car(uuid);
 DROP FUNCTION IF EXISTS public.admin_create_car(uuid, uuid, int);
@@ -64,8 +64,7 @@ $$;
 -- 3. book_with_car — servant auto-creates car + booking
 -- ============================================================
 CREATE FUNCTION public.book_with_car(
-  p_trip_id uuid,
-  p_companion_count int DEFAULT 0
+  p_trip_id uuid
 )
 RETURNS uuid
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
@@ -103,8 +102,8 @@ BEGIN
   VALUES (p_trip_id, auth.uid(), v_profile.car_seats, v_profile.full_name || ' car')
   RETURNING id INTO v_car_id;
 
-  INSERT INTO public.bookings (user_id, trip_id, car_id, companion_count)
-  VALUES (auth.uid(), p_trip_id, v_car_id, p_companion_count)
+  INSERT INTO public.bookings (user_id, trip_id, car_id)
+  VALUES (auth.uid(), p_trip_id, v_car_id)
   RETURNING id INTO v_booking_id;
 
   RETURN v_booking_id;
@@ -147,7 +146,7 @@ BEGIN
     RAISE EXCEPTION 'Car does not belong to this trip';
   END IF;
 
-  SELECT COALESCE(SUM(1 + COALESCE(companion_count, 0)), 0) INTO v_car_taken
+  SELECT COUNT(*) INTO v_car_taken
   FROM public.bookings
   WHERE car_id = p_car_id AND cancelled_at IS NULL;
 
