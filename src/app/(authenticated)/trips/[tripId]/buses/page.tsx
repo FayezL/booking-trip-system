@@ -6,9 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { MAX_COMPANIONS } from "@/lib/constants";
 import type { Bus, Trip } from "@/lib/types/database";
 
-type PassengerInfo = { full_name: string; has_wheelchair: boolean };
+type PassengerInfo = { full_name: string; has_wheelchair: boolean; sector_name: string };
 type BusWithCount = Bus & { booking_count: number; passengers: PassengerInfo[] };
 
 type AreaGroup = {
@@ -37,6 +38,11 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   const [bookingBusId, setBookingBusId] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
   const [expandedBuses, setExpandedBuses] = useState<Set<string>>(new Set());
+  const [companionCount, setCompanionCount] = useState(0);
+  const [showCompanionInput, setShowCompanionInput] = useState<string | null>(null);
+  const [userHasCar, setUserHasCar] = useState(false);
+  const [bookingCar, setBookingCar] = useState(false);
+  const [carCompanionCount, setCarCompanionCount] = useState(0);
 
   const loadData = useCallback(async () => {
     try {
@@ -46,13 +52,29 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
         supabase.rpc("get_trip_passengers", { p_trip_id: tripId }),
       ]);
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("has_car, role")
+          .eq("id", user.id)
+          .single();
+        if (profileData) {
+          const p = profileData as { has_car: boolean; role: string };
+          setUserHasCar(p.has_car && p.role === "servant");
+        }
+      }
+
       if (tripRes.data) setTrip(tripRes.data);
 
-      type PassengerRow = { bus_id: string; full_name: string; has_wheelchair: boolean };
+      type PassengerRow = { bus_id: string; full_name: string; has_wheelchair: boolean; sector_name: string };
       const passengersByBus: Record<string, PassengerInfo[]> = {};
       for (const p of (passengersRes.data || []) as PassengerRow[]) {
         const list = passengersByBus[p.bus_id] || [];
-        list.push({ full_name: p.full_name, has_wheelchair: p.has_wheelchair });
+        list.push({ full_name: p.full_name, has_wheelchair: p.has_wheelchair, sector_name: p.sector_name || "" });
         passengersByBus[p.bus_id] = list;
       }
 
@@ -93,8 +115,12 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   }
 
   async function handleBook(bus: BusWithCount) {
+    const currentCompanions = showCompanionInput === bus.id ? companionCount : 0;
     const displayName = bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en);
-    const confirmed = confirm(`${t("buses.choose")}: ${displayName}?`);
+    const confirmText = currentCompanions > 0
+      ? `${t("buses.choose")}: ${displayName} (+${currentCompanions} ${t("companions.label")})?`
+      : `${t("buses.choose")}: ${displayName}?`;
+    const confirmed = confirm(confirmText);
     if (!confirmed) return;
 
     setBookingBusId(bus.id);
@@ -111,6 +137,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
       p_user_id: user.id,
       p_trip_id: tripId,
       p_bus_id: bus.id,
+      p_companion_count: currentCompanions,
     });
 
     if (error) {
@@ -129,6 +156,33 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
       tripTitle: trip ? (lang === "ar" ? trip.title_ar : trip.title_en) : "",
       busLabel: displayName,
       leaderName: bus.leader_name || "-",
+      tripDate: trip?.trip_date || "",
+    });
+  }
+
+  async function handleBookCar() {
+    if (!confirm(`${t("cars.imDriving")}${carCompanionCount > 0 ? ` (+${carCompanionCount} ${t("companions.label")})` : ""}?`)) return;
+
+    setBookingCar(true);
+    const { error } = await supabase.rpc("book_with_car", {
+      p_trip_id: tripId,
+      p_companion_count: carCompanionCount,
+    });
+
+    if (error) {
+      if (error.message.includes("Already booked")) {
+        showToast(t("trips.alreadyBooked"), "error");
+      } else {
+        showToast(t("common.error"), "error");
+      }
+      setBookingCar(false);
+      return;
+    }
+
+    setConfirmation({
+      tripTitle: trip ? (lang === "ar" ? trip.title_ar : trip.title_en) : "",
+      busLabel: t("cars.imDriving"),
+      leaderName: "-",
       tripDate: trip?.trip_date || "",
     });
   }
@@ -188,7 +242,40 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
         </p>
       )}
 
-      {areaGroups.length === 0 ? (
+      {userHasCar && (
+        <div className="card mb-6 border-2 border-blue-200 dark:border-blue-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{t("cars.imDriving")}</h3>
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{t("cars.register")}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-400 dark:text-gray-500 whitespace-nowrap">{t("companions.label")}:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max={MAX_COMPANIONS}
+                  value={carCompanionCount}
+                  onChange={(e) => setCarCompanionCount(Math.min(Math.max(parseInt(e.target.value) || 0, 0), MAX_COMPANIONS))}
+                  className="input-field !w-16 !py-1.5 !text-sm text-center"
+                  dir="ltr"
+                  disabled={bookingCar}
+                />
+              </div>
+              <button
+                onClick={handleBookCar}
+                disabled={bookingCar}
+                className="btn-primary w-full sm:w-auto"
+              >
+                {bookingCar ? t("common.loading") : t("cars.imDriving")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {areaGroups.length === 0 && !userHasCar ? (
         <div className="text-center py-16">
           <div className="w-16 h-16 bg-slate-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-slate-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -197,7 +284,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
           </div>
           <p className="text-lg text-slate-400 dark:text-gray-500">{t("admin.bookingSoon")}</p>
         </div>
-      ) : (
+      ) : areaGroups.length === 0 ? null : (
         <div className="space-y-6">
           {areaGroups.map((group) => (
             <div key={group.areaId || group.areaName}>
@@ -230,13 +317,38 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                             {t("buses.full")}
                           </span>
                         ) : (
-                          <button
-                            onClick={() => handleBook(bus)}
-                            disabled={bookingBusId !== null}
-                            className="btn-primary w-full sm:w-auto shrink-0"
-                          >
-                            {bookingBusId === bus.id ? t("common.loading") : t("buses.choose")}
-                          </button>
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs text-slate-400 dark:text-gray-500 whitespace-nowrap">{t("companions.label")}:</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max={MAX_COMPANIONS}
+                                value={showCompanionInput === bus.id ? companionCount : 0}
+                                onChange={(e) => {
+                                  const val = Math.min(Math.max(parseInt(e.target.value) || 0, 0), MAX_COMPANIONS);
+                                  setShowCompanionInput(bus.id);
+                                  setCompanionCount(val);
+                                }}
+                                onFocus={() => {
+                                  if (showCompanionInput !== bus.id) {
+                                    setShowCompanionInput(bus.id);
+                                    setCompanionCount(0);
+                                  }
+                                }}
+                                className="input-field !w-16 !py-1.5 !text-sm text-center"
+                                dir="ltr"
+                                disabled={bookingBusId !== null}
+                              />
+                            </div>
+                            <button
+                              onClick={() => handleBook(bus)}
+                              disabled={bookingBusId !== null}
+                              className="btn-primary w-full sm:w-auto"
+                            >
+                              {bookingBusId === bus.id ? t("common.loading") : t("buses.choose")}
+                            </button>
+                          </div>
                         )}
                       </div>
 
@@ -261,7 +373,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                           <div className="text-sm text-slate-500 dark:text-gray-400">
                             {visiblePassengers.map((p, i) => (
                               <span key={i}>
-                                {p.full_name}{p.has_wheelchair && " ♿"}{i < visiblePassengers.length - 1 ? "، " : ""}
+                                 {p.full_name}{p.has_wheelchair && " ♿"}{p.sector_name ? ` (${p.sector_name})` : ""}{i < visiblePassengers.length - 1 ? "، " : ""}
                               </span>
                             ))}
                             {!showAll && hiddenCount > 0 && (

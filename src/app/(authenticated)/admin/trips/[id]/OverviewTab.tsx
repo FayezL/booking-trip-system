@@ -6,7 +6,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Bus } from "@/lib/types/database";
 
-type BusWithCount = Bus & { booking_count: number };
+type BusWithCount = Bus & { booking_count: number; seats_taken: number };
 
 type AreaGroup = {
   areaName: string;
@@ -15,7 +15,7 @@ type AreaGroup = {
   totalBooked: number;
 };
 
-type Tab = "overview" | "buses" | "rooms" | "unbooked";
+type Tab = "overview" | "buses" | "rooms" | "cars" | "unbooked";
 
 export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; onSwitchTab: (tab: Tab) => void }) {
   const { t } = useTranslation();
@@ -36,7 +36,7 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
       const [profilesRes, busesRes, bookingsRes, roomsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).is("deleted_at", null),
         supabase.from("buses").select("*").eq("trip_id", tripId),
-        supabase.from("bookings").select("bus_id, room_id").eq("trip_id", tripId).is("cancelled_at", null),
+        supabase.from("bookings").select("bus_id, room_id, companion_count").eq("trip_id", tripId).is("cancelled_at", null),
         supabase.from("rooms").select("capacity").eq("trip_id", tripId),
       ]);
 
@@ -47,13 +47,19 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
       const allRooms = roomsRes.data || [];
 
       const bookingCounts: Record<string, number> = {};
+      const seatsByBus: Record<string, number> = {};
       for (const b of allBookings) {
-        if (b.bus_id) bookingCounts[b.bus_id] = (bookingCounts[b.bus_id] || 0) + 1;
+        const cc = (b as { companion_count: number }).companion_count || 0;
+        if (b.bus_id) {
+          bookingCounts[b.bus_id] = (bookingCounts[b.bus_id] || 0) + 1;
+          seatsByBus[b.bus_id] = (seatsByBus[b.bus_id] || 0) + 1 + cc;
+        }
       }
 
       const busesWithCounts: BusWithCount[] = allBuses.map((bus) => ({
         ...bus,
         booking_count: bookingCounts[bus.id] || 0,
+        seats_taken: seatsByBus[bus.id] || 0,
       }));
 
       const groupMap = new Map<string, AreaGroup>();
@@ -62,18 +68,19 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
         const group = groupMap.get(key) || { areaName: key, buses: [], totalCapacity: 0, totalBooked: 0 };
         group.buses.push(bus);
         group.totalCapacity += bus.capacity;
-        group.totalBooked += bus.booking_count;
+        group.totalBooked += bus.seats_taken;
         groupMap.set(key, group);
       }
 
       const totalSeats = allBuses.reduce((s, b) => s + b.capacity, 0);
+      const totalSeatsTaken = Object.values(seatsByBus).reduce((s, v) => s + v, 0);
       const totalRoomCap = allRooms.reduce((s: number, r: { capacity: number }) => s + r.capacity, 0);
       const assigned = allBookings.filter((b: { room_id: string | null }) => b.room_id !== null).length;
 
       setTotalRegistered(registered);
       setTotalBooked(booked);
       setBusSeatsTotal(totalSeats);
-      setBusSeatsFilled(booked);
+      setBusSeatsFilled(totalSeatsTaken);
       setRoomsAssigned(assigned);
       setRoomsTotal(totalRoomCap);
       setAreaGroups(Array.from(groupMap.values()));

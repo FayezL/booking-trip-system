@@ -8,10 +8,11 @@ import OverviewTab from "./OverviewTab";
 import BusesTab from "./BusesTab";
 import RoomsTab from "./RoomsTab";
 import UnbookedTab from "./UnbookedTab";
+import CarsTab from "./CarsTab";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Trip } from "@/lib/types/database";
 
-type Tab = "overview" | "buses" | "rooms" | "unbooked";
+type Tab = "overview" | "buses" | "rooms" | "cars" | "unbooked";
 
 export default function TripDetailPage({
   params,
@@ -58,6 +59,7 @@ export default function TripDetailPage({
     { key: "overview", label: t("admin.overview") },
     { key: "buses", label: t("admin.buses") },
     { key: "rooms", label: t("admin.rooms") },
+    { key: "cars", label: t("cars.title") },
     { key: "unbooked", label: t("admin.unbooked") },
   ];
 
@@ -102,6 +104,7 @@ export default function TripDetailPage({
       {activeTab === "overview" && <OverviewTab tripId={tripId} onSwitchTab={setActiveTab} />}
       {activeTab === "buses" && <BusesTab tripId={tripId} />}
       {activeTab === "rooms" && <RoomsTab tripId={tripId} />}
+      {activeTab === "cars" && <CarsTab tripId={tripId} />}
       {activeTab === "unbooked" && <UnbookedTab tripId={tripId} />}
       </div>
     </div>

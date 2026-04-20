@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { PHONE_REGEX, PASSWORD_MIN_LENGTH } from "@/lib/constants";
 import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
+import type { Sector } from "@/lib/types/database";
 
 type SignupRole = "patient" | "servant" | "companion" | "family_assistant";
 
@@ -18,9 +19,25 @@ export default function SignupPage() {
   const [gender, setGender] = useState<"Male" | "Female" | "">("");
   const [role, setRole] = useState<SignupRole | "">("");
   const [hasWheelchair, setHasWheelchair] = useState(false);
+  const [sectorId, setSectorId] = useState("");
+  const [sectors, setSectors] = useState<Sector[]>([]);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loadSectors = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.rpc("get_sectors");
+      if (data) setSectors(data as Sector[]);
+    } catch {
+      // sectors will be empty, user can still sign up without one
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSectors();
+  }, [loadSectors]);
 
   function handlePhoneChange(value: string) {
     const digits = value.replace(/\D/g, "").slice(0, 15);
@@ -47,6 +64,10 @@ export default function SignupPage() {
       setError(t("auth.userType"));
       return;
     }
+    if (!sectorId) {
+      setError(t("auth.sectorRequired"));
+      return;
+    }
     if (password.length < PASSWORD_MIN_LENGTH) {
       setError(t("auth.passwordRequired"));
       return;
@@ -65,6 +86,7 @@ export default function SignupPage() {
           gender,
           role,
           has_wheelchair: hasWheelchair,
+          sector_id: sectorId,
         },
       },
     });
@@ -185,6 +207,23 @@ export default function SignupPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <label className="label-text">{t("sectors.select")}</label>
+              <select
+                className="input-field text-center text-base"
+                value={sectorId}
+                onChange={(e) => setSectorId(e.target.value)}
+                disabled={loading || sectors.length === 0}
+              >
+                <option value="">{sectors.length === 0 ? "..." : t("sectors.select")}</option>
+                {sectors.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.code} - {s.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {role === "patient" && (

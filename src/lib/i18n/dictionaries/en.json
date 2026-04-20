@@ -30,7 +30,63 @@
     "userType": "User Type",
     "companion": "Companion",
     "familyAssistant": "Family Assistant",
-    "wheelchair": "Using a wheelchair"
+    "wheelchair": "Using a wheelchair",
+    "sectorRequired": "Please select a sector"
+  },
+  "sectors": {
+    "title": "Sectors",
+    "manage": "Manage Sectors",
+    "select": "Select Sector",
+    "name": "Sector Name",
+    "code": "Code",
+    "active": "Active",
+    "inactive": "Inactive",
+    "add": "New Sector",
+    "edit": "Edit",
+    "delete": "Delete",
+    "yourSector": "Your Sector",
+    "filter": "Filter by Sector",
+    "all": "All",
+    "none": "No Sector",
+    "sortOrder": "Sort Order",
+    "confirmDelete": "Are you sure you want to delete this sector?",
+    "sectorSaved": "Sector saved",
+    "sectorDeleted": "Sector deleted",
+    "noSectors": "No sectors found"
+  },
+  "settings": {
+    "title": "Settings",
+    "sector": "Sector",
+    "saved": "Saved",
+    "hasCar": "Do you have a car?",
+    "carSeats": "Number of seats",
+    "carSeatsHint": "Including the driver"
+  },
+  "cars": {
+    "title": "Cars",
+    "driver": "Driver",
+    "seats": "Seats",
+    "available": "Available",
+    "passengers": "Passengers",
+    "assign": "Assign passenger",
+    "remove": "Remove car",
+    "imDriving": "I'm driving",
+    "register": "Register your car",
+    "noCars": "No cars",
+    "addCar": "Add car",
+    "carRemoved": "Car removed",
+    "carFull": "Car is full",
+    "confirmRemove": "Are you sure? Passengers will stay booked but without transport.",
+    "selectCar": "Select car",
+    "assigned": "Assigned",
+    "capacity": "Car capacity",
+    "editCar": "Car",
+    "carSaved": "Car settings saved"
+  },
+  "companions": {
+    "label": "Number of companions",
+    "hint": "People traveling with you without an account",
+    "with": "with"
   },
   "trips": {
     "title": "Available Trips",
@@ -201,7 +257,10 @@
     "selectBus": "Select bus",
     "noPassengers": "No passengers yet",
     "showPassengers": "Show passengers",
-    "hidePassengers": "Hide passengers"
+    "hidePassengers": "Hide passengers",
+    "sectors": "Sectors",
+    "sectorFilter": "Sector",
+    "cars": "Cars"
   },
   "common": {
     "loading": "Loading...",

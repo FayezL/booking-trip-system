@@ -6,7 +6,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
-import type { Profile, Bus } from "@/lib/types/database";
+import type { Profile, Bus, Sector } from "@/lib/types/database";
 
 type RegisterForm = {
   phone: string;
@@ -16,6 +16,8 @@ type RegisterForm = {
   bus_id: string;
   role: string;
   has_wheelchair: boolean;
+  sector_id: string;
+  companion_count: number;
 };
 
 const emptyForm: RegisterForm = {
@@ -26,6 +28,8 @@ const emptyForm: RegisterForm = {
   bus_id: "",
   role: "patient",
   has_wheelchair: false,
+  sector_id: "",
+  companion_count: 0,
 };
 
 export default function UnbookedTab({ tripId }: { tripId: string }) {
@@ -35,10 +39,12 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
   const [unbooked, setUnbooked] = useState<Profile[]>([]);
   const [buses, setBuses] = useState<Bus[]>([]);
+  const [sectors, setSectors] = useState<Sector[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [genderFilter, setGenderFilter] = useState<"" | "Male" | "Female">("");
+  const [sectorFilter, setSectorFilter] = useState("");
   const [showRegister, setShowRegister] = useState(false);
   const [form, setForm] = useState<RegisterForm>(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -53,9 +59,10 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [allBookedRes, busListRes] = await Promise.all([
+      const [allBookedRes, busListRes, sectorsRes] = await Promise.all([
         supabase.from("bookings").select("user_id").eq("trip_id", tripId).is("cancelled_at", null),
         supabase.from("buses").select("*").eq("trip_id", tripId),
+        supabase.rpc("get_sectors"),
       ]);
 
       const bookedIds = (allBookedRes.data || []).map((b: { user_id: string }) => b.user_id);
@@ -74,6 +81,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
       setUnbooked((profilesRes.data || []) as Profile[]);
       setBuses(busListRes.data || []);
+      setSectors((sectorsRes.data || []) as Sector[]);
     } catch {
       showToast(t("common.error"), "error");
     } finally {
@@ -129,6 +137,8 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       p_bus_id: form.bus_id || null,
       p_role: form.role,
       p_has_wheelchair: form.has_wheelchair,
+      p_sector_id: form.sector_id || null,
+      p_companion_count: form.companion_count || 0,
     });
 
     setSaving(false);
@@ -155,8 +165,9 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   const filtered = useMemo(() => unbooked.filter((p) => {
     const matchesSearch = !search || p.full_name.includes(search);
     const matchesGender = !genderFilter || p.gender === genderFilter;
-    return matchesSearch && matchesGender;
-  }), [unbooked, search, genderFilter]);
+    const matchesSector = !sectorFilter || p.sector_id === sectorFilter;
+    return matchesSearch && matchesGender && matchesSector;
+  }), [unbooked, search, genderFilter, sectorFilter]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
@@ -168,7 +179,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
 
   useEffect(() => {
     setPage(1);
-  }, [search, genderFilter]);
+  }, [search, genderFilter, sectorFilter]);
 
   const { maleCount, femaleCount } = useMemo(() => ({
     maleCount: unbooked.filter((p) => p.gender === "Male").length,
@@ -264,6 +275,19 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               </div>
             )}
             <div>
+              <label className="label-text">{t("sectors.select")}</label>
+              <select
+                className="input-field"
+                value={form.sector_id}
+                onChange={(e) => setForm({ ...form, sector_id: e.target.value })}
+              >
+                <option value="">{t("sectors.none")}</option>
+                {sectors.map((s) => (
+                  <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="label-text">{t("auth.password")}</label>
               <input
                 type="password"
@@ -272,6 +296,20 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 dir="ltr"
               />
+            </div>
+            <div>
+              <label className="label-text">{t("companions.label")}</label>
+              <input
+                type="number"
+                className="input-field"
+                value={form.companion_count || ""}
+                onChange={(e) => setForm({ ...form, companion_count: Math.min(Math.max(parseInt(e.target.value) || 0, 0), 5) })}
+                dir="ltr"
+                min="0"
+                max="5"
+                placeholder="0"
+              />
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{t("companions.hint")}</p>
             </div>
             <div className="md:col-span-2">
               <label className="label-text">{t("buses.chooseBus")} ({t("admin.cancel")})</label>
@@ -350,6 +388,16 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
             </button>
           ))}
         </div>
+        <select
+          className="input-field w-auto min-w-[140px]"
+          value={sectorFilter}
+          onChange={(e) => setSectorFilter(e.target.value)}
+        >
+          <option value="">{t("sectors.all")}</option>
+          {sectors.map((s) => (
+            <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
+          ))}
+        </select>
       </div>
 
       <div className="space-y-2">
@@ -365,6 +413,11 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                     <span className="text-xs text-slate-400 dark:text-gray-500" dir="ltr">{p.phone}</span>
                     {p.has_wheelchair && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" title={t("admin.wheelchair")}>♿</span>
+                    )}
+                    {p.sector_id && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400">
+                        {sectors.find((s) => s.id === p.sector_id)?.name || ""}
+                      </span>
                     )}
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${

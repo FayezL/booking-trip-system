@@ -1,3 +1,12 @@
+export type Sector = {
+  id: string;
+  name: string;
+  code: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
 export type Profile = {
   id: string;
   phone: string;
@@ -5,6 +14,9 @@ export type Profile = {
   gender: "Male" | "Female";
   role: "super_admin" | "admin" | "servant" | "patient" | "companion" | "family_assistant";
   has_wheelchair: boolean;
+  sector_id: string | null;
+  has_car: boolean;
+  car_seats: number | null;
   deleted_at: string | null;
   created_at: string;
 };
@@ -47,12 +59,23 @@ export type Room = {
   room_label: string;
 };
 
+export type Car = {
+  id: string;
+  trip_id: string;
+  driver_id: string | null;
+  capacity: number;
+  car_label: string | null;
+  created_at: string;
+};
+
 export type Booking = {
   id: string;
   user_id: string;
   trip_id: string;
-  bus_id: string;
+  bus_id: string | null;
   room_id: string | null;
+  car_id: string | null;
+  companion_count: number;
   created_at: string;
   cancelled_at: string | null;
 };

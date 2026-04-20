@@ -40,6 +40,7 @@ export default function Header({ profile }: HeaderProps) {
           ...(profile.role === "super_admin" || profile.role === "admin"
             ? [
                 { href: "/admin/users", label: t("admin.users") },
+                { href: "/admin/sectors", label: t("admin.sectors") },
               ]
             : []),
           ...(profile.role === "super_admin"
@@ -86,12 +87,28 @@ export default function Header({ profile }: HeaderProps) {
             Saint Demiana | القديسة ديمانه
           </h1>
           {!isAdmin && (
-            <button
-              onClick={() => router.push("/trips")}
-              className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-            >
-              {t("trips.myBookings")}
-            </button>
+            <div className="flex gap-1">
+              <button
+                onClick={() => router.push("/trips")}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 ${
+                  isActive("/trips")
+                    ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
+                    : "text-slate-500 dark:text-gray-500 hover:bg-slate-50 dark:hover:bg-gray-800 hover:text-slate-700 dark:hover:text-gray-300"
+                }`}
+              >
+                {t("trips.myBookings")}
+              </button>
+              <button
+                onClick={() => router.push("/settings")}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 ${
+                  isActive("/settings")
+                    ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
+                    : "text-slate-500 dark:text-gray-500 hover:bg-slate-50 dark:hover:bg-gray-800 hover:text-slate-700 dark:hover:text-gray-300"
+                }`}
+              >
+                {t("settings.title")}
+              </button>
+            </div>
           )}
           {isAdmin && (
             <nav className="flex gap-1">

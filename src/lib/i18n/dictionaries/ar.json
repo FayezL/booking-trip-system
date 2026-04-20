@@ -30,7 +30,63 @@
     "userType": "نوع المستخدم",
     "companion": "مرافق",
     "familyAssistant": "مساعد عائلة",
-    "wheelchair": "معايا كرسي متحرك"
+    "wheelchair": "معايا كرسي متحرك",
+    "sectorRequired": "اختار القطاعة"
+  },
+  "sectors": {
+    "title": "القطاعات",
+    "manage": "إدارة القطاعات",
+    "select": "اختار القطاعة",
+    "name": "اسم القطاعة",
+    "code": "الرقم",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "add": "قطاعة جديدة",
+    "edit": "تعديل",
+    "delete": "مسح",
+    "yourSector": "قطاعتك",
+    "filter": "تصفية بالقطاعة",
+    "all": "الكل",
+    "none": "بدون قطاعة",
+    "sortOrder": "الترتيب",
+    "confirmDelete": "متأكد تمسح القطاعة دي؟",
+    "sectorSaved": "تم حفظ القطاعة",
+    "sectorDeleted": "تم مسح القطاعة",
+    "noSectors": "مفيش قطاعات"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "sector": "القطاعة",
+    "saved": "تم الحفظ",
+    "hasCar": "عندك عربية؟",
+    "carSeats": "عدد الأماكن",
+    "carSeatsHint": "بما فيهم السائق"
+  },
+  "cars": {
+    "title": "عربيات",
+    "driver": "السائق",
+    "seats": "أماكن",
+    "available": "فاضي",
+    "passengers": "الركاب",
+    "assign": "حط راكب",
+    "remove": "شيل العربية",
+    "imDriving": "أنا سايق",
+    "register": "سجل عربيتك",
+    "noCars": "مفيش عربيات",
+    "addCar": "ضيف عربية",
+    "carRemoved": "العربية اتشالت",
+    "carFull": "العربية ممتلية",
+    "confirmRemove": "متأكد تشيل العربية؟ الركاب هيضلوا محجزين بس من غير نقل.",
+    "selectCar": "اختار عربية",
+    "assigned": "اتحط",
+    "capacity": "سعة العربية",
+    "editCar": "عربية",
+    "carSaved": "إعدادات العربية اتحفظت"
+  },
+  "companions": {
+    "label": "عدد المرافقين",
+    "hint": "الأشخاص اللي معاك ومش عندهم حساب",
+    "with": "معاه"
   },
   "trips": {
     "title": "الرحلات المتاحة",
@@ -201,7 +257,10 @@
     "selectBus": "اختار باص",
     "noPassengers": "مفيش ركاب لسه",
     "showPassengers": "عرض الركاب",
-    "hidePassengers": "إخفاء الركاب"
+    "hidePassengers": "إخفاء الركاب",
+    "sectors": "القطاعات",
+    "sectorFilter": "القطاعة",
+    "cars": "عربيات"
   },
   "common": {
     "loading": "تحميل...",

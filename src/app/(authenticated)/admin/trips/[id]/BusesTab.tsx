@@ -14,6 +14,8 @@ type Passenger = {
   full_name: string;
   gender: string;
   has_wheelchair: boolean;
+  sector_name: string;
+  companion_count: number;
 };
 
 type BusWithPassengers = Bus & { passengers: Passenger[] };
@@ -56,21 +58,40 @@ export default function BusesTab({ tripId }: { tripId: string }) {
         supabase.from("buses").select("*").eq("trip_id", tripId),
         supabase
           .from("bookings")
-          .select("id, bus_id, user_id, profiles(full_name, gender, has_wheelchair)")
+          .select("id, bus_id, user_id, companion_count, profiles(full_name, gender, has_wheelchair, sector_id)")
           .eq("trip_id", tripId)
           .is("cancelled_at", null),
       ]);
 
+      const sectorIds = new Set<string>();
+      for (const b of bookingsRes.data || []) {
+        const prof = b.profiles as unknown as { sector_id: string | null };
+        if (prof?.sector_id) sectorIds.add(prof.sector_id);
+      }
+
+      const sectorMap: Record<string, string> = {};
+      if (sectorIds.size > 0) {
+        const { data: sectorData } = await supabase
+          .from("sectors")
+          .select("id, name")
+          .in("id", Array.from(sectorIds));
+        for (const s of sectorData || []) {
+          sectorMap[(s as { id: string; name: string }).id] = (s as { id: string; name: string }).name;
+        }
+      }
+
       const passengersByBus: Record<string, Passenger[]> = {};
       for (const b of bookingsRes.data || []) {
         const list = passengersByBus[b.bus_id] || [];
-        const p = b.profiles as unknown as { full_name: string; gender: string; has_wheelchair: boolean };
+        const p = b.profiles as unknown as { full_name: string; gender: string; has_wheelchair: boolean; sector_id: string | null };
         list.push({
           booking_id: b.id,
           user_id: b.user_id,
           full_name: p.full_name,
           gender: p.gender,
           has_wheelchair: p.has_wheelchair,
+          sector_name: p.sector_id ? (sectorMap[p.sector_id] || "") : "",
+          companion_count: (b as { companion_count: number }).companion_count || 0,
         });
         passengersByBus[b.bus_id] = list;
       }
@@ -336,7 +357,8 @@ export default function BusesTab({ tripId }: { tripId: string }) {
         <div className="space-y-3">
           {buses.map((bus) => {
             const count = bus.passengers.length;
-            const percent = bus.capacity > 0 ? (count / bus.capacity) * 100 : 0;
+            const seatsTaken = bus.passengers.reduce((sum, p) => sum + 1 + p.companion_count, 0);
+            const percent = bus.capacity > 0 ? (seatsTaken / bus.capacity) * 100 : 0;
             const displayName = bus.bus_label || bus.area_name_ar;
             const isExpanded = expandedBusIds.has(bus.id);
             const otherBuses = buses.filter((b) => b.id !== bus.id);
@@ -355,7 +377,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{displayName}</h3>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBg}`}>
-                      {count}/{bus.capacity}
+                      {seatsTaken}/{bus.capacity}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -388,7 +410,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                 )}
 
                 <div className="flex justify-between text-sm text-slate-400 dark:text-gray-500 mb-1.5">
-                  <span>{t("admin.passengers")}: {count}/{bus.capacity}</span>
+                  <span>{t("admin.passengers")}: {count}{seatsTaken !== count ? ` (${seatsTaken} ${t("buses.seats")})` : ""}/{bus.capacity}</span>
                   <span>{Math.round(percent)}%</span>
                 </div>
                 <div className="progress-bar">
@@ -411,7 +433,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                           >
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-slate-700 dark:text-gray-200">
-                                {p.full_name}
+                                {p.full_name}{p.companion_count > 0 && <span className="text-xs text-teal-600 dark:text-teal-400 font-normal ms-1">(+{p.companion_count})</span>}
                               </span>
                               <span
                                 className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
@@ -424,6 +446,11 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                               </span>
                               {p.has_wheelchair && (
                                 <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400">♿</span>
+                              )}
+                              {p.sector_name && (
+                                <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400">
+                                  {p.sector_name}
+                                </span>
                               )}
                             </div>
 

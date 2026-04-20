@@ -8,7 +8,7 @@ import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Trip, Booking } from "@/lib/types/database";
 
-type Passenger = { bus_id: string; full_name: string; has_wheelchair: boolean };
+type Passenger = { bus_id: string; full_name: string; has_wheelchair: boolean; sector_name: string };
 
 export default function TripsPage() {
   const { t, lang } = useTranslation();
@@ -146,7 +146,7 @@ export default function TripsPage() {
                     <div className="text-sm text-slate-500 dark:text-gray-400">
                       {visiblePassengers.map((p, i) => (
                         <span key={i}>
-                          {p.full_name}{p.has_wheelchair && " ♿"}{i < visiblePassengers.length - 1 ? "، " : ""}
+                           {p.full_name}{p.has_wheelchair && " ♿"}{p.sector_name ? ` (${p.sector_name})` : ""}{i < visiblePassengers.length - 1 ? "، " : ""}
                         </span>
                       ))}
                       {!isExpanded && hiddenCount > 0 && (

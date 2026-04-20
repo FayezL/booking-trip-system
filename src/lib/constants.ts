@@ -9,3 +9,5 @@ export const LOG_FETCH_LIMIT = 500;
 export const MAX_BUS_BATCH = 20;
 export const COOKIE_EXPIRY_DAYS = 365;
 export const CHURCH_EMAIL_DOMAIN = "@church.local";
+export const PAGE_SIZE_SECTORS = 50;
+export const MAX_COMPANIONS = 5;
