@@ -15,6 +15,7 @@ type Passenger = {
   gender: string;
   has_wheelchair: boolean;
   sector_name: string;
+  family_member_id: string | null;
 };
 
 type BusWithPassengers = Bus & { passengers: Passenger[] };
@@ -57,7 +58,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
         supabase.from("buses").select("*").eq("trip_id", tripId),
         supabase
           .from("bookings")
-          .select("id, bus_id, user_id, profiles(full_name, gender, has_wheelchair, sector_id)")
+          .select("id, bus_id, user_id, family_member_id, profiles(full_name, gender, has_wheelchair, sector_id)")
           .eq("trip_id", tripId)
           .is("cancelled_at", null),
       ]);
@@ -90,6 +91,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
           gender: p.gender,
           has_wheelchair: p.has_wheelchair,
           sector_name: p.sector_id ? (sectorMap[p.sector_id] || "") : "",
+          family_member_id: (b as { family_member_id?: string | null }).family_member_id || null,
         });
         passengersByBus[b.bus_id] = list;
       }
@@ -429,6 +431,9 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                             className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 dark:bg-gray-800/50"
                           >
                             <div className="flex items-center gap-2">
+                              {p.family_member_id && (
+                                <span className="text-xs text-purple-400 dark:text-purple-500">↳</span>
+                              )}
                               <span className="text-sm font-medium text-slate-700 dark:text-gray-200">
                                 {p.full_name}
                               </span>

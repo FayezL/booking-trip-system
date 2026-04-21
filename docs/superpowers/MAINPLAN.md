@@ -1,7 +1,7 @@
 # MAINPLAN.md — Booking0Trip System
 
 > Complete project reference. Everything we built, why, and how it works.
-> Last updated: 2026-04-20
+> Last updated: 2026-04-22
 
 ---
 
@@ -11,14 +11,14 @@ A bilingual (Arabic/English) web app for managing church trip bookings — buses
 
 **Live routes:**
 - `/login` and `/signup` — public auth (with sector selection on signup)
-- `/settings` — user settings (sector self-change, car settings for servants)
+- `/settings` — user settings (name/phone/password, sector, transport, car settings for servants)
 - `/trips` — patient-facing: browse trips, see passengers, book buses
 - `/trips/[tripId]/buses` — patient: choose bus / "I'm driving" + see who's on it
 - `/admin` — admin dashboard
 - `/admin/trips` — trip CRUD with booking count per trip
 - `/admin/trips/[id]` — trip detail (overview / buses / rooms / cars / unbooked tabs)
 - `/admin/sectors` — sector CRUD
-- `/admin/users` — user management (admin+), car settings for servants
+- `/admin/users` — user management (admin+), car settings for servants, family member management
 - `/admin/logs` — activity logs (super_admin only)
 - `/admin/reports` — PDF generation
 
@@ -48,6 +48,7 @@ A bilingual (Arabic/English) web app for managing church trip bookings — buses
 | `patient` | No | Book trips, view own bookings |
 | `companion` | No | Same as patient |
 | `family_assistant` | No | Same as patient |
+| `trainee` | No | Same as patient — training status |
 
 Database-level: `is_admin()` returns true for `admin` and `super_admin` only.
 
@@ -62,9 +63,11 @@ Database-level: `is_admin()` returns true for `admin` and `super_admin` only.
 - `phone` text UNIQUE NOT NULL
 - `full_name` text NOT NULL
 - `gender` text CHECK IN ('Male','Female')
-- `role` text CHECK IN ('super_admin','admin','servant','patient','companion','family_assistant')
+- `role` text CHECK IN ('super_admin','admin','servant','patient','companion','family_assistant','trainee')
 - `has_wheelchair` boolean DEFAULT false
 - `sector_id` uuid FK → sectors(id) ON DELETE SET NULL
+- `transport_type` text CHECK IN ('private','bus') DEFAULT 'bus'
+- `servants_needed` int CHECK IN (0,1,2) DEFAULT 0
 - `has_car` boolean DEFAULT false
 - `car_seats` int (nullable, CHECK > 0 when set)
 - `deleted_at` timestamptz (soft delete)
@@ -106,9 +109,20 @@ Database-level: `is_admin()` returns true for `admin` and `super_admin` only.
 - `bus_id` uuid FK → buses(id) ON DELETE CASCADE (nullable — car passengers have no bus)
 - `room_id` uuid FK → rooms(id) ON DELETE SET NULL
 - `car_id` uuid FK → cars(id) ON DELETE SET NULL
+- `family_member_id` uuid FK → family_members(id) ON DELETE CASCADE (nullable — head's own booking)
 - `created_at` timestamptz
 - `cancelled_at` timestamptz (soft delete)
-- UNIQUE (user_id, trip_id) WHERE cancelled_at IS NULL — one active booking per user per trip
+- Two partial unique indexes:
+  - `(user_id, trip_id) WHERE cancelled_at IS NULL AND family_member_id IS NULL` — one head booking per trip
+  - `(user_id, trip_id, family_member_id) WHERE cancelled_at IS NULL AND family_member_id IS NOT NULL` — one booking per family member per trip
+
+**family_members** — Lightweight sub-profiles (no auth account)
+- `id` uuid PK
+- `head_user_id` uuid FK → profiles(id) ON DELETE CASCADE
+- `full_name` text NOT NULL
+- `gender` text CHECK IN ('Male','Female')
+- `has_wheelchair` boolean DEFAULT false
+- `created_at` timestamptz
 
 **sectors** — Church sectors/areas
 - `id` uuid PK
@@ -170,6 +184,16 @@ All run as `SECURITY DEFINER` with `SET search_path = ''` for security.
 | `assign_car_passenger(booking_id, car_id)` | Admin assigns passenger to car | admin |
 | `remove_car(car_id)` | Admin removes car from trip | admin |
 | `admin_create_car(trip_id, driver_id, capacity)` | Admin manually creates car | admin |
+| `add_family_member(head_user_id, full_name, gender, has_wheelchair)` | Adds a family member under a head user | admin or own user |
+| `update_family_member(member_id, full_name, gender, has_wheelchair)` | Edits a family member's details | admin or own user |
+| `remove_family_member(member_id)` | Removes member + cancels their bookings (CASCADE) | admin or own user |
+| `get_family_members(user_id)` | Lists all family members for a user | admin or own user |
+| `book_bus_with_family(user_id, trip_id, bus_id, family_member_ids[])` | Books head + selected family members on same bus in one transaction | admin or own user |
+| `update_own_name(name)` | User changes own full_name | authenticated |
+| `update_own_phone(phone)` | User changes own phone + auth email | authenticated |
+| `update_own_transport(transport_type, servants_needed)` | User changes transport fields | authenticated |
+| `update_own_password(new_password)` | User changes own password | authenticated |
+| `admin_get_user_details(user_id)` | Full profile for admin modal | admin |
 
 ---
 
@@ -193,10 +217,10 @@ src/
     page.tsx                                # Redirect → /trips
     globals.css                             # Tailwind + component classes + dark mode
     login/page.tsx                          # Phone + password
-    signup/page.tsx                         # Registration (user type + sector + wheelchair)
+    signup/page.tsx                         # Registration (user type + sector + wheelchair + transport + servants)
     (authenticated)/
       layout.tsx                            # Auth guard + Header + MobileNav
-      settings/page.tsx                     # Sector self-change + car settings (servants)
+      settings/page.tsx                     # Account settings (name/phone/password + transport + sector + car)
       trips/
         page.tsx                            # Patient: list trips + passengers + book
         [tripId]/buses/page.tsx             # Patient: choose bus / "I'm driving" + see passengers
@@ -212,7 +236,9 @@ src/
             RoomsTab.tsx                    # Room CRUD + assign
             CarsTab.tsx                     # Car management (create, assign, remove)
             UnbookedTab.tsx                 # Unbooked users + register + sector filter
-        users/page.tsx                      # User management (admin+) + car settings
+        users/
+          page.tsx                          # User management (admin+) + car settings
+          UserDetailModal.tsx               # User detail modal (admin popup)
         logs/page.tsx                       # Activity logs (super_admin)
         reports/page.tsx                    # PDF reports
   components/
@@ -248,6 +274,8 @@ supabase/
     00006_part2_cars_functions.sql         # Car RPCs + updated cancel_booking
     00007_hard_delete_user.sql             # Hard delete instead of soft delete
     00008_fix_user_delete_cascade.sql      # FK cascade fix for bookings + admin_logs
+    00009_family_members.sql               # Family members table + bookings.family_member_id + all RPCs
+    00009_user_profile_enhancements.sql    # transport_type + servants_needed + trainee + self-service RPCs
   functions/
     generate-report/index.ts               # Edge Function (Deno)
 
@@ -271,6 +299,7 @@ docs/superpowers/
 9. **Dark mode**: `next-themes` with class strategy, toggle in header
 10. **i18n**: Custom dictionary in localStorage, no URL prefixes, Arabic default
 11. **Elderly-friendly**: 18px base font, 48px min buttons, simple Arabic labels, high contrast
+12. **Family members**: Lightweight sub-profiles (no auth account) linked to a head user. Kids/helpers who can't use phones are managed under the head's account. Head books everyone on the same bus. Cancelling head's booking cancels all family member bookings too.
 
 ---
 
@@ -569,6 +598,7 @@ None — 0 ESLint warnings, 0 TypeScript errors as of Phase 8.
 | `00006_part2_cars_functions.sql` | Not yet run | Car RPCs + updated cancel_booking |
 | `00007_hard_delete_user.sql` | Not yet run | Hard delete instead of soft delete |
 | `00008_fix_user_delete_cascade.sql` | Not yet run | FK cascade fix for bookings + admin_logs |
+| `00009_user_profile_enhancements.sql` | Not yet run | transport_type + servants_needed + trainee role + 5 RPCs + updated RPCs |
 
 ### Key Files Added
 
@@ -585,3 +615,168 @@ None — 0 ESLint warnings, 0 TypeScript errors as of Phase 8.
 - `src/app/(authenticated)/admin/users/page.tsx` — sector column, filter, car settings
 - `src/app/(authenticated)/trips/[tripId]/buses/page.tsx` — "I'm driving" for servants
 - `src/app/(authenticated)/admin/trips/[id]/page.tsx` — 5 tabs (overview/buses/rooms/cars/unbooked)
+
+---
+
+## Phase 9: Family Members (2026-04-22)
+
+### Problem
+
+Some patients have family members (kids, helpers, elderly) who cannot create their own accounts — they can't use phones. They all belong to one phone number (the "head of family"). Previously, each person needed a separate account.
+
+### Solution
+
+A **`family_members`** table with lightweight sub-profiles (no auth account) linked to a head user. Each family member gets their own booking row when the head books a trip.
+
+### Database Changes
+
+- **New `family_members` table** with RLS (head can manage own, admin can manage all)
+- **`bookings.family_member_id`** added (nullable FK with CASCADE)
+- **Two partial unique indexes** replace the old single unique index:
+  - Head: `(user_id, trip_id) WHERE family_member_id IS NULL AND cancelled_at IS NULL`
+  - Family: `(user_id, trip_id, family_member_id) WHERE family_member_id IS NOT NULL AND cancelled_at IS NULL`
+
+### New RPCs (5)
+
+| RPC | What |
+|-----|------|
+| `add_family_member` | Add member under head (admin or self) |
+| `update_family_member` | Edit member details |
+| `remove_family_member` | Remove member (CASCADE deletes their bookings) |
+| `get_family_members` | List all members for a user |
+| `book_bus_with_family` | Book head + selected members on same bus in one transaction |
+
+### Updated RPCs (4)
+
+| RPC | Change |
+|-----|--------|
+| `get_trip_passengers` | Returns `family_member_id` + `head_user_id` for grouping; uses `COALESCE(fm.gender, p.gender)` |
+| `cancel_booking` | When head's own booking is cancelled (family_member_id IS NULL), also cancels all family member bookings for that trip |
+| `assign_room` | Uses family member's gender (not head's) when `family_member_id` is set |
+| `book_bus` | Duplicate check now only looks at head bookings (`family_member_id IS NULL`) |
+
+### UI Changes
+
+- **Settings page**: Family Members section with add/edit/remove. Shows numbered list with gender + wheelchair badges.
+- **Bus selection page**: Purple "Select who's coming" card with toggleable member buttons. Shows total people count. Calls `book_bus_with_family`.
+- **Admin Users page**: Family count badge (👨‍👩‍👧 N) per user. Expandable family management section with full CRUD.
+- **Admin UnbookedTab**: When booking a user, shows their family member toggles. Uses `book_bus_with_family`. Only counts head bookings as "booked".
+- **BusesTab**: Shows `↳` prefix for family member passengers.
+- **Trips page**: Shows `↳` prefix for family members in passenger list. "My Bookings" shows family member name with `↳ Name`.
+- **Confirmation page**: Shows total people booked when > 1.
+
+### Cancel Behavior
+
+- **Head cancels own booking** → all family member bookings for that trip also cancelled (database-level in `cancel_booking` RPC)
+- **Admin cancels individual family member** → only that member's booking cancelled
+- **Admin cancels head** → same as head cancelling (all family cancelled)
+
+### SQL Migration
+
+| File | What |
+|------|------|
+| `00009_family_members.sql` | Everything: table + column + indexes + RLS + 5 new RPCs + 4 updated RPCs |
+
+### Files Changed
+
+- `supabase/migrations/00009_family_members.sql` — new
+- `src/lib/types/database.ts` — `FamilyMember` type + `Booking.family_member_id`
+- `src/lib/i18n/dictionaries/ar.json` + `en.json` — `family.*` keys
+- `src/app/(authenticated)/settings/page.tsx` — family members section
+- `src/app/(authenticated)/trips/[tripId]/buses/page.tsx` — family member selection
+- `src/app/(authenticated)/trips/page.tsx` — family member display + booking grouping
+- `src/app/(authenticated)/admin/users/page.tsx` — family count badge + inline management
+- `src/app/(authenticated)/admin/trips/[id]/UnbookedTab.tsx` — family member booking
+- `src/app/(authenticated)/admin/trips/[id]/BusesTab.tsx` — family member indicator
+
+---
+
+## Phase 9: User Settings, Patient Details & Admin User Modal (2026-04-22)
+
+### What Changed
+
+Three major features delivered together:
+
+1. **User self-service settings** — All users can now change their own name, phone, and password
+2. **Patient profile fields** — New `transport_type` (private/bus) and `servants_needed` (0/1/2) fields collected at signup and editable in settings
+3. **Admin user detail modal** — Click "Details" button next to any user to see their full profile in a popup
+
+### Database Changes (00009_user_profile_enhancements.sql)
+
+**New columns on `profiles`:**
+- `transport_type text NOT NULL DEFAULT 'bus' CHECK IN ('private', 'bus')`
+- `servants_needed int NOT NULL DEFAULT 0 CHECK IN (0, 1, 2)`
+
+**New role:** `trainee` added to role CHECK constraint (same permissions as patient)
+
+**New RPC functions (5):**
+| Function | Purpose |
+|----------|---------|
+| `update_own_name(p_name)` | Change own full_name |
+| `update_own_phone(p_phone)` | Change phone + auth email atomically |
+| `update_own_transport(p_transport_type, p_servants_needed)` | Change transport fields |
+| `update_own_password(p_new_password)` | Change own password |
+| `admin_get_user_details(p_user_id)` | Full profile for admin modal |
+
+**Updated RPC functions (3):**
+| Function | Change |
+|----------|--------|
+| `handle_new_user()` | Extracts `transport_type` and `servants_needed` from metadata |
+| `register_and_book()` | New params `p_transport_type`, `p_servants_needed`; added `trainee` to allowed roles |
+| `admin_create_user()` | New params `p_transport_type`, `p_servants_needed`; added `trainee` to allowed roles |
+
+### Frontend Changes
+
+**Signup page** (`src/app/signup/page.tsx`):
+- Added `trainee` as 5th role option (flex-wrap 3+2 grid layout)
+- Added transport type toggle (ملاكى / اتوبيس)
+- Added servants needed selector (0 / 1 / 2)
+- New fields passed in `options.data` to `supabase.auth.signUp()`
+
+**Settings page** (`src/app/(authenticated)/settings/page.tsx`) — major rewrite:
+- Reorganized into 3 card groups: Account, Trip Details, Car (servants only)
+- Account group: change name, change phone, change password (with current password verification)
+- Trip Details group: transport type toggle, servants needed selector, sector dropdown
+- All self-service edits go through RPC functions (SECURITY DEFINER)
+- Password change verifies current password via `signInWithPassword` before updating
+
+**Admin users page** (`src/app/(authenticated)/admin/users/page.tsx`):
+- Added "Details" (تفاصيل) button next to every user row
+- Added `trainee` to ALL_ROLES and CREATABLE_ROLES
+- Added transport type and servants needed to create user form
+- New `trainee` role badge color: orange
+
+**New component** (`src/app/(authenticated)/admin/users/UserDetailModal.tsx`):
+- Modal showing full user profile: name, phone, gender, role, wheelchair, transport type, servants needed, sector, car info
+- Dark overlay with close-on-click-outside and ESC key support
+- Data fetched via `admin_get_user_details` RPC
+
+**Navigation** (`Header.tsx` + `MobileNav.tsx`):
+- Admins now see Settings link in desktop header nav
+- Admins now see Settings tab in mobile bottom nav
+- Added settings gear icon in mobile header (top-right) for all users
+
+**Types** (`src/lib/types/database.ts`):
+- `Profile` type: added `transport_type: "private" | "bus"`, `servants_needed: 0 | 1 | 2`, `'trainee'` to role union
+- New `UserDetail` type for admin modal data
+
+### New i18n Keys (~30 keys per language)
+
+- `auth.trainee`, `auth.transportType`, `auth.transportPrivate`, `auth.transportBus`, `auth.servantsNeeded`, `auth.transportRequired`
+- `settings.accountGroup`, `settings.tripDetailsGroup`, `settings.changeName/Phone/Password`, `settings.newName/Phone`, `settings.currentPassword`, `settings.newPasswordLabel`, `settings.nameUpdated/phoneUpdated/passwordUpdated/wrongPassword`, `settings.transportType/Private/Bus`, `settings.servantsNeeded`, `settings.transportUpdated`
+- `admin.trainee`, `admin.viewDetails`, `admin.userDetails`, `admin.transportType/Private/Bus`, `admin.servantsNeeded`
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `supabase/migrations/00009_user_profile_enhancements.sql` | New migration |
+| `src/lib/types/database.ts` | Profile + UserDetail types |
+| `src/lib/i18n/dictionaries/ar.json` | ~30 new keys |
+| `src/lib/i18n/dictionaries/en.json` | ~30 new keys |
+| `src/app/signup/page.tsx` | Trainee + transport + servants |
+| `src/app/(authenticated)/settings/page.tsx` | Major rewrite (3-group layout) |
+| `src/app/(authenticated)/admin/users/page.tsx` | Info button + trainee + new fields |
+| `src/app/(authenticated)/admin/users/UserDetailModal.tsx` | New component |
+| `src/components/Header.tsx` | Settings link for admins + gear icon |
+| `src/components/MobileNav.tsx` | Settings tab for admins |

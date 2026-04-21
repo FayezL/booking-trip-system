@@ -110,6 +110,7 @@ export default function MobileNav({ profile }: MobileNavProps) {
   const adminExtraTabs = [
     { key: "users", label: t("admin.users"), href: "/admin/users", icon: "users" as const },
     { key: "sectors", label: t("admin.sectors"), href: "/admin/sectors", icon: "sectors" as const },
+    { key: "settings", label: t("settings.title"), href: "/settings", icon: "settings" as const },
   ];
 
   const superAdminTabs = [

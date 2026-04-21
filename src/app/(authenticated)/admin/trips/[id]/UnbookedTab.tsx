@@ -6,7 +6,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
-import type { Profile, Bus, Sector } from "@/lib/types/database";
+import type { Profile, Bus, Sector, FamilyMember } from "@/lib/types/database";
 
 type RegisterForm = {
   phone: string;
@@ -48,6 +48,8 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   const [saving, setSaving] = useState(false);
   const [bookingUser, setBookingUser] = useState<string | null>(null);
   const [selectedBus, setSelectedBus] = useState<string>("");
+  const [selectedFamilyIds, setSelectedFamilyIds] = useState<string[]>([]);
+  const [bookingFamily, setBookingFamily] = useState<FamilyMember[]>([]);
   const [page, setPage] = useState(1);
 
   const PAGE_SIZE = 20;
@@ -58,7 +60,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       if (!user) return;
 
       const [allBookedRes, busListRes, sectorsRes] = await Promise.all([
-        supabase.from("bookings").select("user_id").eq("trip_id", tripId).is("cancelled_at", null),
+        supabase.from("bookings").select("user_id").eq("trip_id", tripId).is("cancelled_at", null).is("family_member_id", null),
         supabase.from("buses").select("*").eq("trip_id", tripId),
         supabase.rpc("get_sectors"),
       ]);
@@ -94,6 +96,10 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   function startBookForUser(userId: string) {
     setBookingUser(userId);
     setSelectedBus(buses.length > 0 ? buses[0].id : "");
+    setSelectedFamilyIds([]);
+    supabase.rpc("get_family_members", { p_user_id: userId }).then(({ data }: { data: unknown }) => {
+      setBookingFamily((data || []) as FamilyMember[]);
+    });
   }
 
   async function confirmBookForUser() {
@@ -102,18 +108,21 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       return;
     }
 
-    const { error } = await supabase.rpc("book_bus", {
+    const { error } = await supabase.rpc("book_bus_with_family", {
       p_user_id: bookingUser,
       p_trip_id: tripId,
       p_bus_id: selectedBus,
+      p_family_member_ids: selectedFamilyIds,
     });
 
     if (error) {
       showToast(t("common.error"), "error");
     } else {
       showToast(t("admin.book"), "success");
-      logAction("book_user", "booking", undefined, { user_id: bookingUser });
+      logAction("book_user", "booking", undefined, { user_id: bookingUser, family_count: selectedFamilyIds.length });
       setBookingUser(null);
+      setBookingFamily([]);
+      setSelectedFamilyIds([]);
       loadData();
     }
   }
@@ -338,11 +347,34 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               ))}
             </select>
           </div>
+          {bookingFamily.length > 0 && (
+            <div className="mt-3">
+              <label className="label-text">{t("family.selectMembers")}</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {bookingFamily.map((fm) => (
+                  <button
+                    key={fm.id}
+                    type="button"
+                    onClick={() => setSelectedFamilyIds((prev) =>
+                      prev.includes(fm.id) ? prev.filter((id) => id !== fm.id) : [...prev, fm.id]
+                    )}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all duration-150 active:scale-95 ${
+                      selectedFamilyIds.includes(fm.id)
+                        ? "border-purple-500 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-950/50 dark:text-purple-400"
+                        : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    }`}
+                  >
+                    {fm.full_name} {fm.gender === "Male" ? "♂" : "♀"}{fm.has_wheelchair ? " ♿" : ""}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <button onClick={confirmBookForUser} className="btn-primary w-full sm:w-auto">
-              {t("admin.book")}
+              {t("admin.book")}{selectedFamilyIds.length > 0 ? ` (${1 + selectedFamilyIds.length})` : ""}
             </button>
-            <button onClick={() => setBookingUser(null)} className="btn-secondary w-full sm:w-auto">
+            <button onClick={() => { setBookingUser(null); setBookingFamily([]); setSelectedFamilyIds([]); }} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
             </button>
           </div>

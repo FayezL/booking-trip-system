@@ -8,7 +8,7 @@ import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { Trip, Booking } from "@/lib/types/database";
 
-type Passenger = { bus_id: string; full_name: string; has_wheelchair: boolean; sector_name: string };
+type Passenger = { bus_id: string; full_name: string; has_wheelchair: boolean; sector_name: string; family_member_id: string | null; head_user_id: string };
 
 export default function TripsPage() {
   const { t, lang } = useTranslation();
@@ -17,7 +17,7 @@ export default function TripsPage() {
   const { showToast } = useToast();
 
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [myBookings, setMyBookings] = useState<(Booking & { trips: Trip; buses: { area_name_ar: string; area_name_en: string } })[]>([]);
+  const [myBookings, setMyBookings] = useState<(Booking & { trips: Trip; buses: { area_name_ar: string; area_name_en: string } | null; family_members?: { full_name: string } | null })[]>([]);
   const [passengersByTrip, setPassengersByTrip] = useState<Record<string, Passenger[]>>({});
   const [expandedTrips, setExpandedTrips] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -35,7 +35,7 @@ export default function TripsPage() {
         supabase.from("trips").select("*").eq("is_open", true).order("trip_date", { ascending: false }),
         supabase
           .from("bookings")
-          .select("*, trips(*), buses(area_name_ar, area_name_en)")
+          .select("*, trips(*), buses(area_name_ar, area_name_en), family_members(full_name)")
           .eq("user_id", user.id)
           .is("cancelled_at", null),
       ]);
@@ -145,10 +145,11 @@ export default function TripsPage() {
                   <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800">
                     <div className="text-sm text-slate-500 dark:text-gray-400">
                       {visiblePassengers.map((p, i) => (
-                        <span key={i}>
+                         <span key={i}>
+                           {p.family_member_id && <span className="text-purple-400">↳ </span>}
                            {p.full_name}{p.has_wheelchair && " ♿"}{p.sector_name ? ` (${p.sector_name})` : ""}{i < visiblePassengers.length - 1 ? "، " : ""}
-                        </span>
-                      ))}
+                         </span>
+                       ))}
                       {!isExpanded && hiddenCount > 0 && (
                         <button
                           onClick={() => setExpandedTrips((prev) => new Set(prev).add(trip.id))}
@@ -182,34 +183,43 @@ export default function TripsPage() {
         <div className="mt-10">
           <h2 className="section-title mb-4">{t("trips.myBookings")}</h2>
           <div className="space-y-3">
-            {myBookings.map((booking) => (
-              <div key={booking.id} className="card">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-50 dark:bg-blue-950/30 rounded-xl flex items-center justify-center shrink-0">
-                       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
+            {myBookings.map((booking) => {
+              const fm = booking.family_members as unknown as { full_name: string } | null;
+              const busInfo = booking.buses as unknown as { area_name_ar: string; area_name_en: string } | null;
+              return (
+                <div key={booking.id} className="card">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-50 dark:bg-blue-950/30 rounded-xl flex items-center justify-center shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">
+                          {booking.trips ? getTripTitle(booking.trips as Trip) : ""}
+                          {fm && <span className="text-sm font-normal text-purple-500 dark:text-purple-400 ms-2">↳ {fm.full_name}</span>}
+                        </h3>
+                        {busInfo && (
+                          <p className="text-sm text-slate-400 dark:text-gray-500">
+                            {t("confirm.bus")}: {lang === "ar" ? busInfo.area_name_ar : busInfo.area_name_en}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">
-                        {booking.trips ? getTripTitle(booking.trips as Trip) : ""}
-                      </h3>
-                       <p className="text-sm text-slate-400 dark:text-gray-500">
-                        {t("confirm.bus")}: {lang === "ar" ? booking.buses.area_name_ar : booking.buses.area_name_en}
-                      </p>
-                    </div>
+                    {!fm && (
+                      <button
+                        onClick={() => handleCancelBooking(booking.id)}
+                        disabled={cancellingId !== null}
+                        className="btn-danger w-full sm:w-auto"
+                      >
+                        {cancellingId === booking.id ? t("common.loading") : t("admin.cancelBooking")}
+                      </button>
+                    )}
                   </div>
-                  <button
-                    onClick={() => handleCancelBooking(booking.id)}
-                    disabled={cancellingId !== null}
-                    className="btn-danger w-full sm:w-auto"
-                  >
-                    {cancellingId === booking.id ? t("common.loading") : t("admin.cancelBooking")}
-                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

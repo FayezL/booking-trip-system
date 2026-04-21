@@ -12,12 +12,29 @@ export type Profile = {
   phone: string;
   full_name: string;
   gender: "Male" | "Female";
-  role: "super_admin" | "admin" | "servant" | "patient" | "companion" | "family_assistant";
+  role: "super_admin" | "admin" | "servant" | "patient" | "companion" | "family_assistant" | "trainee";
   has_wheelchair: boolean;
   sector_id: string | null;
   has_car: boolean;
   car_seats: number | null;
+  transport_type: "private" | "bus";
+  servants_needed: 0 | 1 | 2;
   deleted_at: string | null;
+  created_at: string;
+};
+
+export type UserDetail = {
+  id: string;
+  phone: string;
+  full_name: string;
+  gender: string;
+  role: string;
+  has_wheelchair: boolean;
+  transport_type: string;
+  servants_needed: number;
+  sector_name: string;
+  has_car: boolean;
+  car_seats: number | null;
   created_at: string;
 };
 
@@ -68,6 +85,15 @@ export type Car = {
   created_at: string;
 };
 
+export type FamilyMember = {
+  id: string;
+  head_user_id: string;
+  full_name: string;
+  gender: "Male" | "Female";
+  has_wheelchair: boolean;
+  created_at: string;
+};
+
 export type Booking = {
   id: string;
   user_id: string;
@@ -75,6 +101,7 @@ export type Booking = {
   bus_id: string | null;
   room_id: string | null;
   car_id: string | null;
+  family_member_id: string | null;
   created_at: string;
   cancelled_at: string | null;
 };

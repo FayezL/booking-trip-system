@@ -9,7 +9,7 @@ import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { Sector } from "@/lib/types/database";
 
-type SignupRole = "patient" | "servant" | "companion" | "family_assistant";
+type SignupRole = "patient" | "servant" | "companion" | "family_assistant" | "trainee";
 
 export default function SignupPage() {
   const { t } = useTranslation();
@@ -21,6 +21,8 @@ export default function SignupPage() {
   const [hasWheelchair, setHasWheelchair] = useState(false);
   const [sectorId, setSectorId] = useState("");
   const [sectors, setSectors] = useState<Sector[]>([]);
+  const [transportType, setTransportType] = useState<"private" | "bus">("bus");
+  const [servantsNeeded, setServantsNeeded] = useState<0 | 1 | 2>(0);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +89,8 @@ export default function SignupPage() {
           role,
           has_wheelchair: hasWheelchair,
           sector_id: sectorId,
+          transport_type: transportType,
+          servants_needed: servantsNeeded,
         },
       },
     });
@@ -104,6 +108,14 @@ export default function SignupPage() {
 
     router.push("/trips");
   }
+
+  const roleOptions: { value: SignupRole; labelKey: string }[] = [
+    { value: "patient", labelKey: "admin.patient" },
+    { value: "servant", labelKey: "admin.servant" },
+    { value: "companion", labelKey: "admin.companion" },
+    { value: "family_assistant", labelKey: "admin.familyAssistant" },
+    { value: "trainee", labelKey: "admin.trainee" },
+  ];
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 p-4">
@@ -187,23 +199,25 @@ export default function SignupPage() {
 
             <div>
               <label className="label-text">{t("auth.userType")}</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(["patient", "servant", "companion", "family_assistant"] as const).map((r) => (
+              <div className="flex flex-wrap gap-2">
+                {roleOptions.map((r) => (
                   <button
-                    key={r}
+                    key={r.value}
                     type="button"
                     onClick={() => {
-                      setRole(r);
-                      if (r !== "patient") setHasWheelchair(false);
+                      setRole(r.value);
+                      if (r.value !== "patient") setHasWheelchair(false);
                     }}
-                    className={`py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[48px]
-                      ${role === r
+                    className={`py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[48px] ${
+                      roleOptions.length === 5 && roleOptions.indexOf(r) < 3 ? "flex-1 min-w-[calc(33%-6px)]" : "flex-1 min-w-[calc(50%-4px)]"
+                    } ${
+                      role === r.value
                         ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
                         : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                      }`}
+                    }`}
                     disabled={loading}
                   >
-                    {t(`admin.${r === "patient" ? "patient" : r === "servant" ? "servant" : r === "companion" ? "companion" : "familyAssistant"}`)}
+                    {t(r.labelKey)}
                   </button>
                 ))}
               </div>
@@ -249,6 +263,57 @@ export default function SignupPage() {
                 </span>
               </div>
             )}
+
+            <div>
+              <label className="label-text">{t("auth.transportType")}</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTransportType("private")}
+                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
+                    ${transportType === "private"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    }`}
+                  disabled={loading}
+                >
+                  {t("auth.transportPrivate")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTransportType("bus")}
+                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
+                    ${transportType === "bus"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    }`}
+                  disabled={loading}
+                >
+                  {t("auth.transportBus")}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="label-text">{t("auth.servantsNeeded")}</label>
+              <div className="flex gap-3">
+                {([0, 1, 2] as const).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setServantsNeeded(n)}
+                    className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
+                      ${servantsNeeded === n
+                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
+                        : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      }`}
+                    disabled={loading}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div>
               <label className="label-text">{t("auth.password")}</label>

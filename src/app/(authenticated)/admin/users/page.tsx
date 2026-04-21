@@ -6,9 +6,10 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
+import UserDetailModal from "./UserDetailModal";
 import type { Profile, Sector } from "@/lib/types/database";
 
-type UserRole = "admin" | "servant" | "patient" | "companion" | "family_assistant";
+type UserRole = "admin" | "servant" | "patient" | "companion" | "family_assistant" | "trainee";
 
 type PersonForm = {
   phone: string;
@@ -18,6 +19,8 @@ type PersonForm = {
   role: UserRole;
   has_wheelchair: boolean;
   sector_id: string;
+  transport_type: "private" | "bus";
+  servants_needed: 0 | 1 | 2;
 };
 
 const emptyPersonForm: PersonForm = {
@@ -28,10 +31,12 @@ const emptyPersonForm: PersonForm = {
   role: "patient",
   has_wheelchair: false,
   sector_id: "",
+  transport_type: "bus",
+  servants_needed: 0,
 };
 
-const ALL_ROLES: ("super_admin" | UserRole)[] = ["super_admin", "admin", "servant", "patient", "companion", "family_assistant"];
-const CREATABLE_ROLES: UserRole[] = ["admin", "patient", "companion", "family_assistant"];
+const ALL_ROLES: ("super_admin" | UserRole)[] = ["super_admin", "admin", "servant", "patient", "companion", "family_assistant", "trainee"];
+const CREATABLE_ROLES: UserRole[] = ["admin", "patient", "companion", "family_assistant", "trainee"];
 
 function getRoleLabel(role: string, t: (key: string) => string): string {
   switch (role) {
@@ -41,6 +46,7 @@ function getRoleLabel(role: string, t: (key: string) => string): string {
     case "patient": return t("admin.patient");
     case "companion": return t("admin.companion");
     case "family_assistant": return t("admin.familyAssistant");
+    case "trainee": return t("admin.trainee");
     default: return role;
   }
 }
@@ -53,6 +59,7 @@ function getRoleBadgeClasses(role: string): string {
     case "patient": return "bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400";
     case "companion": return "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400";
     case "family_assistant": return "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400";
+    case "trainee": return "bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400";
     default: return "bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400";
   }
 }
@@ -80,6 +87,7 @@ export default function UsersPage() {
   const [carFormHasCar, setCarFormHasCar] = useState(false);
   const [carFormSeats, setCarFormSeats] = useState(4);
   const [savingCar, setSavingCar] = useState(false);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   const PAGE_SIZE = 20;
 
@@ -173,6 +181,8 @@ export default function UsersPage() {
       p_role: form.role,
       p_has_wheelchair: form.has_wheelchair,
       p_sector_id: form.sector_id || null,
+      p_transport_type: form.transport_type,
+      p_servants_needed: form.servants_needed,
     });
     setCreating(false);
 
@@ -256,6 +266,13 @@ export default function UsersPage() {
 
   return (
     <div className="animate-fade-in">
+      {detailUserId && (
+        <UserDetailModal
+          userId={detailUserId}
+          onClose={() => setDetailUserId(null)}
+        />
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <h1 className="section-title">{t("admin.userManagement")}</h1>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary w-full sm:w-auto">
@@ -334,6 +351,52 @@ export default function UsersPage() {
                 dir="ltr"
                 placeholder="••••••••"
               />
+            </div>
+            <div>
+              <label className="label-text">{t("admin.transportType")}</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, transport_type: "private" })}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[40px]
+                    ${form.transport_type === "private"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400"
+                      : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    }`}
+                >
+                  {t("admin.transportPrivate")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, transport_type: "bus" })}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[40px]
+                    ${form.transport_type === "bus"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400"
+                      : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    }`}
+                >
+                  {t("admin.transportBus")}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="label-text">{t("admin.servantsNeeded")}</label>
+              <div className="flex gap-2">
+                {([0, 1, 2] as const).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setForm({ ...form, servants_needed: n })}
+                    className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[40px]
+                      ${form.servants_needed === n
+                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400"
+                        : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                      }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
             {form.role === "patient" && (
               <div className="flex items-center gap-3">
@@ -458,6 +521,12 @@ export default function UsersPage() {
                 )}
               </div>
               <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setDetailUserId(u.id)}
+                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
+                >
+                  {t("admin.viewDetails")}
+                </button>
                 {u.role !== "super_admin" && (
                   <>
                     {changingRoleUserId === u.id ? (
