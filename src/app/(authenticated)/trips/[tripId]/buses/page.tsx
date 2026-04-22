@@ -214,6 +214,53 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
     });
   }
 
+  async function handleBookTripOnly() {
+    const totalPeople = 1 + selectedFamilyIds.size;
+    const msg = selectedFamilyIds.size > 0
+      ? `${t("buses.bookWithoutBus")} (${totalPeople})?`
+      : `${t("buses.bookWithoutBus")}?`;
+    if (!confirm(msg)) return;
+
+    setBookingBusId("trip-only");
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/login");
+      setBookingBusId(null);
+      return;
+    }
+
+    const memberIds = Array.from(selectedFamilyIds);
+    const { error } = memberIds.length > 0
+      ? await supabase.rpc("book_trip_only_with_family", {
+          p_user_id: user.id,
+          p_trip_id: tripId,
+          p_family_member_ids: memberIds,
+        })
+      : await supabase.rpc("book_trip_only", {
+          p_user_id: user.id,
+          p_trip_id: tripId,
+        });
+
+    if (error) {
+      if (error.message.includes("Already booked")) {
+        showToast(t("trips.alreadyBooked"), "error");
+      } else {
+        showToast(t("common.error"), "error");
+      }
+      setBookingBusId(null);
+      return;
+    }
+
+    setConfirmation({
+      tripTitle: trip ? (lang === "ar" ? trip.title_ar : trip.title_en) : "",
+      busLabel: t("buses.bookWithoutBus"),
+      leaderName: "-",
+      tripDate: trip?.trip_date || "",
+      totalBooked: totalPeople,
+    });
+  }
+
   function renderPassengerName(p: PassengerInfo, i: number, all: PassengerInfo[]) {
     const isFamily = !!p.family_member_id;
     const headName = all.find((a) => a.head_user_id === p.head_user_id && !a.family_member_id)?.full_name;
@@ -321,6 +368,22 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
           )}
         </div>
       )}
+
+      <div className="card mb-6 border-2 border-green-200 dark:border-green-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{t("buses.bookWithoutBus")}</h3>
+            <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{t("buses.bookWithoutBusDesc")}</p>
+          </div>
+          <button
+            onClick={handleBookTripOnly}
+            disabled={bookingBusId !== null}
+            className="btn-primary w-full sm:w-auto"
+          >
+            {bookingBusId === "trip-only" ? t("common.loading") : t("trips.bookTrip")}
+          </button>
+        </div>
+      </div>
 
       {userHasCar && (
         <div className="card mb-6 border-2 border-blue-200 dark:border-blue-800">
