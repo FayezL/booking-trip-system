@@ -207,9 +207,11 @@ BEGIN
       COALESCE(
         (SELECT jsonb_build_object(
           'total_capacity', COALESCE(SUM(r.capacity), 0),
-          'assigned', (SELECT COUNT(*) FROM public.bookings WHERE trip_id = t.id AND cancelled_at IS NULL AND room_id IS NOT NULL)
+          'assigned', COALESCE(SUM(CASE WHEN b.id IS NOT NULL THEN 1 ELSE 0 END), 0)
         )
-        FROM public.rooms r WHERE r.trip_id = t.id),
+        FROM public.rooms r
+        LEFT JOIN public.bookings b ON b.room_id = r.id AND b.cancelled_at IS NULL
+        WHERE r.trip_id = t.id),
         '{"total_capacity": 0, "assigned": 0}'::jsonb
       ) as room_stats,
 
