@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -19,7 +19,7 @@ type Tab = "overview" | "buses" | "rooms" | "cars" | "unbooked";
 
 export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; onSwitchTab: (tab: Tab) => void }) {
   const { t } = useTranslation();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [totalRegistered, setTotalRegistered] = useState(0);
   const [totalBooked, setTotalBooked] = useState(0);

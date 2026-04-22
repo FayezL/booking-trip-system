@@ -256,3 +256,9 @@ BEGIN
   RETURN COALESCE(v_result, '[]'::jsonb);
 END;
 $$;
+
+-- 4. PERFORMANCE: Partial index for active bookings per trip
+-- Covers the most common query pattern: WHERE trip_id = X AND cancelled_at IS NULL
+CREATE INDEX IF NOT EXISTS idx_bookings_trip_active
+  ON public.bookings(trip_id)
+  WHERE cancelled_at IS NULL;

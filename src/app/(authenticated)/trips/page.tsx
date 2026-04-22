@@ -149,40 +149,6 @@ export default function TripsPage() {
     <div className="animate-fade-in">
       <h1 className="section-title mb-6">{t("trips.title")}</h1>
 
-      {familyMembers.length > 0 && !loading && (
-        <div className="card mb-6 border-2 border-purple-200 dark:border-purple-800">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 mb-3">{t("family.selectMembers")}</h3>
-          <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-2 rounded-xl text-sm font-semibold border-2 min-h-[44px] inline-flex items-center gap-1.5 border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400">
-              {t("family.me")}
-            </span>
-            {familyMembers.map((fm) => (
-              <button
-                key={fm.id}
-                type="button"
-                onClick={() => toggleFamilyMember(fm.id)}
-                className={`px-3 py-2 rounded-xl text-sm font-semibold border-2 min-h-[44px] inline-flex items-center gap-1.5 transition-all duration-150 active:scale-95 ${
-                  selectedFamilyIds.has(fm.id)
-                    ? "border-purple-500 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-950/50 dark:text-purple-400"
-                    : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                }`}
-              >
-                {fm.full_name}
-                {fm.has_wheelchair && " ♿"}
-                <span className={`text-xs ${fm.gender === "Male" ? "text-blue-500" : "text-pink-500"}`}>
-                  {fm.gender === "Male" ? "♂" : "♀"}
-                </span>
-              </button>
-            ))}
-          </div>
-          {selectedFamilyIds.size > 0 && (
-            <p className="text-xs text-slate-400 dark:text-gray-500 mt-2">
-              {t("family.bookWith")}: 1 + {selectedFamilyIds.size} = {1 + selectedFamilyIds.size}
-            </p>
-          )}
-        </div>
-      )}
-
       {trips.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-16 h-16 bg-slate-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -223,21 +189,50 @@ export default function TripsPage() {
                         {t("trips.alreadyBooked")}
                       </span>
                     ) : (
-                      <div className="flex flex-col gap-2">
-                        <button
-                          onClick={() => router.push(`/trips/${trip.id}/buses`)}
-                          className="btn-secondary w-full sm:w-auto"
-                        >
-                          {t("trips.bookNow")}
-                        </button>
-                        <button
-                          onClick={() => handleBookTrip(trip.id)}
-                          disabled={bookingTripId !== null}
-                          className="btn-primary w-full sm:w-auto"
-                        >
-                          {bookingTripId === trip.id ? t("common.loading") : t("trips.bookTrip")}
-                        </button>
-                      </div>
+                      <>
+                        {familyMembers.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            <span className="px-2 py-1 rounded-lg text-xs font-semibold border border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 min-h-[32px] inline-flex items-center">
+                              {t("family.me")}
+                            </span>
+                            {familyMembers.map((fm) => (
+                              <button
+                                key={fm.id}
+                                type="button"
+                                onClick={() => toggleFamilyMember(fm.id)}
+                                className={`px-2 py-1 rounded-lg text-xs font-semibold border min-h-[32px] inline-flex items-center gap-1 transition-all duration-150 active:scale-95 ${
+                                  selectedFamilyIds.has(fm.id)
+                                    ? "border-purple-400 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-950/50 dark:text-purple-400"
+                                    : "border-slate-200 bg-white text-slate-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                                }`}
+                              >
+                                {fm.full_name}
+                                {fm.has_wheelchair && " ♿"}
+                              </button>
+                            ))}
+                            {selectedFamilyIds.size > 0 && (
+                              <span className="text-xs text-slate-400 dark:text-gray-500 self-center">
+                                ({1 + selectedFamilyIds.size})
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => router.push(`/trips/${trip.id}/buses`)}
+                            className="btn-secondary w-full sm:w-auto"
+                          >
+                            {t("trips.bookNow")}
+                          </button>
+                          <button
+                            onClick={() => handleBookTrip(trip.id)}
+                            disabled={bookingTripId !== null}
+                            className="btn-primary w-full sm:w-auto"
+                          >
+                            {bookingTripId === trip.id ? t("common.loading") : t("trips.bookTrip")}
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>

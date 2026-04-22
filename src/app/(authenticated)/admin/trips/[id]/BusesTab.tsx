@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
@@ -38,7 +38,7 @@ const emptyForm: BusForm = {
 
 export default function BusesTab({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const { showToast } = useToast();
 
   const [buses, setBuses] = useState<BusWithPassengers[]>([]);
@@ -419,16 +419,16 @@ export default function BusesTab({ tripId }: { tripId: string }) {
                         onClick={() => handleRemovePassenger(p.booking_id, p.full_name)}
                         className="px-2 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
                       >
-                        {t("admin.removeFromBus")}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                        {t("admin.cancelBooking")}
+                       </button>
+                     </>
+                   )}
+                 </div>
+               </div>
+             ))}
+           </div>
+         </div>
+       )}
 
       {buses.length === 0 ? (
         <div className="text-center py-10">
