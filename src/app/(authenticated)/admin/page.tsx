@@ -47,7 +47,7 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, showToast, t]);
 
   useEffect(() => {
     loadData();
@@ -67,10 +67,6 @@ export default function AdminDashboard() {
     return { totalBookings, totalWheelchairs, totalFamily, openTrips, closedTrips: stats.length - openTrips };
   }, [stats]);
 
-  if (loading) {
-    return <LoadingSpinner text={t("common.loading")} />;
-  }
-
   const roleBadges = useMemo(() => [
     { key: "patient", label: t("admin.patient"), bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-700 dark:text-blue-400" },
     { key: "servant", label: t("admin.servant"), bg: "bg-green-50 dark:bg-green-950/30", text: "text-green-700 dark:text-green-400" },
@@ -78,6 +74,10 @@ export default function AdminDashboard() {
     { key: "family_assistant", label: t("admin.familyAssistant"), bg: "bg-purple-50 dark:bg-purple-950/30", text: "text-purple-700 dark:text-purple-400" },
     { key: "trainee", label: t("admin.trainee"), bg: "bg-orange-50 dark:bg-orange-950/30", text: "text-orange-700 dark:text-orange-400" },
   ], [t]);
+
+  if (loading) {
+    return <LoadingSpinner text={t("common.loading")} />;
+  }
 
   return (
     <div className="animate-fade-in">
