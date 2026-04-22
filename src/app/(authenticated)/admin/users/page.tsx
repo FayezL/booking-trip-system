@@ -7,7 +7,7 @@ import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import UserDetailModal from "./UserDetailModal";
-import type { Profile, Sector } from "@/lib/types/database";
+import type { Profile, Sector, FamilyMember } from "@/lib/types/database";
 
 type UserRole = "admin" | "servant" | "patient" | "companion" | "family_assistant" | "trainee";
 
@@ -89,6 +89,14 @@ export default function UsersPage() {
   const [savingCar, setSavingCar] = useState(false);
   const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
+  const [familyCounts, setFamilyCounts] = useState<Record<string, number>>({});
+  const [managingFamilyId, setManagingFamilyId] = useState<string | null>(null);
+  const [familyList, setFamilyList] = useState<FamilyMember[]>([]);
+  const [showFmForm, setShowFmForm] = useState(false);
+  const [fmForm, setFmForm] = useState({ full_name: "", gender: "Male" as "Male" | "Female", has_wheelchair: false });
+  const [editingFmId, setEditingFmId] = useState<string | null>(null);
+  const [savingFm, setSavingFm] = useState(false);
+
   const PAGE_SIZE = 20;
 
   const sectorMap = useMemo(() => {
@@ -108,8 +116,16 @@ export default function UsersPage() {
         supabase.rpc("get_sectors"),
       ]);
       if (usersRes.error) throw usersRes.error;
-      setUsers((usersRes.data || []) as Profile[]);
+      const usersData = (usersRes.data || []) as Profile[];
+      setUsers(usersData);
       setSectors((sectorsRes.data || []) as Sector[]);
+
+      const counts: Record<string, number> = {};
+      const { data: fmAll } = await supabase.from("family_members").select("head_user_id");
+      for (const fm of (fmAll || []) as { head_user_id: string }[]) {
+        counts[fm.head_user_id] = (counts[fm.head_user_id] || 0) + 1;
+      }
+      setFamilyCounts(counts);
     } catch {
       showToast(t("common.error"), "error");
     } finally {
@@ -243,6 +259,70 @@ export default function UsersPage() {
       setEditingCarUserId(null);
       loadData();
     }
+  }
+
+  async function openFamilyManager(userId: string) {
+    if (managingFamilyId === userId) {
+      setManagingFamilyId(null);
+      return;
+    }
+    setManagingFamilyId(userId);
+    setShowFmForm(false);
+    setEditingFmId(null);
+    const { data } = await supabase.rpc("get_family_members", { p_user_id: userId });
+    setFamilyList((data || []) as FamilyMember[]);
+  }
+
+  function startAddFm() {
+    setEditingFmId(null);
+    setFmForm({ full_name: "", gender: "Male", has_wheelchair: false });
+    setShowFmForm(true);
+  }
+
+  function startEditFm(member: FamilyMember) {
+    setEditingFmId(member.id);
+    setFmForm({ full_name: member.full_name, gender: member.gender, has_wheelchair: member.has_wheelchair });
+    setShowFmForm(true);
+  }
+
+  async function handleSaveFm() {
+    if (!fmForm.full_name.trim() || !managingFamilyId) return;
+    setSavingFm(true);
+    if (editingFmId) {
+      const { error } = await supabase.rpc("update_family_member", {
+        p_member_id: editingFmId,
+        p_full_name: fmForm.full_name.trim(),
+        p_gender: fmForm.gender,
+        p_has_wheelchair: fmForm.has_wheelchair,
+      });
+      setSavingFm(false);
+      if (error) { showToast(t("common.error"), "error"); return; }
+      showToast(t("family.memberUpdated"), "success");
+    } else {
+      const { error } = await supabase.rpc("add_family_member", {
+        p_head_user_id: managingFamilyId,
+        p_full_name: fmForm.full_name.trim(),
+        p_gender: fmForm.gender,
+        p_has_wheelchair: fmForm.has_wheelchair,
+      });
+      setSavingFm(false);
+      if (error) { showToast(t("common.error"), "error"); return; }
+      showToast(t("family.memberAdded"), "success");
+    }
+    setShowFmForm(false);
+    const { data } = await supabase.rpc("get_family_members", { p_user_id: managingFamilyId });
+    setFamilyList((data || []) as FamilyMember[]);
+    loadData();
+  }
+
+  async function handleRemoveFm(memberId: string) {
+    if (!confirm(t("family.confirmRemove"))) return;
+    const { error } = await supabase.rpc("remove_family_member", { p_member_id: memberId });
+    if (error) { showToast(t("common.error"), "error"); return; }
+    showToast(t("family.memberRemoved"), "success");
+    const { data } = await supabase.rpc("get_family_members", { p_user_id: managingFamilyId! });
+    setFamilyList((data || []) as FamilyMember[]);
+    loadData();
   }
 
   const filtered = useMemo(() => users.filter((u) => {
@@ -519,6 +599,11 @@ export default function UsersPage() {
                     ♿
                   </span>
                 )}
+                {familyCounts[u.id] > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400">
+                    👨‍👩‍👧 {familyCounts[u.id]}
+                  </span>
+                )}
               </div>
               <div className="flex gap-2 flex-wrap">
                 <button
@@ -568,6 +653,16 @@ export default function UsersPage() {
                       className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
                     >
                       {t("common.delete")}
+                    </button>
+                    <button
+                      onClick={() => openFamilyManager(u.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium active:scale-95 transition-all duration-150 ${
+                        managingFamilyId === u.id
+                          ? "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-400"
+                          : "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-950/50"
+                      }`}
+                    >
+                      {t("family.title")}
                     </button>
                   </>
                 )}
@@ -628,6 +723,86 @@ export default function UsersPage() {
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+              {managingFamilyId === u.id && (
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800 animate-slide-up">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-bold text-slate-700 dark:text-gray-200">{t("family.title")}</h4>
+                    <button onClick={startAddFm} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 active:scale-95 transition-all duration-150">
+                      + {t("family.add")}
+                    </button>
+                  </div>
+
+                  {showFmForm && (
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-gray-800/50 mb-3">
+                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+                        <input
+                          className="input-field !text-sm"
+                          placeholder={t("family.name")}
+                          value={fmForm.full_name}
+                          onChange={(e) => setFmForm({ ...fmForm, full_name: e.target.value })}
+                        />
+                        <select
+                          className="input-field !text-sm"
+                          value={fmForm.gender}
+                          onChange={(e) => setFmForm({ ...fmForm, gender: e.target.value as "Male" | "Female" })}
+                        >
+                          <option value="Male">{t("family.male")}</option>
+                          <option value="Female">{t("family.female")}</option>
+                        </select>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={fmForm.has_wheelchair}
+                            onClick={() => setFmForm({ ...fmForm, has_wheelchair: !fmForm.has_wheelchair })}
+                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                              fmForm.has_wheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
+                            }`}
+                          >
+                            <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${fmForm.has_wheelchair ? "translate-x-4" : "translate-x-0"}`} />
+                          </button>
+                          <span className="text-xs text-slate-600 dark:text-gray-300">♿</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={handleSaveFm} disabled={savingFm || !fmForm.full_name.trim()} className="px-3 py-1 rounded-lg text-xs font-medium bg-blue-600 text-white disabled:opacity-50 active:scale-95">
+                          {savingFm ? t("common.loading") : t("common.save")}
+                        </button>
+                        <button onClick={() => setShowFmForm(false)} className="px-3 py-1 rounded-lg text-xs font-medium bg-slate-200 dark:bg-gray-700 text-slate-600 dark:text-gray-300 active:scale-95">
+                          {t("admin.cancel")}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {familyList.length === 0 ? (
+                    <p className="text-xs text-slate-400 dark:text-gray-500 text-center py-2">{t("family.noMembers")}</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {familyList.map((fm, idx) => (
+                        <div key={fm.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-gray-800/50">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400">{idx + 1}.</span>
+                            <span className="text-sm font-medium text-slate-700 dark:text-gray-200">{fm.full_name}</span>
+                            <span className={`text-xs ${fm.gender === "Male" ? "text-blue-500" : "text-pink-500"}`}>
+                              {fm.gender === "Male" ? "♂" : "♀"}
+                            </span>
+                            {fm.has_wheelchair && <span className="text-xs">♿</span>}
+                          </div>
+                          <div className="flex gap-1">
+                            <button onClick={() => startEditFm(fm)} className="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-gray-700 text-slate-500 dark:text-gray-400 active:scale-95">
+                              {t("common.edit")}
+                            </button>
+                            <button onClick={() => handleRemoveFm(fm.id)} className="px-2 py-0.5 rounded text-xs bg-red-50 dark:bg-red-950/30 text-red-500 active:scale-95">
+                              {t("common.delete")}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
