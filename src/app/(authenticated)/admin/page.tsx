@@ -5,10 +5,27 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { useToast } from "@/components/Toast";
 import type { TripStats } from "@/lib/types/database";
+
+function getStatusColor(percent: number) {
+  if (percent >= 80) return "danger";
+  if (percent >= 50) return "warning";
+  return "";
+}
+
+function renderStatBox(label: string, value: string | number, bg: string, textColor: string) {
+  return (
+    <div className={`${bg} rounded-2xl p-4 text-center`}>
+      <div className={`text-2xl font-bold ${textColor}`}>{value}</div>
+      <div className="text-xs text-slate-400 dark:text-gray-500 mt-1">{label}</div>
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const { t, lang } = useTranslation();
+  const { showToast } = useToast();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -21,6 +38,7 @@ export default function AdminDashboard() {
       const { data, error } = await supabase.rpc("get_all_trips_stats");
       if (error) {
         console.error("[admin/dashboard] Failed:", error.message);
+        showToast(t("common.error"), "error");
         return;
       }
       setStats((data || []) as TripStats[]);
@@ -53,28 +71,13 @@ export default function AdminDashboard() {
     return <LoadingSpinner text={t("common.loading")} />;
   }
 
-  const roleBadges = [
+  const roleBadges = useMemo(() => [
     { key: "patient", label: t("admin.patient"), bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-700 dark:text-blue-400" },
     { key: "servant", label: t("admin.servant"), bg: "bg-green-50 dark:bg-green-950/30", text: "text-green-700 dark:text-green-400" },
     { key: "companion", label: t("admin.companion"), bg: "bg-amber-50 dark:bg-amber-950/30", text: "text-amber-700 dark:text-amber-400" },
     { key: "family_assistant", label: t("admin.familyAssistant"), bg: "bg-purple-50 dark:bg-purple-950/30", text: "text-purple-700 dark:text-purple-400" },
     { key: "trainee", label: t("admin.trainee"), bg: "bg-orange-50 dark:bg-orange-950/30", text: "text-orange-700 dark:text-orange-400" },
-  ];
-
-  function getStatusColor(percent: number) {
-    if (percent >= 80) return "danger";
-    if (percent >= 50) return "warning";
-    return "";
-  }
-
-  function renderStatBox(label: string, value: string | number, bg: string, textColor: string) {
-    return (
-      <div className={`${bg} rounded-2xl p-4 text-center`}>
-        <div className={`text-2xl font-bold ${textColor}`}>{value}</div>
-        <div className="text-xs text-slate-400 dark:text-gray-500 mt-1">{label}</div>
-      </div>
-    );
-  }
+  ], [t]);
 
   return (
     <div className="animate-fade-in">
@@ -89,7 +92,7 @@ export default function AdminDashboard() {
 
       {stats.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-lg text-slate-400 dark:text-gray-500">{t("admin.noBusesYet")}</p>
+          <p className="text-lg text-slate-400 dark:text-gray-500">{t("trips.noTrips")}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -103,6 +106,8 @@ export default function AdminDashboard() {
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : s.trip_id)}
                   className="w-full text-start flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  aria-expanded={isExpanded}
+                  aria-controls={`trip-details-${s.trip_id}`}
                 >
                   <div>
                     <div className="flex items-center gap-2">
@@ -124,7 +129,7 @@ export default function AdminDashboard() {
                 </button>
 
                 {isExpanded && (
-                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-gray-800 animate-slide-up">
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-gray-800 animate-slide-up" id={`trip-details-${s.trip_id}`}>
                     <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-4">
                       {renderStatBox(t("admin.totalBooked"), s.total_booked, "bg-blue-50 dark:bg-blue-950/30", "text-blue-700 dark:text-blue-400")}
                       {renderStatBox(t("admin.unbookedCount"), unbooked, "bg-red-50 dark:bg-red-950/30", "text-red-600 dark:text-red-400")}
@@ -195,22 +200,25 @@ export default function AdminDashboard() {
                       </div>
                     )}
 
-                    {s.bus_stats.total_seats > 0 && (
-                      <div className="mb-4">
-                        <h3 className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-3">{t("admin.fillRate")}</h3>
-                        <div className="flex items-center gap-3">
-                          <div className="progress-bar flex-1">
-                            <div
-                              className={`progress-bar-fill ${getStatusColor(s.bus_stats.filled / s.bus_stats.total_seats * 100)}`}
-                              style={{ width: `${Math.min(s.bus_stats.filled / s.bus_stats.total_seats * 100, 100)}%` }}
-                            />
+                    {s.bus_stats.total_seats > 0 && (() => {
+                      const pct = Math.min(s.bus_stats.filled / s.bus_stats.total_seats * 100, 100);
+                      return (
+                        <div className="mb-4">
+                          <h3 className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-3">{t("admin.fillRate")}</h3>
+                          <div className="flex items-center gap-3">
+                            <div className="progress-bar flex-1" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+                              <div
+                                className={`progress-bar-fill ${getStatusColor(pct)}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="text-sm font-semibold text-slate-600 dark:text-gray-400 shrink-0">
+                              {s.bus_stats.filled}/{s.bus_stats.total_seats} ({Math.round(pct)}%)
+                            </span>
                           </div>
-                          <span className="text-sm font-semibold text-slate-600 dark:text-gray-400 shrink-0">
-                            {s.bus_stats.filled}/{s.bus_stats.total_seats} ({Math.round(s.bus_stats.filled / s.bus_stats.total_seats * 100)}%)
-                          </span>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     <button
                       onClick={() => router.push(`/admin/trips/${s.trip_id}`)}
