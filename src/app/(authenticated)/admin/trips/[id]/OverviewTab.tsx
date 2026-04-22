@@ -104,7 +104,7 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
     return (
       <div className="text-center py-8">
         <p className="text-slate-400 dark:text-gray-500 mb-2">{t("common.error")}</p>
-        <button onClick={loadData} className="btn-primary">{t("admin.save")}</button>
+        <button onClick={loadData} className="btn-primary">{t("common.retry")}</button>
       </div>
     );
   }

@@ -106,6 +106,18 @@ export type Booking = {
   cancelled_at: string | null;
 };
 
+export type PassengerInfo = {
+  booking_id?: string;
+  user_id?: string;
+  bus_id?: string | null;
+  full_name: string;
+  has_wheelchair: boolean;
+  sector_name: string;
+  family_member_id: string | null;
+  head_user_id?: string;
+  gender?: string;
+};
+
 export type AdminLog = {
   id: string;
   admin_id: string;
@@ -126,7 +138,6 @@ export type TripStats = {
   total_registered: number;
   by_role: Record<string, number>;
   by_gender: { Male: number; Female: number };
-  by_transport: Record<string, number>;
   wheelchair_count: number;
   family_members_count: number;
   by_sector: { name: string; count: number }[];
