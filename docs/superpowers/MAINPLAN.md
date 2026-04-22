@@ -1,7 +1,7 @@
 # MAINPLAN.md — Booking0Trip System
 
 > Complete project reference. Everything we built, why, and how it works.
-> Last updated: 2026-04-22
+> Last updated: 2026-04-22 (Phase 9 — Family Members + User Settings)
 
 ---
 
