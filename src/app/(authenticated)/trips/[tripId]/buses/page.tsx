@@ -6,15 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import type { Bus, Trip, FamilyMember } from "@/lib/types/database";
+import { bookTripOnly, toggleInSet } from "@/lib/booking";
+import type { Bus, Trip, FamilyMember, PassengerInfo as PassengerInfoType } from "@/lib/types/database";
 
-type PassengerInfo = {
-  full_name: string;
-  has_wheelchair: boolean;
-  sector_name: string;
-  family_member_id: string | null;
-  head_user_id: string;
-};
+type PassengerInfo = PassengerInfoType;
 
 type BusWithCount = Bus & { booking_count: number; passengers: PassengerInfo[] };
 
@@ -134,12 +129,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   }
 
   function toggleFamilyMember(id: string) {
-    setSelectedFamilyIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setSelectedFamilyIds(toggleInSet(selectedFamilyIds, id));
   }
 
   async function handleBook(bus: BusWithCount) {
@@ -230,17 +220,11 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
       return;
     }
 
-    const memberIds = Array.from(selectedFamilyIds);
-    const { error } = memberIds.length > 0
-      ? await supabase.rpc("book_trip_only_with_family", {
-          p_user_id: user.id,
-          p_trip_id: tripId,
-          p_family_member_ids: memberIds,
-        })
-      : await supabase.rpc("book_trip_only", {
-          p_user_id: user.id,
-          p_trip_id: tripId,
-        });
+    const { error } = await bookTripOnly(supabase, {
+      userId: user.id,
+      tripId,
+      familyMemberIds: Array.from(selectedFamilyIds),
+    });
 
     if (error) {
       if (error.message.includes("Already booked")) {

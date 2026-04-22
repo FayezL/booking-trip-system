@@ -2,42 +2,7 @@
 -- Migration: Trip-Only Booking + Advanced Dashboard
 -- ============================================================
 
--- 1. NEW RPC: book_trip_only
--- Books a trip without choosing a bus (bus_id = NULL, car_id = NULL)
-CREATE OR REPLACE FUNCTION public.book_trip_only(
-  p_user_id uuid,
-  p_trip_id uuid
-)
-RETURNS uuid
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
-AS $$
-DECLARE
-  v_booking_id uuid;
-BEGIN
-  IF NOT public.is_admin() AND auth.uid() != p_user_id THEN
-    RAISE EXCEPTION 'You can only book for yourself';
-  END IF;
-
-  IF NOT EXISTS (SELECT 1 FROM public.trips WHERE id = p_trip_id AND is_open = true) THEN
-    RAISE EXCEPTION 'Trip is not open';
-  END IF;
-
-  IF EXISTS (
-    SELECT 1 FROM public.bookings
-    WHERE user_id = p_user_id AND trip_id = p_trip_id AND family_member_id IS NULL AND cancelled_at IS NULL
-  ) THEN
-    RAISE EXCEPTION 'Already booked this trip';
-  END IF;
-
-  INSERT INTO public.bookings (user_id, trip_id, bus_id, car_id)
-  VALUES (p_user_id, p_trip_id, NULL, NULL)
-  RETURNING id INTO v_booking_id;
-
-  RETURN v_booking_id;
-END;
-$$;
-
--- 2. NEW RPC: book_trip_only_with_family
+-- 1. NEW RPC: book_trip_only_with_family
 -- Books head + selected family members on a trip without choosing a bus
 CREATE OR REPLACE FUNCTION public.book_trip_only_with_family(
   p_user_id uuid,
@@ -102,7 +67,7 @@ BEGIN
 END;
 $$;
 
--- 3. NEW RPC: get_all_trips_stats
+-- 2. NEW RPC: get_all_trips_stats
 -- Returns aggregated stats for all trips (admin only)
 CREATE OR REPLACE FUNCTION public.get_all_trips_stats()
 RETURNS jsonb
@@ -257,7 +222,7 @@ BEGIN
 END;
 $$;
 
--- 4. PERFORMANCE: Partial index for active bookings per trip
+-- 3. PERFORMANCE: Partial index for active bookings per trip
 -- Covers the most common query pattern: WHERE trip_id = X AND cancelled_at IS NULL
 CREATE INDEX IF NOT EXISTS idx_bookings_trip_active
   ON public.bookings(trip_id)

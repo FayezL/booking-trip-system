@@ -6,9 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import type { Trip, Booking, FamilyMember } from "@/lib/types/database";
-
-type Passenger = { bus_id: string; full_name: string; has_wheelchair: boolean; sector_name: string; family_member_id: string | null; head_user_id: string };
+import { bookTripOnly, toggleInSet } from "@/lib/booking";
+import type { Trip, Booking, FamilyMember, PassengerInfo } from "@/lib/types/database";
 
 export default function TripsPage() {
   const { t, lang } = useTranslation();
@@ -18,7 +17,7 @@ export default function TripsPage() {
 
   const [trips, setTrips] = useState<Trip[]>([]);
   const [myBookings, setMyBookings] = useState<(Booking & { trips: Trip; buses: { area_name_ar: string; area_name_en: string } | null; family_members?: { full_name: string } | null })[]>([]);
-  const [passengersByTrip, setPassengersByTrip] = useState<Record<string, Passenger[]>>({});
+  const [passengersByTrip, setPassengersByTrip] = useState<Record<string, PassengerInfo[]>>({});
   const [expandedTrips, setExpandedTrips] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -50,11 +49,11 @@ export default function TripsPage() {
       setFamilyMembers((familyRes.data || []) as FamilyMember[]);
 
       if (tripsData.length > 0) {
-        const passengerMap: Record<string, Passenger[]> = {};
+        const passengerMap: Record<string, PassengerInfo[]> = {};
         await Promise.all(
           tripsData.map(async (trip: Trip) => {
             const { data } = await supabase.rpc("get_trip_passengers", { p_trip_id: trip.id });
-            passengerMap[trip.id] = (data || []) as Passenger[];
+            passengerMap[trip.id] = (data || []) as PassengerInfo[];
           })
         );
         setPassengersByTrip(passengerMap);
@@ -89,12 +88,7 @@ export default function TripsPage() {
   }
 
   function toggleFamilyMember(id: string) {
-    setSelectedFamilyIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setSelectedFamilyIds(toggleInSet(selectedFamilyIds, id));
   }
 
   async function handleBookTrip(tripId: string) {
@@ -113,17 +107,11 @@ export default function TripsPage() {
       return;
     }
 
-    const memberIds = Array.from(selectedFamilyIds);
-    const { error } = memberIds.length > 0
-      ? await supabase.rpc("book_trip_only_with_family", {
-          p_user_id: user.id,
-          p_trip_id: tripId,
-          p_family_member_ids: memberIds,
-        })
-      : await supabase.rpc("book_trip_only", {
-          p_user_id: user.id,
-          p_trip_id: tripId,
-        });
+    const { error } = await bookTripOnly(supabase, {
+      userId: user.id,
+      tripId,
+      familyMemberIds: Array.from(selectedFamilyIds),
+    });
 
     setBookingTripId(null);
 
