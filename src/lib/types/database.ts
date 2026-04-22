@@ -115,3 +115,23 @@ export type AdminLog = {
   details: Record<string, unknown>;
   created_at: string;
 };
+
+export type TripStats = {
+  trip_id: string;
+  title_ar: string;
+  title_en: string;
+  trip_date: string;
+  is_open: boolean;
+  total_booked: number;
+  total_registered: number;
+  by_role: Record<string, number>;
+  by_gender: { Male: number; Female: number };
+  by_transport: Record<string, number>;
+  wheelchair_count: number;
+  family_members_count: number;
+  by_sector: { name: string; count: number }[];
+  transport_breakdown: { on_bus: number; in_car: number; no_transport: number };
+  servants_needed: Record<string, number>;
+  bus_stats: { total_seats: number; filled: number };
+  room_stats: { total_capacity: number; assigned: number };
+};

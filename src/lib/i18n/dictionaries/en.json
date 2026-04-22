@@ -116,7 +116,10 @@
     "full": "Bus is full — choose another bus",
     "available": "Available",
     "closed": "Closed",
-    "date": "Date"
+    "date": "Date",
+    "bookTrip": "Book Trip",
+    "bookTripFor": "Book for {count} people",
+    "bookedNoBus": "Booked! Admin will assign your bus later."
   },
   "buses": {
     "chooseBus": "Choose a Bus",
@@ -125,7 +128,9 @@
     "seats": "Seats",
     "availableSeats": "Available seats",
     "full": "Bus is full — choose another bus",
-    "back": "Back"
+    "back": "Back",
+    "bookWithoutBus": "Book without choosing a bus",
+    "bookWithoutBusDesc": "A bus will be assigned later"
   },
   "confirm": {
     "title": "Booking Confirmed!",
@@ -286,7 +291,29 @@
     "transportType": "Transport Type",
     "transportPrivate": "Private",
     "transportBus": "Bus",
-    "servantsNeeded": "Servants Needed"
+    "servantsNeeded": "Servants Needed",
+    "noBusAssigned": "No bus",
+    "unassignedPassengers": "Unassigned passengers",
+    "totalTrips": "Total Trips",
+    "totalBookings": "Total Bookings",
+    "totalWheelchairs": "Wheelchairs",
+    "totalFamilyMembers": "Family Members",
+    "byRole": "By Role",
+    "byGender": "By Gender",
+    "maleCount": "Male",
+    "femaleCount": "Female",
+    "withWheelchair": "With Wheelchair",
+    "withoutWheelchair": "Without Wheelchair",
+    "transportBreakdown": "Transport",
+    "onBus": "On Bus",
+    "inCar": "In Car",
+    "noTransport": "No Transport",
+    "bySector": "By Sector",
+    "familyMembersCount": "Family Members",
+    "servantsNeededCount": "Servants Needed",
+    "fillRate": "Fill Rate",
+    "openTrips": "Open Trips",
+    "closedTrips": "Closed Trips"
   },
   "family": {
     "title": "Family Members",

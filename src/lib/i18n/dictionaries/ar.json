@@ -116,7 +116,10 @@
     "full": "الباص مليان — اختار باص تاني",
     "available": "متاح",
     "closed": "مقفول",
-    "date": "التاريخ"
+    "date": "التاريخ",
+    "bookTrip": "احجز الرحلة",
+    "bookTripFor": "احجز لـ {count} أشخاص",
+    "bookedNoBus": "تم الحجز! هيعينوا الأتوبيس بعدين."
   },
   "buses": {
     "chooseBus": "اختار الباص",
@@ -125,7 +128,9 @@
     "seats": "كراسي",
     "availableSeats": "كراسي فاضية",
     "full": "الباص مليان — اختار باص تاني",
-    "back": "رجوع"
+    "back": "رجوع",
+    "bookWithoutBus": "احجز بدون اختيار أتوبيس",
+    "bookWithoutBusDesc": "هيتم تعيين أتوبيس بعدين"
   },
   "confirm": {
     "title": "تم الحجز بنجاح!",
@@ -286,7 +291,29 @@
     "transportType": "نوع المواصلات",
     "transportPrivate": "ملاكى",
     "transportBus": "اتوبيس",
-    "servantsNeeded": "عدد الخدام"
+    "servantsNeeded": "عدد الخدام",
+    "noBusAssigned": "بدون أتوبيس",
+    "unassignedPassengers": "ركاب بدون أتوبيس",
+    "totalTrips": "إجمالي الرحلات",
+    "totalBookings": "إجمالي الحجوزات",
+    "totalWheelchairs": "كراسي متحركة",
+    "totalFamilyMembers": "أفراد العائلة",
+    "byRole": "حسب الدور",
+    "byGender": "حسب النوع",
+    "maleCount": "ذكور",
+    "femaleCount": "إناث",
+    "withWheelchair": "مع كرسي",
+    "withoutWheelchair": "بدون كرسي",
+    "transportBreakdown": "وسيلة النقل",
+    "onBus": "أتوبيس",
+    "inCar": "عربية",
+    "noTransport": "بدون نقل",
+    "bySector": "حسب القطاعة",
+    "familyMembersCount": "أفراد العائلة",
+    "servantsNeededCount": "محتاجين خدمة",
+    "fillRate": "نسبة الامتلاء",
+    "openTrips": "رحلات مفتوحة",
+    "closedTrips": "رحلات مقفولة"
   },
   "family": {
     "title": "أفراد العيلة",
