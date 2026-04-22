@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import type { Trip, Booking } from "@/lib/types/database";
+import type { Trip, Booking, FamilyMember } from "@/lib/types/database";
 
 type Passenger = { bus_id: string; full_name: string; has_wheelchair: boolean; sector_name: string; family_member_id: string | null; head_user_id: string };
 
@@ -22,6 +22,9 @@ export default function TripsPage() {
   const [expandedTrips, setExpandedTrips] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
+  const [bookingTripId, setBookingTripId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -31,18 +34,20 @@ export default function TripsPage() {
       } = await supabase.auth.getUser();
       if (authError || !user) return;
 
-      const [tripsRes, bookingsRes] = await Promise.all([
+      const [tripsRes, bookingsRes, familyRes] = await Promise.all([
         supabase.from("trips").select("*").eq("is_open", true).order("trip_date", { ascending: false }),
         supabase
           .from("bookings")
           .select("*, trips(*), buses(area_name_ar, area_name_en), family_members(full_name)")
           .eq("user_id", user.id)
           .is("cancelled_at", null),
+        supabase.rpc("get_family_members"),
       ]);
 
       const tripsData = tripsRes.data || [];
       setTrips(tripsData);
       setMyBookings((bookingsRes.data || []) as unknown as typeof myBookings);
+      setFamilyMembers((familyRes.data || []) as FamilyMember[]);
 
       if (tripsData.length > 0) {
         const passengerMap: Record<string, Passenger[]> = {};
@@ -83,6 +88,59 @@ export default function TripsPage() {
     loadData();
   }
 
+  function toggleFamilyMember(id: string) {
+    setSelectedFamilyIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBookTrip(tripId: string) {
+    const totalPeople = 1 + selectedFamilyIds.size;
+    const msg = selectedFamilyIds.size > 0
+      ? `${t("trips.bookTripFor").replace("{count}", String(totalPeople))}?`
+      : `${t("trips.bookTrip")}?`;
+    if (!confirm(msg)) return;
+
+    setBookingTripId(tripId);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/login");
+      setBookingTripId(null);
+      return;
+    }
+
+    const memberIds = Array.from(selectedFamilyIds);
+    const { error } = memberIds.length > 0
+      ? await supabase.rpc("book_trip_only_with_family", {
+          p_user_id: user.id,
+          p_trip_id: tripId,
+          p_family_member_ids: memberIds,
+        })
+      : await supabase.rpc("book_trip_only", {
+          p_user_id: user.id,
+          p_trip_id: tripId,
+        });
+
+    setBookingTripId(null);
+
+    if (error) {
+      if (error.message.includes("Already booked")) {
+        showToast(t("trips.alreadyBooked"), "error");
+      } else {
+        showToast(t("common.error"), "error");
+      }
+      return;
+    }
+
+    showToast(t("trips.bookedNoBus"), "success");
+    setSelectedFamilyIds(new Set());
+    loadData();
+  }
+
   if (loading) {
     return <LoadingSpinner text={t("common.loading")} />;
   }
@@ -90,6 +148,40 @@ export default function TripsPage() {
   return (
     <div className="animate-fade-in">
       <h1 className="section-title mb-6">{t("trips.title")}</h1>
+
+      {familyMembers.length > 0 && !loading && (
+        <div className="card mb-6 border-2 border-purple-200 dark:border-purple-800">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 mb-3">{t("family.selectMembers")}</h3>
+          <div className="flex flex-wrap gap-2">
+            <span className="px-3 py-2 rounded-xl text-sm font-semibold border-2 min-h-[44px] inline-flex items-center gap-1.5 border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400">
+              {t("family.me")}
+            </span>
+            {familyMembers.map((fm) => (
+              <button
+                key={fm.id}
+                type="button"
+                onClick={() => toggleFamilyMember(fm.id)}
+                className={`px-3 py-2 rounded-xl text-sm font-semibold border-2 min-h-[44px] inline-flex items-center gap-1.5 transition-all duration-150 active:scale-95 ${
+                  selectedFamilyIds.has(fm.id)
+                    ? "border-purple-500 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-950/50 dark:text-purple-400"
+                    : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                }`}
+              >
+                {fm.full_name}
+                {fm.has_wheelchair && " ♿"}
+                <span className={`text-xs ${fm.gender === "Male" ? "text-blue-500" : "text-pink-500"}`}>
+                  {fm.gender === "Male" ? "♂" : "♀"}
+                </span>
+              </button>
+            ))}
+          </div>
+          {selectedFamilyIds.size > 0 && (
+            <p className="text-xs text-slate-400 dark:text-gray-500 mt-2">
+              {t("family.bookWith")}: 1 + {selectedFamilyIds.size} = {1 + selectedFamilyIds.size}
+            </p>
+          )}
+        </div>
+      )}
 
       {trips.length === 0 ? (
         <div className="text-center py-16">
@@ -122,7 +214,7 @@ export default function TripsPage() {
                     )}
                   </div>
 
-                  <div className="shrink-0">
+                  <div className="shrink-0 flex flex-col gap-2">
                     {booked ? (
                       <span className="badge-green">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -131,12 +223,21 @@ export default function TripsPage() {
                         {t("trips.alreadyBooked")}
                       </span>
                     ) : (
-                      <button
-                        onClick={() => router.push(`/trips/${trip.id}/buses`)}
-                        className="btn-primary w-full sm:w-auto"
-                      >
-                        {t("trips.bookNow")}
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => router.push(`/trips/${trip.id}/buses`)}
+                          className="btn-secondary w-full sm:w-auto"
+                        >
+                          {t("trips.bookNow")}
+                        </button>
+                        <button
+                          onClick={() => handleBookTrip(trip.id)}
+                          disabled={bookingTripId !== null}
+                          className="btn-primary w-full sm:w-auto"
+                        >
+                          {bookingTripId === trip.id ? t("common.loading") : t("trips.bookTrip")}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
