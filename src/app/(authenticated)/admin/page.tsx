@@ -35,10 +35,6 @@ export default function AdminDashboard() {
     loadData();
   }, [loadData]);
 
-  if (loading) {
-    return <LoadingSpinner text={t("common.loading")} />;
-  }
-
   const totals = useMemo(() => {
     let totalBookings = 0;
     let totalWheelchairs = 0;
@@ -52,6 +48,10 @@ export default function AdminDashboard() {
     }
     return { totalBookings, totalWheelchairs, totalFamily, openTrips, closedTrips: stats.length - openTrips };
   }, [stats]);
+
+  if (loading) {
+    return <LoadingSpinner text={t("common.loading")} />;
+  }
 
   const roleBadges = [
     { key: "patient", label: t("admin.patient"), bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-700 dark:text-blue-400" },
