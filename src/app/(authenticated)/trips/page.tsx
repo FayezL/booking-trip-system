@@ -22,7 +22,7 @@ export default function TripsPage() {
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
-  const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
+  const [selectedFamilyByTrip, setSelectedFamilyByTrip] = useState<Record<string, Set<string>>>({});
   const [bookingTripId, setBookingTripId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
@@ -87,13 +87,19 @@ export default function TripsPage() {
     loadData();
   }
 
-  function toggleFamilyMember(id: string) {
-    setSelectedFamilyIds(toggleInSet(selectedFamilyIds, id));
+  function getSelectedForTrip(tripId: string) {
+    return selectedFamilyByTrip[tripId] || new Set<string>();
+  }
+
+  function toggleFamilyMember(tripId: string, id: string) {
+    const current = getSelectedForTrip(tripId);
+    setSelectedFamilyByTrip((prev) => ({ ...prev, [tripId]: toggleInSet(current, id) }));
   }
 
   async function handleBookTrip(tripId: string) {
-    const totalPeople = 1 + selectedFamilyIds.size;
-    const msg = selectedFamilyIds.size > 0
+    const selected = getSelectedForTrip(tripId);
+    const totalPeople = 1 + selected.size;
+    const msg = selected.size > 0
       ? `${t("trips.bookTripFor").replace("{count}", String(totalPeople))}?`
       : `${t("trips.bookTrip")}?`;
     if (!confirm(msg)) return;
@@ -110,7 +116,7 @@ export default function TripsPage() {
     const { error } = await bookTripOnly(supabase, {
       userId: user.id,
       tripId,
-      familyMemberIds: Array.from(selectedFamilyIds),
+      familyMemberIds: Array.from(selected),
     });
 
     setBookingTripId(null);
@@ -125,7 +131,11 @@ export default function TripsPage() {
     }
 
     showToast(t("trips.bookedNoBus"), "success");
-    setSelectedFamilyIds(new Set());
+    setSelectedFamilyByTrip((prev) => {
+      const next = { ...prev };
+      delete next[tripId];
+      return next;
+    });
     loadData();
   }
 
@@ -183,13 +193,15 @@ export default function TripsPage() {
                             <span className="px-2 py-1 rounded-lg text-xs font-semibold border border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 min-h-[32px] inline-flex items-center">
                               {t("family.me")}
                             </span>
-                            {familyMembers.map((fm) => (
+                            {familyMembers.map((fm) => {
+                              const selected = getSelectedForTrip(trip.id);
+                              return (
                               <button
                                 key={fm.id}
                                 type="button"
-                                onClick={() => toggleFamilyMember(fm.id)}
+                                onClick={() => toggleFamilyMember(trip.id, fm.id)}
                                 className={`px-2 py-1 rounded-lg text-xs font-semibold border min-h-[32px] inline-flex items-center gap-1 transition-all duration-150 active:scale-95 ${
-                                  selectedFamilyIds.has(fm.id)
+                                  selected.has(fm.id)
                                     ? "border-purple-400 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-950/50 dark:text-purple-400"
                                     : "border-slate-200 bg-white text-slate-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
                                 }`}
@@ -197,10 +209,10 @@ export default function TripsPage() {
                                 {fm.full_name}
                                 {fm.has_wheelchair && " ♿"}
                               </button>
-                            ))}
-                            {selectedFamilyIds.size > 0 && (
+                            )})}
+                            {getSelectedForTrip(trip.id).size > 0 && (
                               <span className="text-xs text-slate-400 dark:text-gray-500 self-center">
-                                ({1 + selectedFamilyIds.size})
+                                ({1 + getSelectedForTrip(trip.id).size})
                               </span>
                             )}
                           </div>

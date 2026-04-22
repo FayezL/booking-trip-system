@@ -59,7 +59,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
         supabase.from("buses").select("*").eq("trip_id", tripId),
         supabase
           .from("bookings")
-          .select("id, bus_id, user_id, family_member_id, profiles(full_name, gender, has_wheelchair, sector_id), family_members(full_name, gender, has_wheelchair)")
+          .select("id, bus_id, car_id, user_id, family_member_id, profiles(full_name, gender, has_wheelchair, sector_id), family_members(full_name, gender, has_wheelchair)")
           .eq("trip_id", tripId)
           .is("cancelled_at", null),
       ]);
