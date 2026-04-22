@@ -27,6 +27,7 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
   const [busSeatsFilled, setBusSeatsFilled] = useState(0);
   const [roomsAssigned, setRoomsAssigned] = useState(0);
   const [roomsTotal, setRoomsTotal] = useState(0);
+  const [noBusCount, setNoBusCount] = useState(0);
   const [areaGroups, setAreaGroups] = useState<AreaGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -36,12 +37,13 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
       const [profilesRes, busesRes, bookingsRes, roomsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).is("deleted_at", null),
         supabase.from("buses").select("*").eq("trip_id", tripId),
-        supabase.from("bookings").select("bus_id, room_id").eq("trip_id", tripId).is("cancelled_at", null),
+        supabase.from("bookings").select("bus_id, room_id, car_id").eq("trip_id", tripId).is("cancelled_at", null),
         supabase.from("rooms").select("capacity").eq("trip_id", tripId),
       ]);
 
       const registered = profilesRes.count || 0;
       const allBookings = bookingsRes.data || [];
+      const noBus = allBookings.filter((b: { bus_id: string | null; car_id: string | null }) => b.bus_id === null && b.car_id === null).length;
       const booked = allBookings.length;
       const allBuses = (busesRes.data || []) as Bus[];
       const allRooms = roomsRes.data || [];
@@ -80,6 +82,7 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
       setBusSeatsFilled(totalSeatsTaken);
       setRoomsAssigned(assigned);
       setRoomsTotal(totalRoomCap);
+      setNoBusCount(noBus);
       setAreaGroups(Array.from(groupMap.values()));
       setError(false);
     } catch {
@@ -111,6 +114,7 @@ export default function OverviewTab({ tripId, onSwitchTab }: { tripId: string; o
     { label: t("admin.unbookedCount"), value: totalRegistered - totalBooked, bg: "bg-red-50 dark:bg-red-950/30", text: "text-red-600 dark:text-red-400" },
     { label: t("admin.busSeatsFilled"), value: `${busSeatsFilled}/${busSeatsTotal}`, bg: "bg-slate-50 dark:bg-gray-800", text: "text-slate-700 dark:text-gray-300" },
     { label: t("admin.roomsAssigned"), value: `${roomsAssigned}/${roomsTotal}`, bg: "bg-purple-50 dark:bg-purple-950/30", text: "text-purple-700 dark:text-purple-400" },
+    { label: t("admin.noBusAssigned"), value: noBusCount, bg: "bg-orange-50 dark:bg-orange-950/30", text: "text-orange-700 dark:text-orange-400" },
   ];
 
   function getStatusColor(percent: number) {

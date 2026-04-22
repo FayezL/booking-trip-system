@@ -51,6 +51,7 @@ export default function BusesTab({ tripId }: { tripId: string }) {
   const [movingPassenger, setMovingPassenger] = useState<string | null>(null);
   const [selectedTargetBus, setSelectedTargetBus] = useState<string>("");
   const [removingPassenger, setRemovingPassenger] = useState<string | null>(null);
+  const [unassigned, setUnassigned] = useState<Passenger[]>([]);
 
   const loadBuses = useCallback(async () => {
     try {
@@ -104,6 +105,24 @@ export default function BusesTab({ tripId }: { tripId: string }) {
       }));
 
       setBuses(busesWithPassengers);
+
+      const nullBusBookings = (bookingsRes.data || []).filter((b: { bus_id: string | null; car_id: string | null }) => b.bus_id === null && b.car_id === null);
+      const unassignedList: Passenger[] = [];
+      for (const b of nullBusBookings) {
+        const p = b.profiles as unknown as { full_name: string; gender: string; has_wheelchair: boolean; sector_id: string | null };
+        const fm = (b as { family_members?: { full_name: string; gender: string; has_wheelchair: boolean } | null }).family_members;
+        const fmId = (b as { family_member_id?: string | null }).family_member_id || null;
+        unassignedList.push({
+          booking_id: b.id,
+          user_id: b.user_id,
+          full_name: fmId && fm ? fm.full_name : p.full_name,
+          gender: fmId && fm ? fm.gender : p.gender,
+          has_wheelchair: fmId && fm ? fm.has_wheelchair : p.has_wheelchair,
+          sector_name: p.sector_id ? (sectorMap[p.sector_id] || "") : "",
+          family_member_id: fmId,
+        });
+      }
+      setUnassigned(unassignedList);
     } catch {
       showToast(t("common.error"), "error");
     } finally {
@@ -343,6 +362,70 @@ export default function BusesTab({ tripId }: { tripId: string }) {
             <button onClick={() => setShowForm(false)} className="btn-secondary w-full sm:w-auto">
               {t("admin.cancel")}
             </button>
+          </div>
+        </div>
+      )}
+
+      {unassigned.length > 0 && (
+        <div className="card mb-4 border-2 border-orange-200 dark:border-orange-800">
+          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">
+            {t("admin.unassignedPassengers")} ({unassigned.length})
+          </h3>
+          <div className="space-y-2">
+            {unassigned.map((p) => (
+              <div key={p.booking_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 dark:bg-gray-800/50">
+                <div className="flex items-center gap-2">
+                  {p.family_member_id && <span className="text-xs text-purple-400 dark:text-purple-500">&#8627;</span>}
+                  <span className="text-sm font-medium text-slate-700 dark:text-gray-200">{p.full_name}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${p.gender === "Male" ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400" : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"}`}>
+                    {p.gender === "Male" ? "♂" : "♀"}
+                  </span>
+                  {p.has_wheelchair && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400">♿</span>}
+                  {p.sector_name && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400">{p.sector_name}</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  {buses.length > 0 && (
+                    <>
+                      {movingPassenger === p.booking_id ? (
+                        <div className="flex items-center gap-2">
+                          <select
+                            className="input-field !py-1 !text-xs !w-auto min-w-[120px]"
+                            value={selectedTargetBus}
+                            onChange={(e) => setSelectedTargetBus(e.target.value)}
+                          >
+                            <option value="">{t("admin.selectBus")}</option>
+                            {buses.map((ob) => (
+                              <option key={ob.id} value={ob.id}>
+                                {ob.bus_label || ob.area_name_ar} ({ob.passengers.length}/{ob.capacity})
+                              </option>
+                            ))}
+                          </select>
+                          <button onClick={confirmMove} disabled={!selectedTargetBus} className="px-2 py-1 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-all duration-150">
+                            {t("admin.book")}
+                          </button>
+                          <button onClick={() => setMovingPassenger(null)} className="px-2 py-1 rounded-lg text-xs font-medium bg-slate-200 dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-600 active:scale-95 transition-all duration-150">
+                            {t("admin.cancel")}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => startMove(p.booking_id)}
+                          className="px-2 py-1 rounded-lg text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50 active:scale-95 transition-all duration-150"
+                        >
+                          {t("admin.moveToBus")}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleRemovePassenger(p.booking_id, p.full_name)}
+                        className="px-2 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
+                      >
+                        {t("admin.removeFromBus")}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
