@@ -109,7 +109,7 @@
   },
   "trips": {
     "title": "Available Trips",
-    "bookNow": "Book Now",
+    "bookNow": "Choose Bus",
     "myBookings": "My Bookings",
     "noTrips": "No trips available",
     "alreadyBooked": "Booked",
