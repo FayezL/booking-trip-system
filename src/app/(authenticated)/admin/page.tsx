@@ -37,13 +37,14 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase.rpc("get_all_trips_stats");
       if (error) {
-        console.error("[admin/dashboard] Failed:", error.message);
-        showToast(t("common.error"), "error");
+        console.error("[admin/dashboard] RPC failed:", error);
+        showToast(`${t("common.error")}: ${error.message}`, "error");
         return;
       }
       setStats((data || []) as TripStats[]);
-    } catch {
-      console.error("[admin/dashboard] Unexpected error");
+    } catch (err) {
+      console.error("[admin/dashboard] Unexpected error:", err);
+      showToast(t("common.error"), "error");
     } finally {
       setLoading(false);
     }
