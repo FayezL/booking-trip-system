@@ -7,6 +7,12 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { PHONE_REGEX, PASSWORD_MIN_LENGTH } from "@/lib/constants";
 import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Phone, Lock, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -59,87 +65,105 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 p-4">
-      <div className="w-full max-w-md animate-slide-up">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-indigo-50 to-slate-100 dark:from-gray-950 dark:via-slate-900 dark:to-indigo-950" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.15),transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.08),transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(59,130,246,0.12),transparent_50%)] dark:bg-[radial-gradient(ellipse_at_bottom_left,rgba(59,130,246,0.06),transparent_50%)]" />
+
+      <div className="w-full max-w-md animate-slide-up relative z-10">
         <div className="flex justify-end gap-2 mb-4">
           <ThemeToggle />
           <LanguageToggle />
         </div>
-        <div className="card">
+
+        <div className={cn(
+          "rounded-2xl p-8",
+          "bg-white/60 dark:bg-gray-900/60",
+          "backdrop-blur-xl",
+          "border border-white/40 dark:border-white/10",
+          "shadow-xl shadow-blue-500/5 dark:shadow-indigo-500/5",
+          "ring-1 ring-white/20 dark:ring-white/5"
+        )}>
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
+            <div className={cn(
+              "w-18 h-18 rounded-2xl flex items-center justify-center mx-auto mb-4",
+              "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/40 dark:to-indigo-950/40",
+              "shadow-inner"
+            )}>
+              <Users className="w-9 h-9 text-blue-600 dark:text-blue-400" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-gray-100">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
               {t("auth.login")}
             </h1>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="label-text">{t("auth.phone")}</label>
-              <input
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                autoComplete="tel"
-                className="input-field text-center text-xl tracking-widest font-mono"
-                value={phone}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                placeholder="01XXXXXXXXX"
-                dir="ltr"
-                disabled={loading}
-              />
-              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 text-center">
+              <Label className="text-slate-500 dark:text-gray-400 mb-2">{t("auth.phone")}</Label>
+              <div className="relative">
+                <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-gray-500" />
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="tel"
+                  className="text-center text-xl tracking-widest font-mono pr-10 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm"
+                  value={phone}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  placeholder="01XXXXXXXXX"
+                  dir="ltr"
+                  disabled={loading}
+                />
+              </div>
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1.5 text-center">
                 {t("auth.phoneHint")}
               </p>
             </div>
 
             <div>
-              <label className="label-text">{t("auth.password")}</label>
-              <input
-                type="password"
-                className="input-field text-center text-xl tracking-wider"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                dir="ltr"
-                disabled={loading}
-              />
-              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 text-center">
+              <Label className="text-slate-500 dark:text-gray-400 mb-2">{t("auth.password")}</Label>
+              <div className="relative">
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-gray-500" />
+                <Input
+                  type="password"
+                  className="text-center text-xl tracking-wider pr-10 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  dir="ltr"
+                  disabled={loading}
+                />
+              </div>
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1.5 text-center">
                 {t("auth.passwordHint")}
               </p>
             </div>
 
-            <div className="flex items-center justify-center gap-2">
-              <input
-                type="checkbox"
+            <div className="flex items-center justify-center gap-3">
+              <Switch
                 id="rememberMe"
                 checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
+                onCheckedChange={setRememberMe}
                 disabled={loading}
-                className="w-5 h-5 rounded border-slate-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-400"
               />
-              <label htmlFor="rememberMe" className="text-base text-slate-500 dark:text-gray-400">
+              <Label htmlFor="rememberMe" className="text-base text-slate-500 dark:text-gray-400 cursor-pointer">
                 {t("auth.rememberMe")}
-              </label>
+              </Label>
             </div>
 
             {error && (
-              <div className="bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 p-3 rounded-xl text-center text-base font-medium animate-fade-in">
+              <div className="bg-red-50/80 dark:bg-red-950/40 backdrop-blur-sm text-red-600 dark:text-red-400 p-3 rounded-xl text-center text-base font-medium animate-fade-in border border-red-200/50 dark:border-red-800/30">
                 {error}
               </div>
             )}
 
-            <button
+            <Button
               type="submit"
-              className="btn-primary w-full text-lg"
+              className="w-full text-lg shadow-lg shadow-blue-600/20 dark:shadow-blue-500/10"
               disabled={loading}
             >
               {loading ? t("auth.loggingIn") : t("auth.loginButton")}
-            </button>
+            </Button>
           </form>
 
           <p className="text-center mt-6 text-base text-slate-500 dark:text-gray-400">

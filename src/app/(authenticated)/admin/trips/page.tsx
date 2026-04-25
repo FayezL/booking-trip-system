@@ -7,6 +7,26 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
+import { Card, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  Users,
+  Eye,
+  Lock,
+  Unlock,
+} from "lucide-react";
 import type { Trip } from "@/lib/types/database";
 
 type TripWithCount = Trip & { booking_count: number };
@@ -150,105 +170,133 @@ export default function TripsManagementPage() {
   }
 
   return (
-    <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
+    <div className="animate-fade-in space-y-6">
+      <div className="flex items-center justify-between">
         <h1 className="section-title">{t("admin.trips")}</h1>
-        <button onClick={startCreate} className="btn-primary">
-          + {t("admin.createTrip")}
-        </button>
+        <Button onClick={startCreate}>
+          <Plus className="w-5 h-5" />
+          {t("admin.createTrip")}
+        </Button>
       </div>
 
-      {showForm && (
-        <div className="card mb-6 animate-slide-up">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 mb-4">
-            {editingId ? t("admin.editTrip") : t("admin.createTrip")}
-          </h2>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingId ? t("admin.editTrip") : t("admin.createTrip")}
+            </DialogTitle>
+          </DialogHeader>
+
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
-              <label className="label-text">{t("admin.tripTitle")}</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                {t("admin.tripTitle")}
+              </label>
               <input
-                className="input-field"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base min-h-[48px] transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
               />
             </div>
             <div>
-              <label className="label-text">{t("admin.tripDate")}</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5">
+                {t("admin.tripDate")}
+              </label>
               <input
                 type="date"
-                className="input-field"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base min-h-[48px] transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                 value={form.trip_date}
                 onChange={(e) => setForm({ ...form, trip_date: e.target.value })}
                 dir="ltr"
               />
             </div>
             <div className="flex items-end">
-              <button
+              <Button
+                type="button"
+                variant={form.is_open ? "default" : "secondary"}
                 onClick={() => setForm({ ...form, is_open: !form.is_open })}
-                className={`px-4 py-3 rounded-xl font-semibold min-h-[48px] transition-all duration-150 ${
-                  form.is_open
-                    ? "bg-blue-50 text-blue-700 border-2 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800"
-                    : "bg-slate-100 text-slate-500 border-2 border-slate-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
-                }`}
+                className="w-full"
               >
-                {form.is_open ? t("admin.isOpen") : t("admin.isClosed")}
-              </button>
+                {form.is_open ? (
+                  <><Unlock className="w-4 h-4" /> {t("admin.isOpen")}</>
+                ) : (
+                  <><Lock className="w-4 h-4" /> {t("admin.isClosed")}</>
+                )}
+              </Button>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <button onClick={handleSave} disabled={saving} className="btn-primary w-full sm:w-auto">
-              {saving ? t("common.loading") : t("admin.save")}
-            </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary w-full sm:w-auto">
-              {t("admin.cancel")}
-            </button>
-          </div>
-        </div>
-      )}
 
-      <div className="space-y-3">
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowForm(false)}>
+              {t("admin.cancel")}
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? t("common.loading") : t("admin.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="space-y-4">
         {trips.map((trip) => (
-          <div key={trip.id} className="card">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{trip.title_ar}</h3>
-                <p className="text-sm text-slate-400 dark:text-gray-500">{trip.trip_date}</p>
-                <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
-                  {trip.booking_count} {t("admin.bookedCount")}
-                </span>
+          <Card key={trip.id} className="transition-shadow duration-200 hover:shadow-md">
+            <CardHeader className="pb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/30 shrink-0">
+                    <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{trip.title_ar}</h3>
+                      <Badge variant="default">
+                        <Users className="w-3.5 h-3.5" />
+                        {trip.booking_count} {t("admin.bookedCount")}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-slate-400 dark:text-gray-500 mt-0.5">{trip.trip_date}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/admin/trips/${trip.id}`)}
+                  >
+                    <Eye className="w-4 h-4" />
+                    {t("admin.manage")}
+                  </Button>
+                  <Button
+                    variant={trip.is_open ? "ghost" : "secondary"}
+                    size="sm"
+                    onClick={() => toggleOpen(trip)}
+                  >
+                    {trip.is_open ? (
+                      <><Unlock className="w-4 h-4" /> {t("admin.isOpen")}</>
+                    ) : (
+                      <><Lock className="w-4 h-4" /> {t("admin.isClosed")}</>
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => startEdit(trip)}
+                  >
+                    <Edit className="w-4 h-4" />
+                    {t("common.edit")}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDelete(trip.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {t("common.delete")}
+                  </Button>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => router.push(`/admin/trips/${trip.id}`)}
-                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-950/50 hover:bg-blue-100 active:scale-95 transition-all duration-150 min-h-[40px]"
-                >
-                  {t("admin.manage")}
-                </button>
-                <button
-                  onClick={() => toggleOpen(trip)}
-                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium active:scale-95 transition-all duration-150 min-h-[40px] ${
-                    trip.is_open
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
-                      : "bg-slate-100 text-slate-500 dark:bg-gray-800 dark:text-gray-400"
-                  }`}
-                >
-                  {trip.is_open ? t("admin.isOpen") : t("admin.isClosed")}
-                </button>
-                <button
-                  onClick={() => startEdit(trip)}
-                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-slate-50 text-slate-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 hover:bg-slate-100 active:scale-95 transition-all duration-150 min-h-[40px]"
-                >
-                  {t("common.edit")}
-                </button>
-                <button
-                  onClick={() => handleDelete(trip.id)}
-                  className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50 hover:bg-red-100 active:scale-95 transition-all duration-150 min-h-[40px]"
-                >
-                  {t("common.delete")}
-                </button>
-              </div>
-            </div>
-          </div>
+            </CardHeader>
+          </Card>
         ))}
       </div>
     </div>

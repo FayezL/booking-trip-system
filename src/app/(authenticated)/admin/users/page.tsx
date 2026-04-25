@@ -8,6 +8,18 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import UserDetailModal from "./UserDetailModal";
 import type { Profile, Sector, FamilyMember } from "@/lib/types/database";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { Users, Search, Plus, Edit, Trash2, Car, Phone, ChevronLeft, ChevronRight } from "lucide-react";
 
 type UserRole = "admin" | "servant" | "patient" | "companion" | "family_assistant" | "trainee";
 
@@ -51,17 +63,31 @@ function getRoleLabel(role: string, t: (key: string) => string): string {
   }
 }
 
-function getRoleBadgeClasses(role: string): string {
+function getRoleBadgeVariant(role: string): "default" | "secondary" | "destructive" | "outline" {
   switch (role) {
-    case "super_admin": return "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400";
-    case "admin": return "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400";
-    case "servant": return "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400";
-    case "patient": return "bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400";
-    case "companion": return "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400";
-    case "family_assistant": return "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400";
-    case "trainee": return "bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400";
-    default: return "bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400";
+    case "super_admin": return "destructive";
+    case "admin": return "default";
+    case "servant": return "secondary";
+    case "family_assistant": return "outline";
+    default: return "outline";
   }
+}
+
+function getRoleBadgeClassName(role: string): string {
+  switch (role) {
+    case "super_admin": return "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 hover:bg-amber-100";
+    case "admin": return "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 hover:bg-blue-100";
+    case "servant": return "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400 hover:bg-indigo-100";
+    case "patient": return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-100";
+    case "companion": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 hover:bg-emerald-100";
+    case "family_assistant": return "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 hover:bg-purple-100";
+    case "trainee": return "bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400 hover:bg-orange-100";
+    default: return "";
+  }
+}
+
+function getInitials(name: string): string {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
 export default function UsersPage() {
@@ -345,7 +371,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in space-y-4">
       {detailUserId && (
         <UserDetailModal
           userId={detailUserId}
@@ -353,481 +379,458 @@ export default function UsersPage() {
         />
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <h1 className="section-title">{t("admin.userManagement")}</h1>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary w-full sm:w-auto">
-          + {t("admin.addPerson")}
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <h1 className="section-title">{t("admin.userManagement")}</h1>
+        </div>
+        <Button onClick={() => setShowForm(!showForm)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          {t("admin.addPerson")}
+        </Button>
       </div>
 
-      {showForm && (
-        <div className="card mb-4 animate-slide-up">
-          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">+ {t("admin.addPerson")}</h3>
+      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setForm(emptyPersonForm); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              {t("admin.addPerson")}
+            </DialogTitle>
+          </DialogHeader>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-            <div>
-              <label className="label-text">{t("auth.phone")}</label>
-              <input
-                className="input-field"
+            <div className="space-y-2">
+              <Label>{t("auth.phone")}</Label>
+              <Input
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="01XXXXXXXXX"
                 dir="ltr"
               />
             </div>
-            <div>
-              <label className="label-text">{t("auth.fullName")}</label>
-              <input
-                className="input-field"
+            <div className="space-y-2">
+              <Label>{t("auth.fullName")}</Label>
+              <Input
                 value={form.full_name}
                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               />
             </div>
-            <div>
-              <label className="label-text">{t("auth.gender")}</label>
-              <select
-                className="input-field"
-                value={form.gender}
-                onChange={(e) => setForm({ ...form, gender: e.target.value as "Male" | "Female" })}
-              >
-                <option value="Male">{t("auth.male")}</option>
-                <option value="Female">{t("auth.female")}</option>
-              </select>
+            <div className="space-y-2">
+              <Label>{t("auth.gender")}</Label>
+              <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v as "Male" | "Female" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">{t("auth.male")}</SelectItem>
+                  <SelectItem value="Female">{t("auth.female")}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className="label-text">{t("admin.role")}</label>
-              <select
-                className="input-field"
-                value={form.role}
-                onChange={(e) => {
-                  const newRole = e.target.value as UserRole;
-                  setForm({ ...form, role: newRole, has_wheelchair: newRole === "patient" ? form.has_wheelchair : false });
-                }}
-              >
-                {CREATABLE_ROLES.map((r) => (
-                  <option key={r} value={r}>{getRoleLabel(r, t)}</option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <Label>{t("admin.role")}</Label>
+              <Select value={form.role} onValueChange={(v) => {
+                const newRole = v as UserRole;
+                setForm({ ...form, role: newRole, has_wheelchair: newRole === "patient" ? form.has_wheelchair : false });
+              }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CREATABLE_ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>{getRoleLabel(r, t)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className="label-text">{t("sectors.select")}</label>
-              <select
-                className="input-field"
-                value={form.sector_id}
-                onChange={(e) => setForm({ ...form, sector_id: e.target.value })}
-              >
-                <option value="">{t("sectors.none")}</option>
-                {sectors.map((s) => (
-                  <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <Label>{t("sectors.select")}</Label>
+              <Select value={form.sector_id || "__none__"} onValueChange={(v) => setForm({ ...form, sector_id: v === "__none__" ? "" : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">{t("sectors.none")}</SelectItem>
+                  {sectors.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.code} - {s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className="label-text">{t("auth.password")}</label>
-              <input
+            <div className="space-y-2">
+              <Label>{t("auth.password")}</Label>
+              <Input
                 type="password"
-                className="input-field"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 dir="ltr"
                 placeholder="••••••••"
               />
             </div>
-            <div>
-              <label className="label-text">{t("admin.transportType")}</label>
+            <div className="space-y-2">
+              <Label>{t("admin.transportType")}</Label>
               <div className="flex gap-2">
-                <button
+                <Button
                   type="button"
+                  variant={form.transport_type === "private" ? "default" : "outline"}
                   onClick={() => setForm({ ...form, transport_type: "private" })}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[40px]
-                    ${form.transport_type === "private"
-                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400"
-                      : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    }`}
+                  className="flex-1 min-h-[40px]"
                 >
                   {t("admin.transportPrivate")}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant={form.transport_type === "bus" ? "default" : "outline"}
                   onClick={() => setForm({ ...form, transport_type: "bus" })}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[40px]
-                    ${form.transport_type === "bus"
-                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400"
-                      : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    }`}
+                  className="flex-1 min-h-[40px]"
                 >
                   {t("admin.transportBus")}
-                </button>
+                </Button>
               </div>
             </div>
-            <div>
-              <label className="label-text">{t("admin.servantsNeeded")}</label>
+            <div className="space-y-2">
+              <Label>{t("admin.servantsNeeded")}</Label>
               <div className="flex gap-2">
                 {([0, 1, 2] as const).map((n) => (
-                  <button
+                  <Button
                     key={n}
                     type="button"
+                    variant={form.servants_needed === n ? "default" : "outline"}
                     onClick={() => setForm({ ...form, servants_needed: n })}
-                    className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[40px]
-                      ${form.servants_needed === n
-                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400"
-                        : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                      }`}
+                    className="flex-1 min-h-[40px]"
                   >
                     {n}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
             {form.role === "patient" && (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={form.has_wheelchair}
-                  onClick={() => setForm({ ...form, has_wheelchair: !form.has_wheelchair })}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    form.has_wheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      form.has_wheelchair ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-                <span className="text-sm text-slate-600 dark:text-gray-300">♿ {t("admin.wheelchair")}</span>
+              <div className="flex items-center gap-3 md:col-span-2">
+                <Switch
+                  checked={form.has_wheelchair}
+                  onCheckedChange={(checked) => setForm({ ...form, has_wheelchair: checked })}
+                />
+                <Label>{t("admin.wheelchair")}</Label>
               </div>
             )}
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <button onClick={handleCreatePerson} disabled={creating} className="btn-primary w-full sm:w-auto">
+          <DialogFooter className="gap-2">
+            <Button onClick={handleCreatePerson} disabled={creating}>
               {creating ? t("common.loading") : t("admin.addPerson")}
-            </button>
-            <button onClick={() => { setShowForm(false); setForm(emptyPersonForm); }} className="btn-secondary w-full sm:w-auto">
+            </Button>
+            <Button variant="outline" onClick={() => { setShowForm(false); setForm(emptyPersonForm); }}>
               {t("admin.cancel")}
-            </button>
-          </div>
-        </div>
-      )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <input
-          className="input-field flex-1 min-w-[140px] max-w-xs"
-          placeholder={t("admin.searchUsers")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select
-          className="input-field w-auto min-w-[140px]"
-          value={sectorFilter}
-          onChange={(e) => setSectorFilter(e.target.value)}
-        >
-          <option value="">{t("sectors.all")}</option>
-          {sectors.map((s) => (
-            <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
-          ))}
-        </select>
-        <div className="flex gap-1 flex-wrap">
-          {["", ...ALL_ROLES].map((r) => (
-            <button
-              key={r}
-              onClick={() => setRoleFilter(r)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                roleFilter === r
-                  ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
-                  : "bg-slate-50 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700"
-              }`}
-            >
-              {r === "" ? t("admin.all") : getRoleLabel(r, t)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {resetUserId && (
-        <div className="card mb-4 animate-slide-up">
-          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">{t("admin.resetPassword")}</h3>
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-            <div className="flex-1">
-              <label className="label-text">{t("admin.newPassword")}</label>
-              <input
-                type="password"
-                className="input-field"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                dir="ltr"
-                placeholder="••••••••"
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 min-w-[140px] max-w-xs">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t("admin.searchUsers")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pe-9"
               />
             </div>
-            <button onClick={handleResetPassword} disabled={saving} className="btn-primary w-full sm:w-auto">
-              {saving ? t("common.loading") : t("admin.resetPassword")}
-            </button>
-            <button onClick={() => { setResetUserId(null); setNewPassword(""); }} className="btn-secondary w-full sm:w-auto">
-              {t("admin.cancel")}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        {paginated.map((u) => (
-          <div key={u.id} className="card">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium text-slate-800 dark:text-gray-100 text-sm">{u.full_name}</span>
-                <span className="text-xs text-slate-400 dark:text-gray-500" dir="ltr">{u.phone}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getRoleBadgeClasses(u.role)}`}>
-                  {getRoleLabel(u.role, t)}
-                </span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  u.gender === "Male" ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400" : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
-                }`}>
-                  {u.gender === "Male" ? t("auth.male") : t("auth.female")}
-                </span>
-                {u.sector_id && sectorMap.has(u.sector_id) && (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400">
-                    {sectorMap.get(u.sector_id)!.name}
-                  </span>
-                )}
-                {u.has_car && (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-cyan-50 dark:bg-cyan-950/30 text-cyan-700 dark:text-cyan-400" title={t("cars.title")}>
-                    🚗 {u.car_seats || 0}
-                  </span>
-                )}
-                {u.has_wheelchair && (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" title={t("admin.wheelchair")}>
-                    ♿
-                  </span>
-                )}
-                {familyCounts[u.id] > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400">
-                    👨‍👩‍👧 {familyCounts[u.id]}
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setDetailUserId(u.id)}
-                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
+            <Select value={sectorFilter || "__all__"} onValueChange={(v) => setSectorFilter(v === "__all__" ? "" : v)}>
+              <SelectTrigger className="w-auto min-w-[160px]">
+                <SelectValue placeholder={t("sectors.all")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{t("sectors.all")}</SelectItem>
+                {sectors.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.code} - {s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-1 flex-wrap">
+              {["", ...ALL_ROLES].map((r) => (
+                <Button
+                  key={r}
+                  variant={roleFilter === r ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setRoleFilter(r)}
                 >
-                  {t("admin.viewDetails")}
-                </button>
-                {u.role !== "super_admin" && (
-                  <>
-                    {changingRoleUserId === u.id ? (
-                      <select
-                        className="input-field !py-1 !text-xs !w-auto"
-                        defaultValue={u.role}
-                        onChange={(e) => handleChangeRole(u.id, e.target.value)}
-                        onBlur={() => setChangingRoleUserId(null)}
-                        autoFocus
-                      >
-                        {ALL_ROLES.filter((r) => r !== "super_admin").map((r) => (
-                          <option key={r} value={r}>{getRoleLabel(r, t)}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <button
-                        onClick={() => setChangingRoleUserId(u.id)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
-                      >
-                        {t("admin.changeRole")}
-                      </button>
-                    )}
-                    {u.role === "servant" && (
-                      <button
-                        onClick={() => startEditCar(u)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-cyan-50 dark:bg-cyan-950/30 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-950/50 active:scale-95 transition-all duration-150"
-                      >
-                        {t("cars.editCar")}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setResetUserId(u.id)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-950/50 active:scale-95 transition-all duration-150"
-                    >
-                      {t("admin.resetPassword")}
-                    </button>
-                    <button
-                      onClick={() => handleDeleteUser(u.id, u.full_name)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
-                    >
-                      {t("common.delete")}
-                    </button>
-                    <button
-                      onClick={() => openFamilyManager(u.id)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium active:scale-95 transition-all duration-150 ${
-                        managingFamilyId === u.id
-                          ? "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-400"
-                          : "bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-950/50"
-                      }`}
-                    >
-                      {t("family.title")}
-                    </button>
-                  </>
-                )}
-                {u.role === "super_admin" && (
-                  <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg">
-                    {t("admin.protectedAccount")}
-                  </span>
-                )}
-              </div>
-              {editingCarUserId === u.id && (
-                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800 animate-slide-up">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={carFormHasCar}
-                        onClick={() => setCarFormHasCar(!carFormHasCar)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          carFormHasCar ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            carFormHasCar ? "translate-x-5" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                      <span className="text-sm text-slate-600 dark:text-gray-300">{t("settings.hasCar")}</span>
-                    </div>
-                    {carFormHasCar && (
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs text-slate-400 dark:text-gray-500">{t("settings.carSeats")}:</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="20"
-                          value={carFormSeats}
-                          onChange={(e) => setCarFormSeats(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="input-field !w-20 !py-1 !text-sm text-center"
-                          dir="ltr"
-                        />
-                      </div>
-                    )}
-                    <div className="flex gap-2 ms-auto">
-                      <button
-                        onClick={handleSaveCar}
-                        disabled={savingCar}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-all duration-150"
-                      >
-                        {savingCar ? t("common.loading") : t("common.save")}
-                      </button>
-                      <button
-                        onClick={() => setEditingCarUserId(null)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-200 dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-600 active:scale-95 transition-all duration-150"
-                      >
-                        {t("admin.cancel")}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {managingFamilyId === u.id && (
-                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800 animate-slide-up">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-bold text-slate-700 dark:text-gray-200">{t("family.title")}</h4>
-                    <button onClick={startAddFm} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 active:scale-95 transition-all duration-150">
-                      + {t("family.add")}
-                    </button>
-                  </div>
-
-                  {showFmForm && (
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-gray-800/50 mb-3">
-                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-                        <input
-                          className="input-field !text-sm"
-                          placeholder={t("family.name")}
-                          value={fmForm.full_name}
-                          onChange={(e) => setFmForm({ ...fmForm, full_name: e.target.value })}
-                        />
-                        <select
-                          className="input-field !text-sm"
-                          value={fmForm.gender}
-                          onChange={(e) => setFmForm({ ...fmForm, gender: e.target.value as "Male" | "Female" })}
-                        >
-                          <option value="Male">{t("family.male")}</option>
-                          <option value="Female">{t("family.female")}</option>
-                        </select>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={fmForm.has_wheelchair}
-                            onClick={() => setFmForm({ ...fmForm, has_wheelchair: !fmForm.has_wheelchair })}
-                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                              fmForm.has_wheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
-                            }`}
-                          >
-                            <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${fmForm.has_wheelchair ? "translate-x-4" : "translate-x-0"}`} />
-                          </button>
-                          <span className="text-xs text-slate-600 dark:text-gray-300">♿</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 mt-2">
-                        <button onClick={handleSaveFm} disabled={savingFm || !fmForm.full_name.trim()} className="px-3 py-1 rounded-lg text-xs font-medium bg-blue-600 text-white disabled:opacity-50 active:scale-95">
-                          {savingFm ? t("common.loading") : t("common.save")}
-                        </button>
-                        <button onClick={() => setShowFmForm(false)} className="px-3 py-1 rounded-lg text-xs font-medium bg-slate-200 dark:bg-gray-700 text-slate-600 dark:text-gray-300 active:scale-95">
-                          {t("admin.cancel")}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {familyList.length === 0 ? (
-                    <p className="text-xs text-slate-400 dark:text-gray-500 text-center py-2">{t("family.noMembers")}</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {familyList.map((fm, idx) => (
-                        <div key={fm.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-gray-800/50">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-400">{idx + 1}.</span>
-                            <span className="text-sm font-medium text-slate-700 dark:text-gray-200">{fm.full_name}</span>
-                            <span className={`text-xs ${fm.gender === "Male" ? "text-blue-500" : "text-pink-500"}`}>
-                              {fm.gender === "Male" ? "♂" : "♀"}
-                            </span>
-                            {fm.has_wheelchair && <span className="text-xs">♿</span>}
-                          </div>
-                          <div className="flex gap-1">
-                            <button onClick={() => startEditFm(fm)} className="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-gray-700 text-slate-500 dark:text-gray-400 active:scale-95">
-                              {t("common.edit")}
-                            </button>
-                            <button onClick={() => handleRemoveFm(fm.id)} className="px-2 py-0.5 rounded text-xs bg-red-50 dark:bg-red-950/30 text-red-500 active:scale-95">
-                              {t("common.delete")}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                  {r === "" ? t("admin.all") : getRoleLabel(r, t)}
+                </Button>
+              ))}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {resetUserId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{t("admin.resetPassword")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+              <div className="flex-1 space-y-2">
+                <Label>{t("admin.newPassword")}</Label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  dir="ltr"
+                  placeholder="••••••••"
+                />
+              </div>
+              <Button onClick={handleResetPassword} disabled={saving}>
+                {saving ? t("common.loading") : t("admin.resetPassword")}
+              </Button>
+              <Button variant="outline" onClick={() => { setResetUserId(null); setNewPassword(""); }}>
+                {t("admin.cancel")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-3">
+        {paginated.map((u) => (
+          <Card key={u.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-5">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs font-semibold bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400">
+                        {getInitials(u.full_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium text-foreground text-sm">{u.full_name}</span>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1" dir="ltr">
+                      <Phone className="h-3 w-3" />
+                      {u.phone}
+                    </span>
+                    <Badge className={cn("text-xs", getRoleBadgeClassName(u.role))} variant={getRoleBadgeVariant(u.role)}>
+                      {getRoleLabel(u.role, t)}
+                    </Badge>
+                    <Badge variant="outline" className={cn(
+                      "text-xs",
+                      u.gender === "Male"
+                        ? "border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400"
+                        : "border-pink-300 text-pink-600 dark:border-pink-700 dark:text-pink-400"
+                    )}>
+                      {u.gender === "Male" ? t("auth.male") : t("auth.female")}
+                    </Badge>
+                    {u.sector_id && sectorMap.has(u.sector_id) && (
+                      <Badge variant="outline" className="border-teal-300 text-teal-700 dark:border-teal-700 dark:text-teal-400 text-xs">
+                        {sectorMap.get(u.sector_id)!.name}
+                      </Badge>
+                    )}
+                    {u.has_car && (
+                      <Badge variant="outline" className="border-cyan-300 text-cyan-700 dark:border-cyan-700 dark:text-cyan-400 text-xs gap-1">
+                        <Car className="h-3 w-3" />
+                        {u.car_seats || 0}
+                      </Badge>
+                    )}
+                    {u.has_wheelchair && (
+                      <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400 text-xs">
+                        ♿
+                      </Badge>
+                    )}
+                    {familyCounts[u.id] > 0 && (
+                      <Badge variant="outline" className="border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-400 text-xs gap-1">
+                        <Users className="h-3 w-3" />
+                        {familyCounts[u.id]}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button variant="ghost" size="sm" onClick={() => setDetailUserId(u.id)}>
+                      {t("admin.viewDetails")}
+                    </Button>
+                    {u.role !== "super_admin" && (
+                      <>
+                        {changingRoleUserId === u.id ? (
+                          <Select defaultValue={u.role} onValueChange={(v) => handleChangeRole(u.id, v)}>
+                            <SelectTrigger className="h-8 w-auto min-w-[120px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ALL_ROLES.filter((r) => r !== "super_admin").map((r) => (
+                                <SelectItem key={r} value={r}>{getRoleLabel(r, t)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Button variant="ghost" size="sm" onClick={() => setChangingRoleUserId(u.id)}>
+                            <Edit className="h-3 w-3 me-1" />
+                            {t("admin.changeRole")}
+                          </Button>
+                        )}
+                        {u.role === "servant" && (
+                          <Button variant="ghost" size="sm" onClick={() => startEditCar(u)} className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300">
+                            <Car className="h-3 w-3 me-1" />
+                            {t("cars.editCar")}
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => setResetUserId(u.id)} className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300">
+                          {t("admin.resetPassword")}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(u.id, u.full_name)} className="text-destructive hover:text-destructive">
+                          <Trash2 className="h-3 w-3 me-1" />
+                          {t("common.delete")}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openFamilyManager(u.id)}
+                          className={cn(
+                            managingFamilyId === u.id
+                              ? "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400"
+                              : "text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+                          )}
+                        >
+                          <Users className="h-3 w-3 me-1" />
+                          {t("family.title")}
+                        </Button>
+                      </>
+                    )}
+                    {u.role === "super_admin" && (
+                      <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400">
+                        {t("admin.protectedAccount")}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {editingCarUserId === u.id && (
+                  <>
+                    <Separator />
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 animate-fade-in">
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          checked={carFormHasCar}
+                          onCheckedChange={setCarFormHasCar}
+                        />
+                        <Label className="text-sm">{t("settings.hasCar")}</Label>
+                      </div>
+                      {carFormHasCar && (
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-muted-foreground">{t("settings.carSeats")}:</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={carFormSeats}
+                            onChange={(e) => setCarFormSeats(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-20 text-center h-8"
+                            dir="ltr"
+                          />
+                        </div>
+                      )}
+                      <div className="flex gap-2 ms-auto">
+                        <Button size="sm" onClick={handleSaveCar} disabled={savingCar}>
+                          {savingCar ? t("common.loading") : t("common.save")}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingCarUserId(null)}>
+                          {t("admin.cancel")}
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {managingFamilyId === u.id && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3 animate-fade-in">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-foreground">{t("family.title")}</h4>
+                        <Button size="sm" variant="outline" onClick={startAddFm} className="gap-1">
+                          <Plus className="h-3 w-3" />
+                          {t("family.add")}
+                        </Button>
+                      </div>
+
+                      {showFmForm && (
+                        <Card className="bg-muted/50">
+                          <CardContent className="pt-4">
+                            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+                              <Input
+                                placeholder={t("family.name")}
+                                value={fmForm.full_name}
+                                onChange={(e) => setFmForm({ ...fmForm, full_name: e.target.value })}
+                              />
+                              <Select value={fmForm.gender} onValueChange={(v) => setFmForm({ ...fmForm, gender: v as "Male" | "Female" })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Male">{t("family.male")}</SelectItem>
+                                  <SelectItem value="Female">{t("family.female")}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={fmForm.has_wheelchair}
+                                  onCheckedChange={(checked) => setFmForm({ ...fmForm, has_wheelchair: checked })}
+                                />
+                                <Label className="text-xs">♿</Label>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <Button size="sm" onClick={handleSaveFm} disabled={savingFm || !fmForm.full_name.trim()}>
+                                {savingFm ? t("common.loading") : t("common.save")}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => setShowFmForm(false)}>
+                                {t("admin.cancel")}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {familyList.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-2">{t("family.noMembers")}</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {familyList.map((fm, idx) => (
+                            <div key={fm.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">{idx + 1}.</span>
+                                <span className="text-sm font-medium text-foreground">{fm.full_name}</span>
+                                <Badge variant="outline" className={cn(
+                                  "text-xs",
+                                  fm.gender === "Male" ? "border-blue-300 text-blue-500" : "border-pink-300 text-pink-500"
+                                )}>
+                                  {fm.gender === "Male" ? "♂" : "♀"}
+                                </Badge>
+                                {fm.has_wheelchair && (
+                                  <Badge variant="outline" className="text-xs border-amber-300 text-amber-600">♿</Badge>
+                                )}
+                              </div>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => startEditFm(fm)}>
+                                  {t("common.edit")}
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => handleRemoveFm(fm.id)}>
+                                  {t("common.delete")}
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         ))}
         {filtered.length === 0 && (
-          <p className="text-slate-400 dark:text-gray-500 text-center py-4 text-sm">{t("admin.noUsers")}</p>
+          <p className="text-muted-foreground text-center py-4 text-sm">{t("admin.noUsers")}</p>
         )}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 pt-4">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
-            >
-              ←
-            </button>
-            <span className="text-sm text-slate-500 dark:text-gray-400">{page} / {totalPages}</span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
-            >
-              →
-            </button>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>

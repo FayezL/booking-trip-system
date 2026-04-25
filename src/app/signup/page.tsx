@@ -7,6 +7,12 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { PHONE_REGEX, PASSWORD_MIN_LENGTH } from "@/lib/constants";
 import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Phone, Lock, User, Bus, Car, Users, Accessibility } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Sector } from "@/lib/types/database";
 
 type SignupRole = "patient" | "servant" | "companion" | "family_assistant" | "trainee";
@@ -117,67 +123,91 @@ export default function SignupPage() {
     { value: "trainee", labelKey: "admin.trainee" },
   ];
 
+  const selectionButtonClass = (isActive: boolean) =>
+    cn(
+      "flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-200 min-h-[48px]",
+      isActive
+        ? "border-blue-500/70 bg-blue-50/80 text-blue-700 dark:border-blue-500/60 dark:bg-blue-950/40 dark:text-blue-300 shadow-sm shadow-blue-500/10"
+        : "border-white/30 bg-white/50 text-slate-600 hover:bg-white/70 dark:border-white/10 dark:bg-gray-800/50 dark:text-gray-300 dark:hover:bg-gray-800/70 backdrop-blur-sm"
+    );
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 p-4">
-      <div className="w-full max-w-md animate-slide-up">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-indigo-50 to-slate-100 dark:from-gray-950 dark:via-slate-900 dark:to-indigo-950" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.15),transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.08),transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(59,130,246,0.12),transparent_50%)] dark:bg-[radial-gradient(ellipse_at_bottom_left,rgba(59,130,246,0.06),transparent_50%)]" />
+
+      <div className="w-full max-w-md animate-slide-up relative z-10">
         <div className="flex justify-end gap-2 mb-4">
           <ThemeToggle />
           <LanguageToggle />
         </div>
-        <div className="card">
+
+        <div className={cn(
+          "rounded-2xl p-8",
+          "bg-white/60 dark:bg-gray-900/60",
+          "backdrop-blur-xl",
+          "border border-white/40 dark:border-white/10",
+          "shadow-xl shadow-blue-500/5 dark:shadow-indigo-500/5",
+          "ring-1 ring-white/20 dark:ring-white/5"
+        )}>
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
+            <div className={cn(
+              "w-18 h-18 rounded-2xl flex items-center justify-center mx-auto mb-4",
+              "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/40 dark:to-indigo-950/40",
+              "shadow-inner"
+            )}>
+              <User className="w-9 h-9 text-blue-600 dark:text-blue-400" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-gray-100">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
               {t("auth.signup")}
             </h1>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
             <div>
-              <label className="label-text">{t("auth.phone")}</label>
-              <input
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                autoComplete="tel"
-                className="input-field text-center text-xl tracking-widest font-mono"
-                value={phone}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                placeholder="01XXXXXXXXX"
-                dir="ltr"
-                disabled={loading}
-              />
-              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 text-center">
+              <Label className="text-slate-500 dark:text-gray-400 mb-2">{t("auth.phone")}</Label>
+              <div className="relative">
+                <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-gray-500" />
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="tel"
+                  className="text-center text-xl tracking-widest font-mono pr-10 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm"
+                  value={phone}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  placeholder="01XXXXXXXXX"
+                  dir="ltr"
+                  disabled={loading}
+                />
+              </div>
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1.5 text-center">
                 {t("auth.phoneHint")}
               </p>
             </div>
 
             <div>
-              <label className="label-text">{t("auth.fullName")}</label>
-              <input
-                type="text"
-                className="input-field text-center text-lg"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                disabled={loading}
-              />
+              <Label className="text-slate-500 dark:text-gray-400 mb-2">{t("auth.fullName")}</Label>
+              <div className="relative">
+                <User className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-gray-500" />
+                <Input
+                  type="text"
+                  className="text-center text-lg pr-10 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
             </div>
 
             <div>
-              <label className="label-text">{t("auth.gender")}</label>
+              <Label className="text-slate-500 dark:text-gray-400 mb-2">{t("auth.gender")}</Label>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setGender("Male")}
-                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
-                    ${gender === "Male"
-                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    }`}
+                  className={selectionButtonClass(gender === "Male")}
                   disabled={loading}
                 >
                   {t("auth.male")}
@@ -185,11 +215,7 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={() => setGender("Female")}
-                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
-                    ${gender === "Female"
-                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    }`}
+                  className={selectionButtonClass(gender === "Female")}
                   disabled={loading}
                 >
                   {t("auth.female")}
@@ -198,7 +224,7 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="label-text">{t("auth.userType")}</label>
+              <Label className="text-slate-500 dark:text-gray-400 mb-2">{t("auth.userType")}</Label>
               <div className="flex flex-wrap gap-2">
                 {roleOptions.map((r) => (
                   <button
@@ -208,13 +234,13 @@ export default function SignupPage() {
                       setRole(r.value);
                       if (r.value !== "patient") setHasWheelchair(false);
                     }}
-                    className={`py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-150 min-h-[48px] ${
-                      roleOptions.length === 5 && roleOptions.indexOf(r) < 3 ? "flex-1 min-w-[calc(33%-6px)]" : "flex-1 min-w-[calc(50%-4px)]"
-                    } ${
-                      role === r.value
-                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                        : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    }`}
+                    className={cn(
+                      selectionButtonClass(role === r.value),
+                      "text-sm",
+                      roleOptions.length === 5 && roleOptions.indexOf(r) < 3
+                        ? "min-w-[calc(33%-6px)]"
+                        : "min-w-[calc(50%-4px)]"
+                    )}
                     disabled={loading}
                   >
                     {t(r.labelKey)}
@@ -224,9 +250,18 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="label-text">{t("sectors.select")}</label>
+              <Label className="text-slate-500 dark:text-gray-400 mb-2">{t("sectors.select")}</Label>
               <select
-                className="input-field text-center text-base"
+                className={cn(
+                  "flex w-full px-4 py-3 text-lg border rounded-xl min-h-[48px]",
+                  "bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm",
+                  "border-white/40 dark:border-white/10",
+                  "text-center text-base",
+                  "transition-all duration-200",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500",
+                  "dark:text-gray-100 dark:focus-visible:ring-blue-400/40 dark:focus-visible:border-blue-400",
+                  "disabled:cursor-not-allowed disabled:opacity-50"
+                )}
                 value={sectorId}
                 onChange={(e) => setSectorId(e.target.value)}
                 disabled={loading || sectors.length === 0}
@@ -242,73 +277,57 @@ export default function SignupPage() {
 
             {role === "patient" && (
               <div className="flex items-center justify-center gap-3 py-2">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={hasWheelchair}
-                  onClick={() => setHasWheelchair(!hasWheelchair)}
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    hasWheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
-                  }`}
+                <Switch
+                  checked={hasWheelchair}
+                  onCheckedChange={setHasWheelchair}
                   disabled={loading}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      hasWheelchair ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-                <span className="text-base text-slate-600 dark:text-gray-300">
-                  ♿ {t("auth.wheelchair")}
+                />
+                <span className="text-base text-slate-600 dark:text-gray-300 flex items-center gap-1.5">
+                  <Accessibility className="w-4 h-4" />
+                  {t("auth.wheelchair")}
                 </span>
               </div>
             )}
 
             <div>
-              <label className="label-text">{t("auth.transportType")}</label>
+              <Label className="text-slate-500 dark:text-gray-400 mb-2">{t("auth.transportType")}</Label>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setTransportType("private")}
-                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
-                    ${transportType === "private"
-                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    }`}
+                  className={cn(selectionButtonClass(transportType === "private"), "flex items-center justify-center gap-2")}
                   disabled={loading}
                 >
+                  <Car className="w-5 h-5" />
                   {t("auth.transportPrivate")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setTransportType("bus")}
-                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
-                    ${transportType === "bus"
-                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    }`}
+                  className={cn(selectionButtonClass(transportType === "bus"), "flex items-center justify-center gap-2")}
                   disabled={loading}
                 >
+                  <Bus className="w-5 h-5" />
                   {t("auth.transportBus")}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="label-text">{t("auth.servantsNeeded")}</label>
+              <Label className="text-slate-500 dark:text-gray-400 mb-2">{t("auth.servantsNeeded")}</Label>
               <div className="flex gap-3">
                 {([0, 1, 2] as const).map((n) => (
                   <button
                     key={n}
                     type="button"
                     onClick={() => setServantsNeeded(n)}
-                    className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
-                      ${servantsNeeded === n
-                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                        : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                      }`}
+                    className={cn(
+                      selectionButtonClass(servantsNeeded === n),
+                      "flex items-center justify-center gap-1.5"
+                    )}
                     disabled={loading}
                   >
+                    <Users className="w-4 h-4" />
                     {n}
                   </button>
                 ))}
@@ -316,34 +335,37 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="label-text">{t("auth.password")}</label>
-              <input
-                type="password"
-                className="input-field text-center text-xl tracking-wider"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                dir="ltr"
-                disabled={loading}
-              />
-              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1 text-center">
+              <Label className="text-slate-500 dark:text-gray-400 mb-2">{t("auth.password")}</Label>
+              <div className="relative">
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-gray-500" />
+                <Input
+                  type="password"
+                  className="text-center text-xl tracking-wider pr-10 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  dir="ltr"
+                  disabled={loading}
+                />
+              </div>
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-1.5 text-center">
                 {t("auth.passwordHint")}
               </p>
             </div>
 
             {error && (
-              <div className="bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 p-3 rounded-xl text-center text-base font-medium animate-fade-in">
+              <div className="bg-red-50/80 dark:bg-red-950/40 backdrop-blur-sm text-red-600 dark:text-red-400 p-3 rounded-xl text-center text-base font-medium animate-fade-in border border-red-200/50 dark:border-red-800/30">
                 {error}
               </div>
             )}
 
-            <button
+            <Button
               type="submit"
-              className="btn-primary w-full text-lg"
+              className="w-full text-lg shadow-lg shadow-blue-600/20 dark:shadow-blue-500/10"
               disabled={loading}
             >
               {loading ? t("auth.signingUp") : t("auth.signupButton")}
-            </button>
+            </Button>
           </form>
 
           <p className="text-center mt-6 text-base text-slate-500 dark:text-gray-400">

@@ -7,11 +7,17 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { bookTripOnly, toggleInSet } from "@/lib/booking";
-import type { Bus, Trip, FamilyMember, PassengerInfo as PassengerInfoType } from "@/lib/types/database";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { Bus, Car, Users, Check, X, ChevronDown, ChevronUp, ArrowRight, MapPin, Clock, UserCheck } from "lucide-react";
+import type { Bus as BusType, Trip, FamilyMember, PassengerInfo as PassengerInfoType } from "@/lib/types/database";
 
 type PassengerInfo = PassengerInfoType;
 
-type BusWithCount = Bus & { booking_count: number; passengers: PassengerInfo[] };
+type BusWithCount = BusType & { booking_count: number; passengers: PassengerInfo[] };
 
 type AreaGroup = {
   areaId: string | null;
@@ -26,6 +32,12 @@ type BookingConfirmation = {
   tripDate: string;
   totalBooked: number;
 };
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
 
 export default function BusesPage({ params }: { params: { tripId: string } }) {
   const { tripId } = params;
@@ -92,7 +104,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
         passengersByBus[p.bus_id] = list;
       }
 
-      const busesWithCounts: BusWithCount[] = (busesRes.data || []).map((bus: Bus) => ({
+      const busesWithCounts: BusWithCount[] = (busesRes.data || []).map((bus: BusType) => ({
         ...bus,
         booking_count: (passengersByBus[bus.id] || []).length,
         passengers: passengersByBus[bus.id] || [],
@@ -249,12 +261,24 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
     const isFamily = !!p.family_member_id;
     const headName = all.find((a) => a.head_user_id === p.head_user_id && !a.family_member_id)?.full_name;
     return (
-      <span key={i}>
-        {isFamily && <span className="text-slate-400 dark:text-gray-500">↳ </span>}
-        {p.full_name}{p.has_wheelchair && " ♿"}{p.sector_name ? ` (${p.sector_name})` : ""}
-        {isFamily && headName && <span className="text-xs text-slate-400 dark:text-gray-500"> ({headName})</span>}
-        {i < all.length - 1 ? "، " : ""}
-      </span>
+      <div key={i} className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors",
+        isFamily
+          ? "bg-purple-50/80 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400"
+          : "bg-slate-50 text-slate-700 dark:bg-gray-800 dark:text-gray-300"
+      )}>
+        {isFamily && <span className="text-xs opacity-60">↳</span>}
+        <Avatar className="h-6 w-6">
+          <AvatarFallback className="text-[10px] bg-white dark:bg-gray-900">
+            {getInitials(p.full_name)}
+          </AvatarFallback>
+        </Avatar>
+        <span>{p.full_name}{p.has_wheelchair && " ♿"}</span>
+        {p.sector_name && <span className="text-xs opacity-60">({p.sector_name})</span>}
+        {isFamily && headName && (
+          <span className="text-xs text-slate-400 dark:text-gray-500">({headName})</span>
+        )}
+      </div>
     );
   }
 
@@ -265,143 +289,179 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   if (confirmation) {
     return (
       <div className="max-w-md mx-auto text-center py-8 animate-slide-up">
-        <div className="w-20 h-20 bg-blue-50 dark:bg-blue-950/30 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+        <div className="w-24 h-24 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-200/50 dark:shadow-emerald-900/20">
+          <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/50 dark:to-emerald-800/40 rounded-full flex items-center justify-center">
+            <Check className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+          </div>
         </div>
-        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-6">{t("confirm.title")}</h1>
-        <div className="card text-start space-y-4">
-          {[
-            { label: t("confirm.trip"), value: confirmation.tripTitle },
-            { label: t("confirm.bus"), value: confirmation.busLabel },
-            { label: t("confirm.leader"), value: confirmation.leaderName },
-            { label: t("confirm.date"), value: confirmation.tripDate },
-          ].map((item) => (
-            <div key={item.label} className="flex justify-between items-center py-2 border-b border-slate-50 dark:border-gray-800 last:border-0">
-              <span className="text-slate-400 dark:text-gray-500 text-sm">{item.label}</span>
-              <span className="font-semibold text-slate-800 dark:text-gray-100">{item.value}</span>
-            </div>
-          ))}
-          {confirmation.totalBooked > 1 && (
-            <div className="flex justify-between items-center py-2 border-b border-slate-50 dark:border-gray-800 last:border-0">
-              <span className="text-slate-400 dark:text-gray-500 text-sm">{t("family.bookWith")}</span>
-              <span className="font-semibold text-slate-800 dark:text-gray-100">{confirmation.totalBooked}</span>
-            </div>
-          )}
-        </div>
-        <button
+        <h1 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-6">{t("confirm.title")}</h1>
+        <Card className="text-start shadow-lg">
+          <CardContent className="p-5 sm:p-6 space-y-1">
+            {[
+              { label: t("confirm.trip"), value: confirmation.tripTitle },
+              { label: t("confirm.bus"), value: confirmation.busLabel },
+              { label: t("confirm.leader"), value: confirmation.leaderName },
+              { label: t("confirm.date"), value: confirmation.tripDate },
+            ].map((item) => (
+              <div key={item.label} className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-gray-800 last:border-0">
+                <span className="text-slate-400 dark:text-gray-500 text-sm">{item.label}</span>
+                <span className="font-semibold text-slate-800 dark:text-gray-100">{item.value}</span>
+              </div>
+            ))}
+            {confirmation.totalBooked > 1 && (
+              <div className="flex justify-between items-center py-3 border-b border-slate-50 dark:border-gray-800 last:border-0">
+                <span className="text-slate-400 dark:text-gray-500 text-sm">{t("family.bookWith")}</span>
+                <Badge variant="purple">{confirmation.totalBooked}</Badge>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Button
           onClick={() => router.push("/trips")}
-          className="btn-primary w-full mt-6"
+          className="w-full mt-6"
+          size="lg"
         >
           {t("confirm.ok")}
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="animate-fade-in">
-      <button
+      <Button
+        variant="ghost"
         onClick={() => router.push("/trips")}
-        className="mb-4 text-blue-600 dark:text-blue-400 font-semibold text-base hover:text-blue-700 dark:hover:text-blue-300 transition-colors inline-flex items-center gap-1"
+        className="mb-4 gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 -ms-3"
+        size="sm"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l7-7-7-7" />
-        </svg>
+        <ArrowRight className="w-5 h-5 rtl:rotate-180" />
         {t("buses.back")}
-      </button>
+      </Button>
 
       <h1 className="section-title mb-2">{t("buses.chooseBus")}</h1>
       {trip && (
-        <p className="text-slate-400 dark:text-gray-500 mb-6 text-sm">
-          {lang === "ar" ? trip.title_ar : trip.title_en} — {t("trips.date")}: {trip.trip_date}
-        </p>
+        <div className="flex items-center gap-2 text-slate-400 dark:text-gray-500 mb-6 text-sm">
+          <MapPin className="w-4 h-4" />
+          <span>{lang === "ar" ? trip.title_ar : trip.title_en} — {t("trips.date")}: {trip.trip_date}</span>
+        </div>
       )}
 
       {familyMembers.length > 0 && (
-        <div className="card mb-6 border-2 border-purple-200 dark:border-purple-800">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 mb-3">{t("family.selectMembers")}</h3>
-          <div className="flex flex-wrap gap-2">
-            <span className={`px-3 py-2 rounded-xl text-sm font-semibold border-2 min-h-[44px] inline-flex items-center gap-1.5 border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400`}>
-              {t("family.me")}
-            </span>
-            {familyMembers.map((fm) => (
-              <button
-                key={fm.id}
-                type="button"
-                onClick={() => toggleFamilyMember(fm.id)}
-                className={`px-3 py-2 rounded-xl text-sm font-semibold border-2 min-h-[44px] inline-flex items-center gap-1.5 transition-all duration-150 active:scale-95 ${
-                  selectedFamilyIds.has(fm.id)
-                    ? "border-purple-500 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-950/50 dark:text-purple-400"
-                    : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                }`}
+        <Card className="mb-6 border-2 border-purple-200 dark:border-purple-800/60 overflow-hidden shadow-sm">
+          <CardHeader className="bg-gradient-to-l from-purple-50/60 to-purple-50/20 dark:from-purple-950/20 dark:to-transparent pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Users className="w-4 h-4 text-purple-500" />
+              {t("family.selectMembers")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                className="border-blue-300 bg-blue-50/80 text-blue-700 dark:border-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
               >
-                {fm.full_name}
-                {fm.has_wheelchair && " ♿"}
-                <span className={`text-xs ${fm.gender === "Male" ? "text-blue-500" : "text-pink-500"}`}>
-                  {fm.gender === "Male" ? "♂" : "♀"}
-                </span>
-              </button>
-            ))}
-          </div>
-          {selectedFamilyIds.size > 0 && (
-            <p className="text-xs text-slate-400 dark:text-gray-500 mt-2">
-              {t("family.bookWith")}: 1 + {selectedFamilyIds.size} = {1 + selectedFamilyIds.size}
-            </p>
-          )}
-        </div>
+                {t("family.me")}
+              </Button>
+              {familyMembers.map((fm) => (
+                <Button
+                  key={fm.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleFamilyMember(fm.id)}
+                  className={cn(
+                    "transition-all duration-200 active:scale-95",
+                    selectedFamilyIds.has(fm.id)
+                      ? "border-purple-400 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-950/50 dark:text-purple-400 shadow-sm"
+                      : "hover:bg-slate-50 dark:hover:bg-gray-800"
+                  )}
+                >
+                  {fm.full_name}
+                  {fm.has_wheelchair && " ♿"}
+                  <span className={cn(
+                    "text-xs",
+                    fm.gender === "Male" ? "text-blue-500" : "text-pink-500"
+                  )}>
+                    {fm.gender === "Male" ? "♂" : "♀"}
+                  </span>
+                </Button>
+              ))}
+            </div>
+            {selectedFamilyIds.size > 0 && (
+              <div className="mt-3 flex items-center gap-2">
+                <Badge variant="purple">
+                  {t("family.bookWith")}: 1 + {selectedFamilyIds.size} = {1 + selectedFamilyIds.size}
+                </Badge>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      <div className="card mb-6 border-2 border-green-200 dark:border-green-800">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{t("buses.bookWithoutBus")}</h3>
-            <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{t("buses.bookWithoutBusDesc")}</p>
+      <Card className="mb-6 border-2 border-emerald-200 dark:border-emerald-800/60 overflow-hidden shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 sm:p-6 bg-gradient-to-l from-emerald-50/40 to-transparent dark:from-emerald-950/10 dark:to-transparent">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/40 dark:to-emerald-800/30 flex items-center justify-center shadow-sm">
+              <UserCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{t("buses.bookWithoutBus")}</h3>
+              <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{t("buses.bookWithoutBusDesc")}</p>
+            </div>
           </div>
-          <button
+          <Button
+            variant="default"
             onClick={handleBookTripOnly}
             disabled={bookingBusId !== null}
-            className="btn-primary w-full sm:w-auto"
           >
             {bookingBusId === "trip-only" ? t("common.loading") : t("trips.bookTrip")}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {userHasCar && (
-        <div className="card mb-6 border-2 border-blue-200 dark:border-blue-800">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{t("cars.imDriving")}</h3>
-              <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{t("cars.register")}</p>
+        <Card className="mb-6 border-2 border-blue-200 dark:border-blue-800/60 overflow-hidden shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 sm:p-6 bg-gradient-to-l from-blue-50/40 to-transparent dark:from-blue-950/10 dark:to-transparent">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/30 flex items-center justify-center shadow-sm">
+                <Car className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{t("cars.imDriving")}</h3>
+                <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{t("cars.register")}</p>
+              </div>
             </div>
-            <button
+            <Button
+              variant="default"
               onClick={handleBookCar}
               disabled={bookingCar}
-              className="btn-primary w-full sm:w-auto"
             >
               {bookingCar ? t("common.loading") : t("cars.imDriving")}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {areaGroups.length === 0 && !userHasCar ? (
         <div className="text-center py-16">
-          <div className="w-16 h-16 bg-slate-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-slate-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          <div className="w-20 h-20 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-900 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <Clock className="w-10 h-10 text-slate-300 dark:text-gray-600" />
           </div>
           <p className="text-lg text-slate-400 dark:text-gray-500">{t("admin.bookingSoon")}</p>
         </div>
       ) : areaGroups.length === 0 ? null : (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {areaGroups.map((group) => (
             <div key={group.areaId || group.areaName}>
-              <h2 className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-3">{group.areaName}</h2>
-              <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/30 flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h2 className="text-lg font-bold text-blue-700 dark:text-blue-400">{group.areaName}</h2>
+              </div>
+              <div className="space-y-4">
                 {group.buses.map((bus) => {
                   const available = bus.capacity - bus.booking_count;
                   const totalNeeded = 1 + selectedFamilyIds.size;
@@ -411,67 +471,113 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                   const showAll = expandedBuses.has(bus.id);
                   const visiblePassengers = showAll ? bus.passengers : bus.passengers.slice(0, 5);
                   const hiddenCount = bus.passengers.length - 5;
-                  const fillClass = isFull ? "danger" : percent > 80 ? "warning" : "";
+                  const fillGradient = isFull
+                    ? "bg-gradient-to-l from-red-400 to-red-500 dark:from-red-500 dark:to-red-600"
+                    : percent > 80
+                      ? "bg-gradient-to-l from-amber-400 to-amber-500 dark:from-amber-500 dark:to-amber-600"
+                      : "bg-gradient-to-l from-blue-400 to-blue-600 dark:from-blue-500 dark:to-blue-600";
 
                   return (
-                    <div key={bus.id} className={`card ${isFull && available <= 0 ? "opacity-60" : ""}`}>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-800 dark:text-gray-100">{displayName}</h3>
-                          {bus.leader_name && (
-                            <p className="text-slate-400 dark:text-gray-500 mt-0.5 text-sm">
-                              {t("buses.leader")}: {bus.leader_name}
-                            </p>
+                    <Card key={bus.id} className={cn(
+                      "overflow-hidden hover:shadow-md transition-all duration-300",
+                      isFull && available <= 0 && "opacity-60"
+                    )}>
+                      <CardHeader className="pb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm",
+                              available <= 0
+                                ? "bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/40 dark:to-red-800/30"
+                                : "bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/30"
+                            )}>
+                              <Bus className={cn(
+                                "w-5 h-5",
+                                available <= 0
+                                  ? "text-red-500 dark:text-red-400"
+                                  : "text-blue-600 dark:text-blue-400"
+                              )} />
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg">{displayName}</CardTitle>
+                              {bus.leader_name && (
+                                <p className="text-slate-400 dark:text-gray-500 mt-0.5 text-sm">
+                                  {t("buses.leader")}: {bus.leader_name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {available <= 0 ? (
+                            <Badge variant="destructive" className="shrink-0 self-start sm:self-auto">
+                              <X className="w-3.5 h-3.5" />
+                              {t("buses.full")}
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant="default"
+                              onClick={() => handleBook(bus)}
+                              disabled={bookingBusId !== null}
+                              className="shrink-0 self-start sm:self-auto gap-2"
+                            >
+                              <Check className="w-5 h-5" />
+                              {bookingBusId === bus.id ? t("common.loading") : t("buses.choose")}
+                            </Button>
                           )}
                         </div>
+                      </CardHeader>
 
-                        {available <= 0 ? (
-                          <span className="badge-red shrink-0 self-start sm:self-auto">
-                            {t("buses.full")}
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleBook(bus)}
-                            disabled={bookingBusId !== null}
-                            className="btn-primary shrink-0 self-start sm:self-auto"
-                          >
-                            {bookingBusId === bus.id ? t("common.loading") : t("buses.choose")}
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="mt-3">
-                        <div className="flex justify-between text-sm text-slate-400 dark:text-gray-500 mb-1.5">
-                          <span>{t("buses.availableSeats")}: {available}</span>
-                          <span>{bus.booking_count}/{bus.capacity}</span>
-                        </div>
-                        <div className="progress-bar" role="progressbar" aria-valuenow={Math.round(percent)} aria-valuemin={0} aria-valuemax={100}>
-                          <div
-                            className={`progress-bar-fill ${fillClass}`}
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {bus.passengers.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-slate-50 dark:border-gray-800">
-                          <p className="text-xs font-medium text-slate-300 dark:text-gray-600 mb-1">
-                            {t("admin.passengersList")} ({bus.passengers.length})
-                          </p>
-                          <div className="text-sm text-slate-500 dark:text-gray-400">
-                            {visiblePassengers.map((p, i) => renderPassengerName(p, i, visiblePassengers))}
-                            {!showAll && hiddenCount > 0 && (
-                              <button
-                                onClick={() => toggleExpand(bus.id)}
-                                className="text-blue-600 dark:text-blue-400 font-medium ms-1 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                              >
-                                +{hiddenCount} {t("admin.showMore")}
-                              </button>
-                            )}
+                      <CardContent className="pt-0">
+                        <div className="mt-3">
+                          <div className="flex justify-between items-center text-sm mb-2">
+                            <span className="text-slate-400 dark:text-gray-500 flex items-center gap-1.5">
+                              {t("buses.availableSeats")}: <Badge variant={isFull ? "destructive" : "secondary"} className="text-xs">{available}</Badge>
+                            </span>
+                            <Badge variant="outline" className="text-xs">{bus.booking_count}/{bus.capacity}</Badge>
+                          </div>
+                          <div className="h-2.5 rounded-full bg-slate-100 dark:bg-gray-800 overflow-hidden" role="progressbar" aria-valuenow={Math.round(percent)} aria-valuemin={0} aria-valuemax={100}>
+                            <div
+                              className={cn("h-full rounded-full transition-all duration-500 ease-out", fillGradient)}
+                              style={{ width: `${percent}%` }}
+                            />
                           </div>
                         </div>
-                      )}
-                    </div>
+
+                        {bus.passengers.length > 0 && (
+                          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-gray-800">
+                            <p className="text-xs font-medium text-slate-300 dark:text-gray-600 mb-2 flex items-center gap-1.5">
+                              <Users className="w-3.5 h-3.5" />
+                              {t("admin.passengersList")} ({bus.passengers.length})
+                            </p>
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                              {visiblePassengers.map((p, i) => renderPassengerName(p, i, visiblePassengers))}
+                              {!showAll && hiddenCount > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleExpand(bus.id)}
+                                  className="text-blue-600 dark:text-blue-400 gap-1"
+                                >
+                                  <ChevronDown className="w-4 h-4" />
+                                  +{hiddenCount} {t("admin.showMore")}
+                                </Button>
+                              )}
+                            </div>
+                            {showAll && bus.passengers.length > 5 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleExpand(bus.id)}
+                                className="text-blue-600 dark:text-blue-400 gap-1 mt-1"
+                              >
+                                <ChevronUp className="w-4 h-4" />
+                                {t("admin.showLess")}
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>

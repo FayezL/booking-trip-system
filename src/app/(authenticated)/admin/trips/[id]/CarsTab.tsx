@@ -7,6 +7,13 @@ import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import type { Car, Profile } from "@/lib/types/database";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { Car as CarIcon, Plus, Trash2, UserPlus } from "lucide-react";
 
 type CarPassenger = {
   booking_id: string;
@@ -25,6 +32,10 @@ type UnbookedPerson = {
   full_name: string;
   user_id: string;
 };
+
+function getInitials(name: string) {
+  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
 
 export default function CarsTab({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
@@ -183,22 +194,34 @@ export default function CarsTab({ tripId }: { tripId: string }) {
     return <LoadingSpinner text={t("common.loading")} />;
   }
 
+  function getCapacityVariant(isFull: boolean): "default" | "destructive" {
+    return isFull ? "destructive" : "default";
+  }
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">{t("cars.title")}</h2>
-        <button onClick={() => setShowAddCar(!showAddCar)} className="btn-primary">
-          + {t("cars.addCar")}
-        </button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CarIcon className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">{t("cars.title")}</h2>
+        </div>
+        <Button onClick={() => setShowAddCar(!showAddCar)} size="sm" className="gap-2">
+          <Plus className="h-4 w-4" />
+          {t("cars.addCar")}
+        </Button>
       </div>
 
-      {showAddCar && (
-        <div className="card mb-4 animate-slide-up">
+      <Dialog open={showAddCar} onOpenChange={setShowAddCar}>
+        <DialogContent className="sm:max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{t("cars.addCar")}</DialogTitle>
+            <DialogDescription>{t("cars.driver")}</DialogDescription>
+          </DialogHeader>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
-              <label className="label-text">{t("cars.driver")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("cars.driver")}</label>
               <select
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={addForm.driver_id}
                 onChange={(e) => setAddForm({ ...addForm, driver_id: e.target.value })}
               >
@@ -209,10 +232,10 @@ export default function CarsTab({ tripId }: { tripId: string }) {
               </select>
             </div>
             <div>
-              <label className="label-text">{t("cars.capacity")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("cars.capacity")}</label>
               <input
                 type="number"
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={addForm.capacity || ""}
                 onChange={(e) => setAddForm({ ...addForm, capacity: parseInt(e.target.value) || 1 })}
                 dir="ltr"
@@ -221,25 +244,60 @@ export default function CarsTab({ tripId }: { tripId: string }) {
               />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <button onClick={handleAddCar} disabled={saving} className="btn-primary w-full sm:w-auto">
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button onClick={handleAddCar} disabled={saving}>
               {saving ? t("common.loading") : t("cars.addCar")}
-            </button>
-            <button onClick={() => setShowAddCar(false)} className="btn-secondary w-full sm:w-auto">
+            </Button>
+            <Button variant="outline" onClick={() => setShowAddCar(false)}>
               {t("admin.cancel")}
-            </button>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!assigningCar} onOpenChange={(open) => { if (!open) { setAssigningCar(null); setSelectedPassenger(""); } }}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{t("cars.assign")}</DialogTitle>
+            <DialogDescription>{t("cars.selectCar")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {unbookedPassengers.map((p) => (
+              <button
+                key={p.booking_id}
+                onClick={() => setSelectedPassenger(p.booking_id)}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-right",
+                  selectedPassenger === p.booking_id
+                    ? "border-primary bg-primary/5"
+                    : "border-transparent bg-muted/50 hover:bg-muted"
+                )}
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="text-xs">{getInitials(p.full_name)}</AvatarFallback>
+                </Avatar>
+                <span className="font-medium text-sm">{p.full_name}</span>
+              </button>
+            ))}
           </div>
-        </div>
-      )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button onClick={() => assigningCar && handleAssignPassenger(assigningCar)} disabled={!selectedPassenger} className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              {t("cars.assign")}
+            </Button>
+            <Button variant="outline" onClick={() => { setAssigningCar(null); setSelectedPassenger(""); }}>
+              {t("admin.cancel")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {cars.length === 0 ? (
-        <div className="text-center py-10">
-          <div className="w-16 h-16 bg-slate-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-slate-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h8m-8 4h4m-2 8H6a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v6" />
-            </svg>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <CarIcon className="h-8 w-8 text-muted-foreground/50" />
           </div>
-          <p className="text-lg text-slate-400 dark:text-gray-500">{t("cars.noCars")}</p>
+          <p className="text-lg text-muted-foreground">{t("cars.noCars")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -247,96 +305,73 @@ export default function CarsTab({ tripId }: { tripId: string }) {
             const seatsTaken = car.passengers.length;
             const available = car.capacity - seatsTaken;
             const isFull = available <= 0;
+            const percent = car.capacity > 0 ? (seatsTaken / car.capacity) * 100 : 0;
 
             return (
-              <div key={car.id} className="card">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 17h8M8 17v4h8v-4M8 17l-2-7h12l-2 7" />
-                    </svg>
-                    <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{car.car_label || t("cars.title")}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      isFull
-                        ? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
-                        : "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
-                    }`}>
-                      {seatsTaken}/{car.capacity}
-                    </span>
+              <Card key={car.id}>
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                        <CarIcon className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-semibold">{car.car_label || t("cars.title")}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {t("cars.driver")}: {car.driver_name}
+                        </p>
+                      </div>
+                      <Badge variant={getCapacityVariant(isFull)} className="text-xs">
+                        {seatsTaken}/{car.capacity}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {unbookedPassengers.length > 0 && !isFull && (
+                        <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => { setAssigningCar(car.id); setSelectedPassenger(""); }}>
+                          <UserPlus className="h-3.5 w-3.5" />
+                          {t("cars.assign")}
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-red-600 hover:text-red-700 dark:text-red-400" onClick={() => handleRemoveCar(car.id, car.car_label || "")}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                        {t("cars.remove")}
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {unbookedPassengers.length > 0 && !isFull && (
-                      <button
-                        onClick={() => { setAssigningCar(car.id); setSelectedPassenger(""); }}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50 active:scale-95 transition-all duration-150"
-                      >
-                        {t("cars.assign")}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleRemoveCar(car.id, car.car_label || "")}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
-                    >
-                      {t("cars.remove")}
-                    </button>
+
+                  <div className="flex justify-between text-sm text-muted-foreground mb-1.5">
+                    <span>{t("cars.available")}: {available}</span>
+                    <span>{Math.round(percent)}%</span>
                   </div>
-                </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        isFull ? "bg-red-500" : percent >= 80 ? "bg-amber-500" : "bg-blue-500"
+                      )}
+                      style={{ width: `${Math.min(percent, 100)}%` }}
+                    />
+                  </div>
 
-                <p className="text-sm text-slate-400 dark:text-gray-500 mb-2">
-                  {t("cars.driver")}: {car.driver_name} — {t("cars.available")}: {available}
-                </p>
-
-                {car.passengers.length > 0 && (
-                  <div className="pt-2 border-t border-slate-100 dark:border-gray-800">
-                    <div className="space-y-1">
+                  {car.passengers.length > 0 && (
+                    <div className="mt-3 pt-3 border-t space-y-1.5">
                       {car.passengers.map((p) => (
-                        <div key={p.booking_id} className="flex items-center gap-2 p-1.5 rounded-lg bg-slate-50 dark:bg-gray-800/50">
-                          <span className="text-sm font-medium text-slate-700 dark:text-gray-200">
-                            {p.full_name}
-                          </span>
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                            p.gender === "Male"
-                              ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
-                              : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
-                          }`}>
+                        <div key={p.booking_id} className="flex items-center gap-2.5 p-2 rounded-lg bg-muted/50">
+                          <Avatar className="h-7 w-7">
+                            <AvatarFallback className={cn("text-[10px]", p.gender === "Male" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" : "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300")}>
+                              {getInitials(p.full_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm font-medium">{p.full_name}</span>
+                          <Badge variant="outline" className={cn("text-[10px] px-1.5", p.gender === "Male" ? "border-blue-300 text-blue-600 dark:text-blue-400" : "border-pink-300 text-pink-600 dark:text-pink-400")}>
                             {p.gender === "Male" ? "♂" : "♀"}
-                          </span>
+                          </Badge>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {assigningCar === car.id && (
-                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800 animate-slide-up">
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <select
-                        className="input-field flex-1"
-                        value={selectedPassenger}
-                        onChange={(e) => setSelectedPassenger(e.target.value)}
-                      >
-                        <option value="">{t("cars.selectCar")}</option>
-                        {unbookedPassengers.map((p) => (
-                          <option key={p.booking_id} value={p.booking_id}>{p.full_name}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => handleAssignPassenger(car.id)}
-                        disabled={!selectedPassenger}
-                        className="btn-primary w-full sm:w-auto"
-                      >
-                        {t("cars.assign")}
-                      </button>
-                      <button
-                        onClick={() => { setAssigningCar(null); setSelectedPassenger(""); }}
-                        className="btn-secondary w-full sm:w-auto"
-                      >
-                        {t("admin.cancel")}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
         </div>

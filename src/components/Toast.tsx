@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, createContext, useContext, type ReactNode } from "react";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 type ToastType = "success" | "error";
 
@@ -39,12 +40,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`px-5 py-3 rounded-xl text-base font-semibold shadow-lg animate-slide-down pointer-events-auto ${
+            className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-base font-semibold shadow-lg shadow-black/10 dark:shadow-black/30 animate-slide-down pointer-events-auto backdrop-blur-sm ${
               toast.type === "success"
-                ? "bg-blue-600 dark:bg-blue-500 text-white"
-                : "bg-red-600 dark:bg-red-500 text-white"
+                ? "bg-blue-600/95 dark:bg-blue-500/95 text-white"
+                : "bg-red-600/95 dark:bg-red-500/95 text-white"
             }`}
           >
+            {toast.type === "success" ? (
+              <CheckCircle2 className="w-5 h-5 shrink-0 opacity-90" />
+            ) : (
+              <XCircle className="w-5 h-5 shrink-0 opacity-90" />
+            )}
             {toast.message}
           </div>
         ))}

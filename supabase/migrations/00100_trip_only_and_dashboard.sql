@@ -222,8 +222,7 @@ BEGIN
         (SELECT COUNT(*) FROM public.bookings b
          WHERE b.trip_id = t.id AND b.cancelled_at IS NULL) AS total_booked
     ) stats
-  ) sub
-  ORDER BY sub.trip_date DESC;
+  ) sub;
 
   RETURN COALESCE(v_result, '[]'::jsonb);
 END;

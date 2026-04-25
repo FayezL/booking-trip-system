@@ -7,6 +7,12 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { bookTripOnly, toggleInSet } from "@/lib/booking";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { ChevronDown, ChevronUp, Bus, MapPin, Users, X, Check, CalendarDays } from "lucide-react";
 import type { Trip, Booking, FamilyMember, PassengerInfo } from "@/lib/types/database";
 
 export default function TripsPage() {
@@ -96,6 +102,12 @@ export default function TripsPage() {
     setSelectedFamilyByTrip((prev) => ({ ...prev, [tripId]: toggleInSet(current, id) }));
   }
 
+  function getInitials(name: string) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+
   async function handleBookTrip(tripId: string) {
     const selected = getSelectedForTrip(tripId);
     const totalPeople = 1 + selected.size;
@@ -149,15 +161,13 @@ export default function TripsPage() {
 
       {trips.length === 0 ? (
         <div className="text-center py-16">
-          <div className="w-16 h-16 bg-slate-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-slate-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+          <div className="w-20 h-20 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-900 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <CalendarDays className="w-10 h-10 text-slate-300 dark:text-gray-600" />
           </div>
           <p className="text-lg text-slate-400 dark:text-gray-500">{t("trips.noTrips")}</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {trips.map((trip) => {
             const booked = bookedTripIds.has(trip.id);
             const passengers = passengersByTrip[trip.id] || [];
@@ -166,110 +176,160 @@ export default function TripsPage() {
             const hiddenCount = passengers.length - 5;
 
             return (
-              <div key={trip.id} className="card">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100">{getTripTitle(trip)}</h2>
-                    <p className="text-slate-400 dark:text-gray-500 mt-1 text-sm">{t("trips.date")}: {trip.trip_date}</p>
-                    {passengers.length > 0 && (
-                      <p className="text-xs text-slate-400 dark:text-gray-500 mt-1">
-                        {t("admin.passengersList")}: {passengers.length}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="shrink-0 flex flex-col gap-2">
-                    {booked ? (
-                      <span className="badge-green">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        {t("trips.alreadyBooked")}
-                      </span>
-                    ) : (
-                      <>
-                        {familyMembers.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            <span className="px-2 py-1 rounded-lg text-xs font-semibold border border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 min-h-[32px] inline-flex items-center">
-                              {t("family.me")}
-                            </span>
-                            {familyMembers.map((fm) => {
-                              const selected = getSelectedForTrip(trip.id);
-                              return (
-                              <button
-                                key={fm.id}
-                                type="button"
-                                onClick={() => toggleFamilyMember(trip.id, fm.id)}
-                                className={`px-2 py-1 rounded-lg text-xs font-semibold border min-h-[32px] inline-flex items-center gap-1 transition-all duration-150 active:scale-95 ${
-                                  selected.has(fm.id)
-                                    ? "border-purple-400 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-950/50 dark:text-purple-400"
-                                    : "border-slate-200 bg-white text-slate-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                                }`}
-                              >
-                                {fm.full_name}
-                                {fm.has_wheelchair && " ♿"}
-                              </button>
-                            )})}
-                            {getSelectedForTrip(trip.id).size > 0 && (
-                              <span className="text-xs text-slate-400 dark:text-gray-500 self-center">
-                                ({1 + getSelectedForTrip(trip.id).size})
-                              </span>
-                            )}
-                          </div>
+              <Card key={trip.id} className="overflow-hidden hover:shadow-md transition-shadow duration-300">
+                <CardHeader className={cn(
+                  "pb-3",
+                  booked
+                    ? "bg-gradient-to-l from-emerald-50/80 to-emerald-50/30 dark:from-emerald-950/20 dark:to-transparent"
+                    : "bg-gradient-to-l from-blue-50/80 to-blue-50/30 dark:from-blue-950/20 dark:to-transparent"
+                )}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <CardTitle className="text-xl">{getTripTitle(trip)}</CardTitle>
+                        {booked ? (
+                          <Badge variant="success" className="text-xs">
+                            <Check className="w-3.5 h-3.5" />
+                            {t("trips.alreadyBooked")}
+                          </Badge>
+                        ) : (
+                          <Badge variant="default" className="text-xs">
+                            <MapPin className="w-3.5 h-3.5" />
+                            {t("trips.date")}: {trip.trip_date}
+                          </Badge>
                         )}
-                        <div className="flex flex-col gap-2">
-                          <button
-                            onClick={() => router.push(`/trips/${trip.id}/buses`)}
-                            className="btn-secondary w-full sm:w-auto"
-                          >
-                            {t("trips.bookNow")}
-                          </button>
-                          <button
-                            onClick={() => handleBookTrip(trip.id)}
-                            disabled={bookingTripId !== null}
-                            className="btn-primary w-full sm:w-auto"
-                          >
-                            {bookingTripId === trip.id ? t("common.loading") : t("trips.bookTrip")}
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {passengers.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800">
-                    <div className="text-sm text-slate-500 dark:text-gray-400">
-                      {visiblePassengers.map((p, i) => (
-                         <span key={i}>
-                           {p.family_member_id && <span className="text-purple-400">↳ </span>}
-                           {p.full_name}{p.has_wheelchair && " ♿"}{p.sector_name ? ` (${p.sector_name})` : ""}{i < visiblePassengers.length - 1 ? "، " : ""}
-                         </span>
-                       ))}
-                      {!isExpanded && hiddenCount > 0 && (
-                        <button
-                          onClick={() => setExpandedTrips((prev) => new Set(prev).add(trip.id))}
-                          className="text-blue-600 dark:text-blue-400 font-medium ms-1 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                        >
-                          +{hiddenCount} {t("admin.showMore")}
-                        </button>
+                      </div>
+                      {!booked && (
+                        <p className="text-slate-400 dark:text-gray-500 text-sm">{t("trips.date")}: {trip.trip_date}</p>
                       )}
-                      {isExpanded && passengers.length > 5 && (
-                        <button
-                          onClick={() => setExpandedTrips((prev) => {
-                            const next = new Set(prev);
-                            next.delete(trip.id);
-                            return next;
-                          })}
-                          className="text-blue-600 dark:text-blue-400 font-medium ms-1 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                        >
-                          {t("admin.showLess")}
-                        </button>
+                      {passengers.length > 0 && (
+                        <Badge variant="secondary" className="text-xs w-fit">
+                          <Users className="w-3.5 h-3.5" />
+                          {t("admin.passengersList")}: {passengers.length}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="shrink-0 flex flex-col gap-2">
+                      {!booked && (
+                        <>
+                          {familyMembers.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                className="border-blue-300 bg-blue-50/80 text-blue-700 dark:border-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
+                              >
+                                {t("family.me")}
+                              </Button>
+                              {familyMembers.map((fm) => {
+                                const selected = getSelectedForTrip(trip.id);
+                                return (
+                                  <Button
+                                    key={fm.id}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => toggleFamilyMember(trip.id, fm.id)}
+                                    className={cn(
+                                      "transition-all duration-200 active:scale-95",
+                                      selected.has(fm.id)
+                                        ? "border-purple-400 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-950/50 dark:text-purple-400 shadow-sm"
+                                        : "hover:bg-slate-50 dark:hover:bg-gray-800"
+                                    )}
+                                  >
+                                    {fm.full_name}
+                                    {fm.has_wheelchair && " ♿"}
+                                  </Button>
+                                );
+                              })}
+                              {getSelectedForTrip(trip.id).size > 0 && (
+                                <Badge variant="purple" className="self-center text-xs">
+                                  {1 + getSelectedForTrip(trip.id).size}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              variant="default"
+                              onClick={() => router.push(`/trips/${trip.id}/buses`)}
+                              className="gap-2"
+                            >
+                              <Bus className="w-5 h-5" />
+                              {t("trips.bookNow")}
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              onClick={() => handleBookTrip(trip.id)}
+                              disabled={bookingTripId !== null}
+                            >
+                              {bookingTripId === trip.id ? t("common.loading") : t("trips.bookTrip")}
+                            </Button>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
+                </CardHeader>
+
+                {passengers.length > 0 && (
+                  <CardContent className="pt-3">
+                    <div className="border-t border-slate-100 dark:border-gray-800 pt-3">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {visiblePassengers.map((p, i) => {
+                          const isFamily = !!p.family_member_id;
+                          return (
+                            <div key={i} className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors",
+                              isFamily
+                                ? "bg-purple-50/80 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400"
+                                : "bg-slate-50 text-slate-700 dark:bg-gray-800 dark:text-gray-300"
+                            )}>
+                              {isFamily && <span className="text-xs opacity-60">↳</span>}
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-[10px] bg-white dark:bg-gray-900">
+                                  {getInitials(p.full_name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{p.full_name}{p.has_wheelchair && " ♿"}</span>
+                              {p.sector_name && (
+                                <span className="text-xs opacity-60">({p.sector_name})</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {!isExpanded && hiddenCount > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpandedTrips((prev) => new Set(prev).add(trip.id))}
+                            className="text-blue-600 dark:text-blue-400 gap-1"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                            +{hiddenCount} {t("admin.showMore")}
+                          </Button>
+                        )}
+                        {isExpanded && passengers.length > 5 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpandedTrips((prev) => {
+                              const next = new Set(prev);
+                              next.delete(trip.id);
+                              return next;
+                            })}
+                            className="text-blue-600 dark:text-blue-400 gap-1"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                            {t("admin.showLess")}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
                 )}
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -282,38 +342,50 @@ export default function TripsPage() {
             {myBookings.map((booking) => {
               const fm = booking.family_members as unknown as { full_name: string } | null;
               const busInfo = booking.buses as unknown as { area_name_ar: string; area_name_en: string } | null;
+              const tripTitle = booking.trips ? getTripTitle(booking.trips as Trip) : "";
               return (
-                <div key={booking.id} className="card">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <Card key={booking.id} className="overflow-hidden hover:shadow-md transition-shadow duration-300">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 sm:p-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-50 dark:bg-blue-950/30 rounded-xl flex items-center justify-center shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
+                      <Avatar className="h-12 w-12 shadow-sm">
+                        <AvatarFallback className={cn(
+                          "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30",
+                          fm ? "text-purple-700 dark:text-purple-400" : "text-blue-700 dark:text-blue-400"
+                        )}>
+                          {fm ? getInitials(fm.full_name) : <Check className="w-5 h-5" />}
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
                         <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">
-                          {booking.trips ? getTripTitle(booking.trips as Trip) : ""}
-                          {fm && <span className="text-sm font-normal text-purple-500 dark:text-purple-400 ms-2">↳ {fm.full_name}</span>}
+                          {tripTitle}
+                          {fm && (
+                            <Badge variant="purple" className="ms-2 text-xs">
+                              ↳ {fm.full_name}
+                            </Badge>
+                          )}
                         </h3>
                         {busInfo && (
-                          <p className="text-sm text-slate-400 dark:text-gray-500">
+                          <div className="flex items-center gap-1.5 text-sm text-slate-400 dark:text-gray-500 mt-0.5">
+                            <Bus className="w-3.5 h-3.5" />
                             {t("confirm.bus")}: {lang === "ar" ? busInfo.area_name_ar : busInfo.area_name_en}
-                          </p>
+                          </div>
                         )}
                       </div>
                     </div>
                     {!fm && (
-                      <button
+                      <Button
+                        variant="destructive"
+                        size="sm"
                         onClick={() => handleCancelBooking(booking.id)}
                         disabled={cancellingId !== null}
-                        className="btn-danger w-full sm:w-auto"
+                        className="gap-1.5"
                       >
+                        <X className="w-4 h-4" />
                         {cancellingId === booking.id ? t("common.loading") : t("admin.cancelBooking")}
-                      </button>
+                      </Button>
                     )}
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>

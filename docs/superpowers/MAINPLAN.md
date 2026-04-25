@@ -1,7 +1,7 @@
 # MAINPLAN.md — Booking0Trip System
 
 > Complete project reference. Everything we built, why, and how it works.
-> Last updated: 2026-04-22 (Phase 9 — Family Members + User Settings)
+> Last updated: 2026-04-23 (Phase 10 — Trip-Only Booking + Advanced Dashboard)
 
 ---
 
@@ -12,8 +12,8 @@ A bilingual (Arabic/English) web app for managing church trip bookings — buses
 **Live routes:**
 - `/login` and `/signup` — public auth (with sector selection on signup)
 - `/settings` — user settings (name/phone/password, sector, transport, car settings for servants)
-- `/trips` — patient-facing: browse trips, see passengers, book buses
-- `/trips/[tripId]/buses` — patient: choose bus / "I'm driving" + see who's on it
+- `/trips` — patient-facing: browse trips, see passengers, book buses, book trip-only (no bus)
+- `/trips/[tripId]/buses` — patient: choose bus / "I'm driving" / "Book without bus" + see who's on it
 - `/admin` — admin dashboard
 - `/admin/trips` — trip CRUD with booking count per trip
 - `/admin/trips/[id]` — trip detail (overview / buses / rooms / cars / unbooked tabs)
@@ -194,6 +194,8 @@ All run as `SECURITY DEFINER` with `SET search_path = ''` for security.
 | `update_own_transport(transport_type, servants_needed)` | User changes transport fields | authenticated |
 | `update_own_password(new_password)` | User changes own password | authenticated |
 | `admin_get_user_details(user_id)` | Full profile for admin modal | admin |
+| `book_trip_only_with_family(user_id, trip_id, family_member_ids[])` | Books head + family on trip without bus/car | admin or own user |
+| `get_all_trips_stats()` | Returns JSONB array of all trips with full stats | admin |
 
 ---
 
@@ -261,6 +263,7 @@ src/
     admin-logs.ts                           # logAction() helper
     types/database.ts                       # TypeScript interfaces
     constants.ts                            # Shared constants
+    booking.ts                              # Shared booking utilities (bookTripOnly, toggleInSet)
   middleware.ts                             # Next.js middleware entry
 
 supabase/
@@ -276,6 +279,7 @@ supabase/
     00008_fix_user_delete_cascade.sql      # FK cascade fix for bookings + admin_logs
     00009_family_members.sql               # Family members table + bookings.family_member_id + all RPCs
     00009_user_profile_enhancements.sql    # transport_type + servants_needed + trainee + self-service RPCs
+    00100_trip_only_and_dashboard.sql      # Trip-only booking RPC + advanced dashboard stats RPC + partial index
   functions/
     generate-report/index.ts               # Edge Function (Deno)
 
@@ -300,6 +304,8 @@ docs/superpowers/
 10. **i18n**: Custom dictionary in localStorage, no URL prefixes, Arabic default
 11. **Elderly-friendly**: 18px base font, 48px min buttons, simple Arabic labels, high contrast
 12. **Family members**: Lightweight sub-profiles (no auth account) linked to a head user. Kids/helpers who can't use phones are managed under the head's account. Head books everyone on the same bus. Cancelling head's booking cancels all family member bookings too.
+13. **Trip-only booking**: Users can book a trip without choosing a bus or car — `bus_id` and `car_id` are both NULL. Transport can be decided later by admin.
+14. **Dashboard efficiency**: Single `get_all_trips_stats()` RPC using `CROSS JOIN LATERAL` with correlated subqueries returns all stats in one database round-trip.
 
 ---
 
@@ -378,6 +384,15 @@ docs/superpowers/
 
 ### Step 6: `00008_fix_user_delete_cascade.sql` (Phase 8E)
 - FK cascade fix so hard delete works
+
+### Step 7: `00009_family_members.sql` (Phase 9)
+- Family members table + bookings.family_member_id + 5 new RPCs + 4 updated RPCs
+
+### Step 8: `00009_user_profile_enhancements.sql` (Phase 9)
+- transport_type + servants_needed + trainee role + 5 self-service RPCs
+
+### Step 9: `00100_trip_only_and_dashboard.sql` (Phase 10)
+- Trip-only booking RPC + advanced dashboard stats RPC + partial index
 
 ### How to run:
 1. Open **Supabase Dashboard → SQL Editor**
@@ -594,11 +609,11 @@ None — 0 ESLint warnings, 0 TypeScript errors as of Phase 8.
 |------|--------|------|
 | `00004_part1_infrastructure.sql` | Deployed | Sectors table + seed + sector_id column + RLS |
 | `00004_part2_functions.sql` | Deployed | Updated RPCs with sector support |
-| `00006_part1_cars_schema.sql` | Not yet run | Cars table + profile has_car + bookings.car_id |
-| `00006_part2_cars_functions.sql` | Not yet run | Car RPCs + updated cancel_booking |
-| `00007_hard_delete_user.sql` | Not yet run | Hard delete instead of soft delete |
-| `00008_fix_user_delete_cascade.sql` | Not yet run | FK cascade fix for bookings + admin_logs |
-| `00009_user_profile_enhancements.sql` | Not yet run | transport_type + servants_needed + trainee role + 5 RPCs + updated RPCs |
+| `00006_part1_cars_schema.sql` | Deployed | Cars table + profile has_car + bookings.car_id |
+| `00006_part2_cars_functions.sql` | Deployed | Car RPCs + updated cancel_booking |
+| `00007_hard_delete_user.sql` | Deployed | Hard delete instead of soft delete |
+| `00008_fix_user_delete_cascade.sql` | Deployed | FK cascade fix for bookings + admin_logs |
+| `00009_user_profile_enhancements.sql` | Deployed | transport_type + servants_needed + trainee role + 5 RPCs + updated RPCs |
 
 ### Key Files Added
 
@@ -780,3 +795,326 @@ Three major features delivered together:
 | `src/app/(authenticated)/admin/users/UserDetailModal.tsx` | New component |
 | `src/components/Header.tsx` | Settings link for admins + gear icon |
 | `src/components/MobileNav.tsx` | Settings tab for admins |
+
+---
+
+## Phase 10: Trip-Only Booking + Advanced Dashboard (2026-04-23)
+
+### Problem
+
+1. Some users want to book a trip without choosing a bus or car immediately (decide transport later)
+2. Admin dashboard was minimal — no per-trip breakdowns, no role/gender/transport/sector stats, no wheelchair or servant tracking
+3. Previous dashboard used multiple client-side queries instead of a single efficient RPC
+
+### Solution
+
+1. **Trip-only booking**: New RPC + UI for booking a trip (with family members) without selecting a bus or car
+2. **Advanced dashboard**: Single `get_all_trips_stats()` RPC returning all stats in one call, with expandable per-trip cards
+
+### Database Changes (00100_trip_only_and_dashboard.sql)
+
+**New RPC functions (2):**
+
+| Function | Purpose |
+|----------|---------|
+| `book_trip_only_with_family(p_user_id, p_trip_id, p_family_member_ids[])` | Books head + selected family members on a trip without bus or car. Returns booking ID. |
+| `get_all_trips_stats()` | Returns JSONB array of all trips with full stats breakdown (admin only) |
+
+**`book_trip_only_with_family` details:**
+- Creates booking with `bus_id = NULL, car_id = NULL`
+- Validates: trip is open, not already booked, family member ownership
+- Accepts empty `p_family_member_ids` array for head-only booking
+- Replaces the need for a separate `book_trip_only` RPC
+
+**`get_all_trips_stats` returns per-trip JSON:**
+
+| Field | Type | What |
+|-------|------|------|
+| `trip_id`, `title_ar`, `title_en`, `trip_date`, `is_open` | scalar | Trip identity |
+| `total_booked` | int | All active bookings (head + family) |
+| `total_registered` | int | Total non-deleted profiles in system |
+| `by_role` | object | `{role: count}` for head bookings |
+| `by_gender` | object | `{Male: N, Female: N}` including family members |
+| `by_transport` | object | `{transport_type: count}` for head bookings |
+| `wheelchair_count` | int | Wheelchair users (head + family) |
+| `family_members_count` | int | Family member bookings |
+| `by_sector` | array | `[{name, count}]` for head bookings |
+| `transport_breakdown` | object | `{on_bus, in_car, no_transport}` counts |
+| `servants_needed` | object | `{"0": N, "1": N, "2": N}` for head bookings |
+| `bus_stats` | object | `{total_seats, filled}` |
+| `room_stats` | object | `{total_capacity, assigned}` |
+
+**SQL technique:** Uses `CROSS JOIN LATERAL` with correlated scalar subqueries for each stat. Each stat is self-contained (no GROUP BY needed at the LATERAL level). The outer query wraps results in a subquery for `jsonb_agg(row_data ORDER BY trip_date DESC)`.
+
+**New index:**
+```sql
+CREATE INDEX IF NOT EXISTS idx_bookings_trip_active
+  ON public.bookings(trip_id) WHERE cancelled_at IS NULL;
+```
+Partial index covering the most common dashboard query pattern.
+
+### SQL Bug Fixes (3 iterations)
+
+1. **`room_stats` GROUP BY error**: Original `room_stats` used a nested correlated subquery inside the LATERAL that referenced `t.id` incorrectly. Fixed by using `LEFT JOIN` directly in the LATERAL subquery.
+
+2. **`t.trip_date` GROUP BY error**: The `jsonb_agg()` aggregate function made PostgreSQL require all referenced columns in GROUP BY. Fixed by wrapping in a subquery: `SELECT jsonb_agg(row_data ORDER BY trip_date DESC) FROM (...) sub`.
+
+3. **`sub.trip_date` GROUP BY error**: The wrapper subquery had a redundant outer `ORDER BY sub.trip_date DESC` on an aggregate query. Fixed by removing it — the `ORDER BY` inside `jsonb_agg()` already handles sorting.
+
+### Frontend Changes
+
+**Trips page** (`src/app/(authenticated)/trips/page.tsx`):
+- "Choose Bus" (اختر أتوبيس) button per trip card → navigates to bus selection
+- "Book Trip" (احجز الرحلة) button per trip card → books trip-only via `book_trip_only_with_family`
+- Per-trip family member toggles (separate `Set` per trip, not global)
+- Shows family member names with `↳` prefix in passenger lists
+
+**Bus selection page** (`src/app/(authenticated)/trips/[tripId]/buses/page.tsx`):
+- "Book without bus" (احجز من غير أتوبيس) card at the bottom
+- Calls `bookTripOnly()` from shared utility
+
+**Admin dashboard** (`src/app/(authenticated)/admin/page.tsx`) — complete rewrite:
+- Expandable per-trip cards showing all stats from `get_all_trips_stats()`
+- Stats displayed: total booked, registered, role breakdown (badges), gender, transport, wheelchair, family members, sector breakdown, servants needed, bus fill rate, room capacity
+- Color-coded fill rates (green < 70%, yellow < 90%, red >= 90%)
+- Open/closed trip badges
+- Mobile-friendly grid layout
+
+**Admin trip detail tabs:**
+- `OverviewTab.tsx`: Added "No bus assigned" stat card
+- `BusesTab.tsx`: Added `car_id` to bookings query (was missing, causing empty unassigned list), unassigned passengers section with move/cancel buttons
+
+### Shared Utilities
+
+**`src/lib/booking.ts`** (new):
+- `bookTripOnly(supabase, tripId, familyMemberIds)` — calls `book_trip_only_with_family` RPC
+- `toggleInSet(set, id)` — immutable Set toggle helper for family member selection
+
+**`src/lib/types/database.ts`**:
+- New `TripStats` type matching RPC response
+- New `PassengerInfo` type (shared by trips page and admin BusesTab)
+
+### i18n Changes (~20 new keys per language)
+
+**Arabic examples:** `اختر أتوبيس`, `احجز الرحلة`, `احجز من غير أتوبيس`, `الركاب`, `الإجمالي`, `نسبة الامتلاء`, `غير محدد أتوبيس`, `فتح`, `مقفل`
+
+**English examples:** `Choose Bus`, `Book Trip`, `Book without bus`, `Passengers`, `Total`, `Fill rate`, `No bus assigned`, `Open`, `Closed`
+
+### Button Text Change
+
+- Trip cards: "Book Now" / "احجز دلوقتي" → "Choose Bus" / "اختر أتوبيس"
+- This clarifies that the button navigates to bus selection, not a direct booking
+
+### Code Review Fixes
+
+- Hooks ordering (all `useMemo`/`useCallback` before `useEffect`)
+- Memoized `roleBadges` rendering with `useMemo`
+- Extracted `renderStatBox` and `getStatusColor` outside component
+- Added `aria-label` attributes for accessibility
+- Toast on error for dashboard loading failures
+- Fill rate calculation extracted to named variable
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `supabase/migrations/00100_trip_only_and_dashboard.sql` | New: 2 RPCs + partial index |
+| `src/lib/booking.ts` | New: shared booking utilities |
+| `src/lib/types/database.ts` | `TripStats`, `PassengerInfo` types |
+| `src/lib/i18n/dictionaries/ar.json` | ~20 new keys |
+| `src/lib/i18n/dictionaries/en.json` | ~20 new keys |
+| `src/app/(authenticated)/trips/page.tsx` | Trip-only booking + per-trip family toggles |
+| `src/app/(authenticated)/trips/[tripId]/buses/page.tsx` | "Book without bus" card |
+| `src/app/(authenticated)/admin/page.tsx` | Complete dashboard rewrite |
+| `src/app/(authenticated)/admin/trips/[id]/OverviewTab.tsx` | No-bus stat card |
+| `src/app/(authenticated)/admin/trips/[id]/BusesTab.tsx` | Unassigned section + car_id fix |
+
+### Manual Supabase Step
+
+Run `00100_trip_only_and_dashboard.sql` in Supabase SQL Editor. Uses `CREATE OR REPLACE FUNCTION` so it's safe to re-run.
+
+### Build Status
+
+- 0 TypeScript errors
+- 0 ESLint warnings
+- Build passes
+
+---
+
+## Phase 11: Modern UI/UX Redesign (2026-04-23)
+
+### Problem
+
+The app works perfectly but looks utilitarian — flat cards, basic colors, no visual polish. Elderly users appreciate clarity but the overall aesthetic needs to feel modern and professional.
+
+### Solution
+
+**Soft & Elegant redesign** using **shadcn/ui** component library on top of Tailwind CSS. Every page gets a visual upgrade while keeping all existing functionality, routes, data flow, and elderly-friendly sizing.
+
+### Design Direction
+
+- **Style**: Soft & Elegant — rounded cards, subtle gradients, smooth shadows, pastel accents
+- **Color scheme**: Enhanced blue (keep current blue primary, make richer with gradients and depth)
+- **Component library**: shadcn/ui (zero runtime overhead — copies component source code into project)
+- **Scope**: Full redesign of all pages
+
+### New Dependencies
+
+| Package | Purpose | Size Impact |
+|---------|---------|-------------|
+| `@radix-ui/react-dialog` | Accessible modal dialogs | ~5KB gzipped |
+| `@radix-ui/react-dropdown-menu` | Dropdown menus | ~4KB gzipped |
+| `@radix-ui/react-tabs` | Accessible tab panels | ~3KB gzipped |
+| `@radix-ui/react-switch` | Toggle switches | ~2KB gzipped |
+| `@radix-ui/react-select` | Accessible select menus | ~4KB gzipped |
+| `@radix-ui/react-separator` | Dividers | ~1KB gzipped |
+| `@radix-ui/react-slot` | Polymorphic components | ~1KB gzipped |
+| `class-variance-authority` | Component variants | ~2KB gzipped |
+| `clsx` | Conditional classnames | ~1KB gzipped |
+| `tailwind-merge` | Merge Tailwind classes | ~2KB gzipped |
+| `lucide-react` | Modern icon library | Tree-shaken |
+
+### shadcn/ui Components Added
+
+| Component | Replaces |
+|-----------|----------|
+| Button | `.btn-primary`, `.btn-secondary`, `.btn-danger` CSS classes |
+| Card | `.card`, `.card-hover` CSS classes |
+| Input | `.input-field` CSS class |
+| Badge | `.badge`, `.badge-blue/green/red/amber` CSS classes |
+| Dialog | Native `confirm()` + custom UserDetailModal |
+| Tabs | Custom admin trip detail tabs |
+| Switch | Custom toggle implementations (wheelchair, car, etc.) |
+| Select | Native `<select>` dropdowns (sector, role, gender) |
+| DropdownMenu | Admin action buttons (move, remove, etc.) |
+| Separator | `<hr>` and border dividers |
+| Avatar | User initials in lists |
+| Label | `.label-text` CSS class |
+
+### Design System Changes (globals.css)
+
+**New CSS custom properties:**
+- `--background`, `--foreground`, `--card`, `--card-foreground`, `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--border`, `--input`, `--ring` (light + dark variants)
+- `--radius` for consistent border radius
+
+**Enhanced visual effects:**
+- Multi-layer soft shadows for depth
+- Subtle gradient accents on primary elements
+- Improved dark mode contrast ratios
+- Smoother transitions (200ms ease)
+- Better focus ring styles
+
+**Removed CSS classes (replaced by shadcn):**
+- `.btn-primary`, `.btn-secondary`, `.btn-danger`
+- `.input-field`
+- `.card`, `.card-hover`
+- `.badge`, `.badge-blue/green/red/amber`
+- `.label-text`
+
+**Kept CSS classes:**
+- `.section-title` (updated with new tokens)
+- `.progress-bar`, `.progress-bar-fill` (updated styling)
+- `.hide-scrollbar`
+- Animations: `animate-fade-in`, `animate-slide-up`, `animate-slide-down`
+
+### Page-by-Page Changes
+
+**Login & Signup:**
+- Glass-morphism floating card with animated gradient background
+- shadcn Input + Label + Button components
+- Smoother form spacing and transitions
+- Modern switch for "Remember me" and wheelchair toggle
+
+**Trips listing (patient):**
+- Richer trip cards with gradient headers and better data hierarchy
+- shadcn Badge for status indicators
+- Animated expand/collapse for passenger lists
+- Better family member toggle chips
+
+**Bus selection:**
+- Card grid with visual progress bars
+- shadcn Dialog for confirmations
+- Better visual distinction between bus/car/trip-only options
+
+**Admin dashboard:**
+- Stat cards with subtle gradient backgrounds
+- shadcn Badge for role/gender breakdowns
+- Progress bars with rounded ends and gradient fills
+- Expandable trip sections with smooth animation
+
+**Admin trip detail (5 tabs):**
+- shadcn Tabs with smooth transitions
+- shadcn DropdownMenu for passenger actions
+- shadcn Dialog for move/remove confirmations
+- Better content spacing in each tab
+
+**Admin users page:**
+- shadcn Dialog for UserDetailModal
+- shadcn Select for role/sector filters
+- shadcn Switch for car settings
+- Cleaner table-like layout with hover states
+
+**Settings page:**
+- Grouped sections in shadcn Card wrappers
+- shadcn Input for name/phone/password fields
+- shadcn Switch for toggles
+- Better visual hierarchy between sections
+
+**Header & MobileNav:**
+- Frosted glass effect (`backdrop-blur-lg`) with refined active states
+- Lucide icons replacing inline SVGs
+- Smoother transition animations
+- Refined bottom nav with better active indicators
+
+### What Stays the Same
+
+- All business logic, data fetching, RPC calls
+- RTL/Arabic-first layout (`dir="rtl"`, `lang="ar"`)
+- i18n dictionary approach (no new keys needed)
+- Dark mode via `next-themes`
+- Elderly-friendly sizing (18px base font, 48px min buttons)
+- All routes and navigation structure
+- All database schema, RLS policies, migrations
+- All coding conventions from Phase 6
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `tailwind.config.ts` | Extended with shadcn/ui theme tokens |
+| `src/app/globals.css` | New design system with CSS variables |
+| `src/lib/utils.ts` | New: `cn()` utility for class merging |
+| `src/components/ui/*` | New: shadcn/ui component files |
+| `src/components/Header.tsx` | Lucide icons + refined styling |
+| `src/components/MobileNav.tsx` | Lucide icons + refined styling |
+| `src/components/ThemeToggle.tsx` | shadcn Button |
+| `src/components/LanguageToggle.tsx` | shadcn Button |
+| `src/components/LoadingSpinner.tsx` | Refined styling |
+| `src/components/Toast.tsx` | Updated with new tokens |
+| `src/app/login/page.tsx` | Full visual redesign |
+| `src/app/signup/page.tsx` | Full visual redesign |
+| `src/app/(authenticated)/trips/page.tsx` | Full visual redesign |
+| `src/app/(authenticated)/trips/[tripId]/buses/page.tsx` | Full visual redesign |
+| `src/app/(authenticated)/settings/page.tsx` | Full visual redesign |
+| `src/app/(authenticated)/admin/page.tsx` | Full visual redesign |
+| `src/app/(authenticated)/admin/trips/page.tsx` | Full visual redesign |
+| `src/app/(authenticated)/admin/trips/[id]/page.tsx` | shadcn Tabs |
+| `src/app/(authenticated)/admin/trips/[id]/OverviewTab.tsx` | shadcn Card/Badge |
+| `src/app/(authenticated)/admin/trips/[id]/BusesTab.tsx` | shadcn components |
+| `src/app/(authenticated)/admin/trips/[id]/RoomsTab.tsx` | shadcn components |
+| `src/app/(authenticated)/admin/trips/[id]/CarsTab.tsx` | shadcn components |
+| `src/app/(authenticated)/admin/trips/[id]/UnbookedTab.tsx` | shadcn components |
+| `src/app/(authenticated)/admin/users/page.tsx` | shadcn Dialog/Select/Switch |
+| `src/app/(authenticated)/admin/users/UserDetailModal.tsx` | shadcn Dialog |
+| `src/app/(authenticated)/admin/sectors/page.tsx` | shadcn components |
+| `src/app/(authenticated)/admin/logs/page.tsx` | shadcn components |
+| `src/app/(authenticated)/admin/reports/page.tsx` | shadcn components |
+| `src/lib/i18n/dictionaries/ar.json` | Minor key additions if needed |
+| `src/lib/i18n/dictionaries/en.json` | Minor key additions if needed |
+
+### Performance Impact
+
+- shadcn/ui adds zero runtime framework (source code is copied)
+- Radix primitives add ~15-20KB gzipped total (tree-shaken)
+- `lucide-react` icons are individually imported and tree-shaken
+- No change to loading speed or bundle splitting strategy

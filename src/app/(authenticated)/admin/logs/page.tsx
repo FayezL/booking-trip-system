@@ -5,6 +5,12 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import type { AdminLog } from "@/lib/types/database";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { FileText, Clock, User, ChevronLeft, ChevronRight } from "lucide-react";
 
 type LogWithAdmin = AdminLog & { profiles: { full_name: string } };
 
@@ -30,6 +36,26 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const ACTION_TYPES = Object.keys(ACTION_LABELS);
+
+function getActionBadgeVariant(action: string): "default" | "secondary" | "destructive" | "outline" {
+  if (action.includes("create") || action.includes("book") || action.includes("register")) return "default";
+  if (action.includes("delete") || action.includes("cancel")) return "destructive";
+  if (action.includes("edit") || action.includes("toggle") || action.includes("assign")) return "secondary";
+  return "outline";
+}
+
+function getActionBadgeClassName(action: string): string {
+  if (action.includes("create") || action.includes("book") || action.includes("register")) {
+    return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 hover:bg-emerald-100";
+  }
+  if (action.includes("delete") || action.includes("cancel")) {
+    return "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 hover:bg-red-100";
+  }
+  if (action.includes("edit") || action.includes("toggle") || action.includes("assign")) {
+    return "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 hover:bg-blue-100";
+  }
+  return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-100";
+}
 
 export default function LogsPage() {
   const { t, lang } = useTranslation();
@@ -87,68 +113,73 @@ export default function LogsPage() {
   }
 
   return (
-    <div className="animate-fade-in">
-      <h1 className="section-title mb-6">{t("admin.activityLogs")}</h1>
-
-      <div className="mb-4">
-        <select
-          className="input-field max-w-xs"
-          value={actionFilter}
-          onChange={(e) => setActionFilter(e.target.value)}
-        >
-          <option value="">— {t("admin.filterByAction")} —</option>
-          {ACTION_TYPES.map((a) => (
-            <option key={a} value={a}>
-              {t(`admin.${ACTION_LABELS[a]}`)} ({a})
-            </option>
-          ))}
-        </select>
+    <div className="animate-fade-in space-y-4">
+      <div className="flex items-center gap-2">
+        <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+        <h1 className="section-title">{t("admin.activityLogs")}</h1>
       </div>
 
-      <div className="space-y-2">
-        {paginated.map((log) => (
-          <div key={log.id} className="card">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-slate-400 dark:text-gray-500" dir="ltr">
-                {formatTimestamp(log.created_at)}
-              </span>
-              <span className="font-medium text-sm text-slate-700 dark:text-gray-300">
-                {log.profiles?.full_name || "—"}
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-medium">
-                {t(`admin.${ACTION_LABELS[log.action] || "action"}`)}
-              </span>
-              {log.target_type && (
-                <span className="text-xs text-slate-400 dark:text-gray-500">
-                  {log.target_type}{log.target_id ? `: ${log.target_id.slice(0, 8)}...` : ""}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Select value={actionFilter || "__all__"} onValueChange={(v) => setActionFilter(v === "__all__" ? "" : v)}>
+              <SelectTrigger className="max-w-xs">
+                <SelectValue placeholder={t("admin.filterByAction")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">— {t("admin.filterByAction")} —</SelectItem>
+                {ACTION_TYPES.map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {t(`admin.${ACTION_LABELS[a]}`)} ({a})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {paginated.map((log) => (
+              <div key={log.id} className="flex flex-wrap items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                <span className="text-xs text-muted-foreground flex items-center gap-1" dir="ltr">
+                  <Clock className="h-3 w-3" />
+                  {formatTimestamp(log.created_at)}
                 </span>
-              )}
-            </div>
+                <span className="font-medium text-sm text-foreground flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  {log.profiles?.full_name || "—"}
+                </span>
+                <Badge
+                  variant={getActionBadgeVariant(log.action)}
+                  className={cn("text-xs", getActionBadgeClassName(log.action))}
+                >
+                  {t(`admin.${ACTION_LABELS[log.action] || "action"}`)}
+                </Badge>
+                {log.target_type && (
+                  <span className="text-xs text-muted-foreground">
+                    {log.target_type}{log.target_id ? `: ${log.target_id.slice(0, 8)}...` : ""}
+                  </span>
+                )}
+              </div>
+            ))}
+            {logs.length === 0 && (
+              <p className="text-muted-foreground text-center py-4 text-sm">{t("admin.noLogs")}</p>
+            )}
           </div>
-        ))}
-        {logs.length === 0 && (
-          <p className="text-slate-400 dark:text-gray-500 text-center py-4 text-sm">{t("admin.noLogs")}</p>
-        )}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-4">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
-            >
-              ←
-            </button>
-            <span className="text-sm text-slate-500 dark:text-gray-400">{page} / {totalPages}</span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
-            >
-              →
-            </button>
-          </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

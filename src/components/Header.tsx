@@ -3,6 +3,9 @@
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { Settings, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import LanguageToggle from "./LanguageToggle";
 import ThemeToggle from "./ThemeToggle";
 import type { Profile } from "@/lib/types/database";
@@ -53,45 +56,42 @@ export default function Header({ profile }: HeaderProps) {
   ];
 
   return (
-    <header className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-gray-800 sticky top-0 z-50">
-      {/* Mobile Header */}
+    <header className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-slate-200/60 dark:border-gray-800/60 sticky top-0 z-50 shadow-sm shadow-slate-200/40 dark:shadow-gray-950/40">
       <div className="md:hidden px-4 py-2.5 flex items-center justify-between">
         <h1
-          className="text-lg font-bold text-blue-700 dark:text-blue-400 cursor-pointer"
+          className="text-lg font-bold text-blue-700 dark:text-blue-400 cursor-pointer transition-colors duration-200 hover:text-blue-800 dark:hover:text-blue-300"
           onClick={() => router.push(isAdmin ? "/admin" : "/trips")}
         >
           Saint Demiana | القديسة ديمانه
-         </h1>
-         <div className="flex items-center gap-2">
-           <LanguageToggle />
-           <ThemeToggle />
-           <button
-             onClick={() => router.push("/settings")}
-             className="p-2 rounded-lg text-slate-400 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-blue-500 dark:hover:text-blue-400 active:scale-95 transition-all duration-150"
-             title={t("settings.title")}
-           >
-             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-               <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-             </svg>
-           </button>
-           <button
-             onClick={handleLogout}
-            className="p-2 rounded-lg text-slate-400 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-gray-800 hover:text-red-500 dark:hover:text-red-400 active:scale-95 transition-all duration-150"
+        </h1>
+        <div className="flex items-center gap-1.5">
+          <LanguageToggle />
+          <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/settings")}
+            className="text-slate-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400"
+            title={t("settings.title")}
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            className="text-slate-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400"
             title={t("auth.logout")}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </button>
+            <LogOut className="w-5 h-5" />
+          </Button>
         </div>
       </div>
 
-      {/* Desktop Header */}
       <div className="hidden md:flex max-w-7xl mx-auto px-6 py-3 items-center justify-between">
         <div className="flex items-center gap-6">
           <h1
-            className="text-xl font-bold text-blue-700 dark:text-blue-400 cursor-pointer hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+            className="text-xl font-bold text-blue-700 dark:text-blue-400 cursor-pointer hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200"
             onClick={() => router.push(isAdmin ? "/admin" : "/trips")}
           >
             Saint Demiana | القديسة ديمانه
@@ -100,21 +100,23 @@ export default function Header({ profile }: HeaderProps) {
             <div className="flex gap-1">
               <button
                 onClick={() => router.push("/trips")}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 ${
+                className={cn(
+                  "px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200",
                   isActive("/trips")
-                    ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
-                    : "text-slate-500 dark:text-gray-500 hover:bg-slate-50 dark:hover:bg-gray-800 hover:text-slate-700 dark:hover:text-gray-300"
-                }`}
+                    ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 dark:text-gray-500 hover:bg-slate-50 dark:hover:bg-gray-800/60 hover:text-slate-700 dark:hover:text-gray-300"
+                )}
               >
                 {t("trips.myBookings")}
               </button>
               <button
                 onClick={() => router.push("/settings")}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 ${
+                className={cn(
+                  "px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200",
                   isActive("/settings")
-                    ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
-                    : "text-slate-500 dark:text-gray-500 hover:bg-slate-50 dark:hover:bg-gray-800 hover:text-slate-700 dark:hover:text-gray-300"
-                }`}
+                    ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 dark:text-gray-500 hover:bg-slate-50 dark:hover:bg-gray-800/60 hover:text-slate-700 dark:hover:text-gray-300"
+                )}
               >
                 {t("settings.title")}
               </button>
@@ -126,22 +128,24 @@ export default function Header({ profile }: HeaderProps) {
                 <button
                   key={item.href}
                   onClick={() => router.push(item.href)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 ${
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200",
                     isActive(item.href)
-                      ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
-                      : "text-slate-500 dark:text-gray-500 hover:bg-slate-50 dark:hover:bg-gray-800 hover:text-slate-700 dark:hover:text-gray-300"
-                  }`}
+                      ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 shadow-sm"
+                      : "text-slate-500 dark:text-gray-500 hover:bg-slate-50 dark:hover:bg-gray-800/60 hover:text-slate-700 dark:hover:text-gray-300"
+                  )}
                 >
                   {item.label}
                 </button>
               ))}
               <button
                 onClick={() => router.push("/settings")}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-150 ${
+                className={cn(
+                  "px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200",
                   isActive("/settings")
-                    ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400"
-                    : "text-slate-500 dark:text-gray-500 hover:bg-slate-50 dark:hover:bg-gray-800 hover:text-slate-700 dark:hover:text-gray-300"
-                }`}
+                    ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 dark:text-gray-500 hover:bg-slate-50 dark:hover:bg-gray-800/60 hover:text-slate-700 dark:hover:text-gray-300"
+                )}
               >
                 {t("settings.title")}
               </button>
@@ -155,12 +159,14 @@ export default function Header({ profile }: HeaderProps) {
           </span>
           <ThemeToggle />
           <LanguageToggle />
-          <button
+          <Button
+            variant="ghost"
             onClick={handleLogout}
-            className="px-3 py-1.5 text-sm font-medium text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
+            className="text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50"
           >
+            <LogOut className="w-4 h-4" />
             {t("auth.logout")}
-          </button>
+          </Button>
         </div>
       </div>
     </header>

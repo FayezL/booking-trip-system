@@ -7,6 +7,13 @@ import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import type { Bus } from "@/lib/types/database";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { Bus as BusIcon, Users, ArrowLeftRight, Trash2, Plus, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 
 type Passenger = {
   booking_id: string;
@@ -35,6 +42,10 @@ const emptyForm: BusForm = {
   bus_label: "",
   bus_count: 1,
 };
+
+function getInitials(name: string) {
+  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
 
 export default function BusesTab({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
@@ -291,23 +302,45 @@ export default function BusesTab({ tripId }: { tripId: string }) {
     return <LoadingSpinner text={t("common.loading")} />;
   }
 
+  function getCapacityVariant(percent: number): "default" | "secondary" | "destructive" {
+    if (percent >= 100) return "destructive";
+    if (percent >= 80) return "secondary";
+    return "default";
+  }
+
+  function getFillClass(percent: number) {
+    if (percent >= 100) return "bg-red-500";
+    if (percent >= 80) return "bg-amber-500";
+    return "bg-blue-500";
+  }
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">{t("admin.buses")}</h2>
-        <button onClick={startCreate} className="btn-primary">
-          + {t("admin.createBus")}
-        </button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BusIcon className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">{t("admin.buses")}</h2>
+        </div>
+        <Button onClick={startCreate} size="sm" className="gap-2">
+          <Plus className="h-4 w-4" />
+          {t("admin.createBus")}
+        </Button>
       </div>
 
-      {showForm && (
-        <div className="card mb-4 animate-slide-up">
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="sm:max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{editingId ? t("common.edit") : t("admin.createBus")}</DialogTitle>
+            <DialogDescription>
+              {editingId ? t("admin.busLabel") : t("admin.areaName")}
+            </DialogDescription>
+          </DialogHeader>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {editingId ? (
               <div>
-                <label className="label-text">{t("admin.busLabel")}</label>
+                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("admin.busLabel")}</label>
                 <input
-                  className="input-field"
+                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   value={form.bus_label}
                   onChange={(e) => setForm({ ...form, bus_label: e.target.value })}
                 />
@@ -315,18 +348,18 @@ export default function BusesTab({ tripId }: { tripId: string }) {
             ) : (
               <>
                 <div>
-                  <label className="label-text">{t("admin.areaName")}</label>
+                  <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("admin.areaName")}</label>
                   <input
-                    className="input-field"
+                    className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     value={form.area_name}
                     onChange={(e) => setForm({ ...form, area_name: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="label-text">{t("admin.numberOfBuses")}</label>
+                  <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("admin.numberOfBuses")}</label>
                   <input
                     type="number"
-                    className="input-field"
+                    className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     value={form.bus_count || ""}
                     onChange={(e) => setForm({ ...form, bus_count: parseInt(e.target.value) || 1 })}
                     dir="ltr"
@@ -337,106 +370,153 @@ export default function BusesTab({ tripId }: { tripId: string }) {
               </>
             )}
             <div>
-              <label className="label-text">{t("admin.capacity")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("admin.capacity")}</label>
               <input
                 type="number"
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.capacity || ""}
                 onChange={(e) => setForm({ ...form, capacity: parseInt(e.target.value) || 0 })}
                 dir="ltr"
               />
             </div>
             <div>
-              <label className="label-text">{t("admin.leaderName")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("admin.leaderName")}</label>
               <input
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.leader_name}
                 onChange={(e) => setForm({ ...form, leader_name: e.target.value })}
               />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <button onClick={handleSave} disabled={saving} className="btn-primary w-full sm:w-auto">
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button onClick={handleSave} disabled={saving}>
               {saving ? t("common.loading") : t("admin.save")}
-            </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary w-full sm:w-auto">
+            </Button>
+            <Button variant="outline" onClick={() => setShowForm(false)}>
               {t("admin.cancel")}
-            </button>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!movingPassenger} onOpenChange={(open) => { if (!open) setMovingPassenger(null); }}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{t("admin.moveToBus")}</DialogTitle>
+            <DialogDescription>{t("admin.selectBus")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {(() => {
+              const currentBus = buses.find((b) =>
+                b.passengers.some((p) => p.booking_id === movingPassenger)
+              );
+              const otherBuses = currentBus
+                ? buses.filter((b) => b.id !== currentBus.id)
+                : buses;
+              return (
+                <div className="space-y-2">
+                  {otherBuses.map((ob) => {
+                    const obCount = ob.passengers.length;
+                    const obPercent = ob.capacity > 0 ? (obCount / ob.capacity) * 100 : 0;
+                    return (
+                      <button
+                        key={ob.id}
+                        onClick={() => setSelectedTargetBus(ob.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-right",
+                          selectedTargetBus === ob.id
+                            ? "border-primary bg-primary/5"
+                            : "border-transparent bg-muted/50 hover:bg-muted"
+                        )}
+                      >
+                        <BusIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{ob.bus_label || ob.area_name_ar}</div>
+                          <div className="text-xs text-muted-foreground">{obCount}/{ob.capacity}</div>
+                        </div>
+                        <Badge variant={getCapacityVariant(obPercent)}>{obCount}/{ob.capacity}</Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
-        </div>
-      )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button onClick={confirmMove} disabled={!selectedTargetBus} className="gap-2">
+              <ArrowLeftRight className="h-4 w-4" />
+              {t("admin.book")}
+            </Button>
+            <Button variant="outline" onClick={() => setMovingPassenger(null)}>
+              {t("admin.cancel")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {unassigned.length > 0 && (
-        <div className="card mb-4 border-2 border-orange-200 dark:border-orange-800">
-          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">
-            {t("admin.unassignedPassengers")} ({unassigned.length})
-          </h3>
-          <div className="space-y-2">
-            {unassigned.map((p) => (
-              <div key={p.booking_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 dark:bg-gray-800/50">
-                <div className="flex items-center gap-2">
-                  {p.family_member_id && <span className="text-xs text-purple-400 dark:text-purple-500">&#8627;</span>}
-                  <span className="text-sm font-medium text-slate-700 dark:text-gray-200">{p.full_name}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${p.gender === "Male" ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400" : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"}`}>
-                    {p.gender === "Male" ? "♂" : "♀"}
-                  </span>
-                  {p.has_wheelchair && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400">♿</span>}
-                  {p.sector_name && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400">{p.sector_name}</span>}
-                </div>
-                <div className="flex items-center gap-2">
-                  {buses.length > 0 && (
-                    <>
-                      {movingPassenger === p.booking_id ? (
-                        <div className="flex items-center gap-2">
-                          <select
-                            className="input-field !py-1 !text-xs !w-auto min-w-[120px]"
-                            value={selectedTargetBus}
-                            onChange={(e) => setSelectedTargetBus(e.target.value)}
-                          >
-                            <option value="">{t("admin.selectBus")}</option>
-                            {buses.map((ob) => (
-                              <option key={ob.id} value={ob.id}>
-                                {ob.bus_label || ob.area_name_ar} ({ob.passengers.length}/{ob.capacity})
-                              </option>
-                            ))}
-                          </select>
-                          <button onClick={confirmMove} disabled={!selectedTargetBus} className="px-2 py-1 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-all duration-150">
-                            {t("admin.book")}
-                          </button>
-                          <button onClick={() => setMovingPassenger(null)} className="px-2 py-1 rounded-lg text-xs font-medium bg-slate-200 dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-600 active:scale-95 transition-all duration-150">
-                            {t("admin.cancel")}
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => startMove(p.booking_id)}
-                          className="px-2 py-1 rounded-lg text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50 active:scale-95 transition-all duration-150"
-                        >
-                          {t("admin.moveToBus")}
-                        </button>
+        <Card className="border-amber-300 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <CardTitle className="text-base">{t("admin.unassignedPassengers")}</CardTitle>
+              <Badge variant="secondary">{unassigned.length}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="space-y-2">
+              {unassigned.map((p) => (
+                <div key={p.booking_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-background/80">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className={cn("text-xs", p.gender === "Male" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" : "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300")}>
+                        {getInitials(p.full_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm font-medium">{p.full_name}</span>
+                      <Badge variant="outline" className={cn("text-[10px] px-1.5", p.gender === "Male" ? "border-blue-300 text-blue-600 dark:text-blue-400" : "border-pink-300 text-pink-600 dark:text-pink-400")}>
+                        {p.gender === "Male" ? "♂" : "♀"}
+                      </Badge>
+                      {p.has_wheelchair && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 border-amber-300 text-amber-600 dark:text-amber-400">♿</Badge>
                       )}
-                      <button
-                        onClick={() => handleRemovePassenger(p.booking_id, p.full_name)}
-                        className="px-2 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
-                      >
-                        {t("admin.cancelBooking")}
-                       </button>
-                     </>
-                   )}
-                 </div>
-               </div>
-             ))}
-           </div>
-         </div>
-       )}
+                      {p.sector_name && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 border-teal-300 text-teal-600 dark:text-teal-400">{p.sector_name}</Badge>
+                      )}
+                      {p.family_member_id && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 border-violet-300 text-violet-600 dark:text-violet-400">↳</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {buses.length > 0 && (
+                      <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => startMove(p.booking_id)}>
+                        <ArrowLeftRight className="h-3 w-3" />
+                        {t("admin.moveToBus")}
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1 text-red-600 hover:text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={() => handleRemovePassenger(p.booking_id, p.full_name)}>
+                      <Trash2 className="h-3 w-3" />
+                      {t("admin.cancelBooking")}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {buses.length === 0 ? (
-        <div className="text-center py-10">
-          <p className="text-lg text-slate-400 dark:text-gray-500 mb-2">{t("admin.noBusesYet")}</p>
-          <p className="text-sm text-slate-300 dark:text-gray-600 mb-4">{t("admin.addBusesFirst")}</p>
-          <button onClick={startCreate} className="btn-primary">
-            + {t("admin.createBus")}
-          </button>
+        <div className="text-center py-12">
+          <BusIcon className="h-14 w-14 mx-auto text-muted-foreground/30 mb-4" />
+          <p className="text-lg text-muted-foreground mb-1">{t("admin.noBusesYet")}</p>
+          <p className="text-sm text-muted-foreground/60 mb-4">{t("admin.addBusesFirst")}</p>
+          <Button onClick={startCreate} className="gap-2">
+            <Plus className="h-4 w-4" />
+            {t("admin.createBus")}
+          </Button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -445,166 +525,116 @@ export default function BusesTab({ tripId }: { tripId: string }) {
             const percent = bus.capacity > 0 ? (count / bus.capacity) * 100 : 0;
             const displayName = bus.bus_label || bus.area_name_ar;
             const isExpanded = expandedBusIds.has(bus.id);
-            const otherBuses = buses.filter((b) => b.id !== bus.id);
-
-            const statusBg =
-              percent >= 100
-                ? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
-                : percent >= 80
-                  ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
-                  : "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400";
-            const fillClass = percent >= 100 ? "danger" : percent >= 80 ? "warning" : "";
 
             return (
-              <div key={bus.id} className="card">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-slate-800 dark:text-gray-100">{displayName}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusBg}`}>
-                      {count}/{bus.capacity}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => toggleExpand(bus.id)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 active:scale-95 transition-all duration-150"
-                    >
-                      {isExpanded ? t("admin.hidePassengers") : t("admin.showPassengers")}
-                      {count > 0 && <span className="ms-1">({count})</span>}
-                    </button>
-                    <button
-                      onClick={() => startEdit(bus)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
-                    >
-                      {t("common.edit")}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(bus.id)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
-                    >
-                      {t("common.delete")}
-                    </button>
-                  </div>
-                </div>
-
-                {bus.leader_name && (
-                  <p className="text-sm text-slate-400 dark:text-gray-500 mb-1">
-                    {t("admin.leaderName")}: {bus.leader_name}
-                  </p>
-                )}
-
-                <div className="flex justify-between text-sm text-slate-400 dark:text-gray-500 mb-1.5">
-                  <span>{t("admin.passengers")}: {count}/{bus.capacity}</span>
-                  <span>{Math.round(percent)}%</span>
-                </div>
-                <div className="progress-bar">
-                  <div
-                    className={`progress-bar-fill ${fillClass}`}
-                    style={{ width: `${Math.min(percent, 100)}%` }}
-                  />
-                </div>
-
-                {isExpanded && (
-                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800 animate-slide-up">
-                    {count === 0 ? (
-                      <p className="text-sm text-slate-400 dark:text-gray-500">{t("admin.noPassengers")}</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {bus.passengers.map((p) => (
-                          <div
-                            key={p.booking_id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 dark:bg-gray-800/50"
-                          >
-                            <div className="flex items-center gap-2">
-                              {p.family_member_id && (
-                                <span className="text-xs text-purple-400 dark:text-purple-500">↳</span>
-                              )}
-                              <span className="text-sm font-medium text-slate-700 dark:text-gray-200">
-                                {p.full_name}
-                              </span>
-                              <span
-                                className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                                  p.gender === "Male"
-                                    ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
-                                    : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
-                                }`}
-                              >
-                                {p.gender === "Male" ? "♂" : "♀"}
-                              </span>
-                              {p.has_wheelchair && (
-                                <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400">♿</span>
-                              )}
-                              {p.sector_name && (
-                                <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400">
-                                  {p.sector_name}
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {movingPassenger === p.booking_id ? (
-                                <div className="flex items-center gap-2">
-                                  <select
-                                    className="input-field !py-1 !text-xs !w-auto min-w-[120px]"
-                                    value={selectedTargetBus}
-                                    onChange={(e) => setSelectedTargetBus(e.target.value)}
-                                  >
-                                    <option value="">{t("admin.selectBus")}</option>
-                                    {otherBuses.map((ob) => (
-                                      <option key={ob.id} value={ob.id}>
-                                        {ob.bus_label || ob.area_name_ar} ({ob.passengers.length}/{ob.capacity})
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <button
-                                    onClick={confirmMove}
-                                    disabled={!selectedTargetBus}
-                                    className="px-2 py-1 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-all duration-150"
-                                  >
-                                    {t("admin.book")}
-                                  </button>
-                                  <button
-                                    onClick={() => setMovingPassenger(null)}
-                                    className="px-2 py-1 rounded-lg text-xs font-medium bg-slate-200 dark:bg-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-600 active:scale-95 transition-all duration-150"
-                                  >
-                                    {t("admin.cancel")}
-                                  </button>
-                                </div>
-                              ) : removingPassenger === p.booking_id ? (
-                                <span className="text-xs text-slate-400 dark:text-gray-500">{t("common.loading")}</span>
-                              ) : (
-                                <>
-                                  {otherBuses.length > 0 && (
-                                    <button
-                                      onClick={() => startMove(p.booking_id)}
-                                      className="px-2 py-1 rounded-lg text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50 active:scale-95 transition-all duration-150"
-                                    >
-                                      {t("admin.moveToBus")}
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => handleRemovePassenger(p.booking_id, p.full_name)}
-                                    className="px-2 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
-                                  >
-                                    {t("admin.removeFromBus")}
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+              <Card key={bus.id}>
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                        <BusIcon className="h-4 w-4 text-primary" />
                       </div>
-                    )}
+                      <div>
+                        <h3 className="text-base font-semibold">{displayName}</h3>
+                        {bus.leader_name && (
+                          <p className="text-xs text-muted-foreground">{t("admin.leaderName")}: {bus.leader_name}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={getCapacityVariant(percent)} className="text-xs">
+                        {count}/{bus.capacity}
+                      </Badge>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs gap-1" onClick={() => toggleExpand(bus.id)}>
+                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                        {isExpanded ? t("admin.hidePassengers") : t("admin.showPassengers")}
+                        {count > 0 && <span className="ms-1">({count})</span>}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs gap-1" onClick={() => startEdit(bus)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                        {t("common.edit")}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-red-600 hover:text-red-700 dark:text-red-400" onClick={() => handleDelete(bus.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                        {t("common.delete")}
+                      </Button>
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  <div className="flex justify-between text-sm text-muted-foreground mb-1.5">
+                    <span>{t("admin.passengers")}: {count}/{bus.capacity}</span>
+                    <span>{Math.round(percent)}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-500", getFillClass(percent))}
+                      style={{ width: `${Math.min(percent, 100)}%` }}
+                    />
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-3 pt-3 border-t">
+                      {count === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-2">{t("admin.noPassengers")}</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {bus.passengers.map((p) => (
+                            <div
+                              key={p.booking_id}
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-muted/50"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <Avatar className="h-7 w-7">
+                                  <AvatarFallback className={cn("text-[10px]", p.gender === "Male" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" : "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300")}>
+                                    {getInitials(p.full_name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {p.family_member_id && (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 border-violet-300 text-violet-600 dark:text-violet-400">↳</Badge>
+                                  )}
+                                  <span className="text-sm font-medium">{p.full_name}</span>
+                                  <Badge variant="outline" className={cn("text-[10px] px-1.5", p.gender === "Male" ? "border-blue-300 text-blue-600 dark:text-blue-400" : "border-pink-300 text-pink-600 dark:text-pink-400")}>
+                                    {p.gender === "Male" ? "♂" : "♀"}
+                                  </Badge>
+                                  {p.has_wheelchair && (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 border-amber-300 text-amber-600 dark:text-amber-400">♿</Badge>
+                                  )}
+                                  {p.sector_name && (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 border-teal-300 text-teal-600 dark:text-teal-400">{p.sector_name}</Badge>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {removingPassenger === p.booking_id ? (
+                                  <span className="text-xs text-muted-foreground">{t("common.loading")}</span>
+                                ) : (
+                                  <>
+                                    {buses.filter((b) => b.id !== bus.id).length > 0 && (
+                                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => startMove(p.booking_id)}>
+                                        <ArrowLeftRight className="h-3 w-3" />
+                                        {t("admin.moveToBus")}
+                                      </Button>
+                                    )}
+                                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-red-600 hover:text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={() => handleRemovePassenger(p.booking_id, p.full_name)}>
+                                      <Trash2 className="h-3 w-3" />
+                                      {t("admin.removeFromBus")}
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
         </div>
-      )}
-
-      {movingPassenger && (
-        <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setMovingPassenger(null)} />
       )}
     </div>
   );

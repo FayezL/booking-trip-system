@@ -6,6 +6,17 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import { PASSWORD_MIN_LENGTH, PHONE_REGEX } from "@/lib/constants";
 import type { Sector, Profile, FamilyMember } from "@/lib/types/database";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { User, Phone, Lock, Bus, Car, Users, Plus, Edit, Trash2, MapPin } from "lucide-react";
 
 type FamilyForm = {
   full_name: string;
@@ -18,6 +29,10 @@ const emptyFamilyForm: FamilyForm = {
   gender: "Male",
   has_wheelchair: false,
 };
+
+function getInitials(name: string): string {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -281,9 +296,11 @@ export default function SettingsPage() {
     return (
       <div className="animate-fade-in">
         <h1 className="section-title mb-6">{t("settings.title")}</h1>
-        <div className="card">
-          <p className="text-slate-400 dark:text-gray-500 text-center py-8">{t("common.loading")}</p>
-        </div>
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-muted-foreground text-center">{t("common.loading")}</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -292,148 +309,162 @@ export default function SettingsPage() {
     <div className="animate-fade-in space-y-4">
       <h1 className="section-title mb-6">{t("settings.title")}</h1>
 
-      {/* Account Section */}
-      <div className="card">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 mb-4">{t("settings.accountGroup")}</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="label-text">{t("settings.changeName")}</label>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <User className="h-5 w-5" />
+            {t("settings.accountGroup")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5" />
+              {t("settings.changeName")}
+            </Label>
             <div className="flex flex-col sm:flex-row gap-3">
-              <input
+              <Input
                 type="text"
-                className="input-field flex-1"
+                className="flex-1"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 disabled={savingName}
               />
-              <button
+              <Button
                 onClick={handleSaveName}
                 disabled={savingName || !newName.trim() || newName.trim() === profile?.full_name}
-                className="btn-primary w-full sm:w-auto shrink-0"
+                className="shrink-0"
               >
                 {savingName ? t("common.loading") : t("common.save")}
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div>
-            <label className="label-text">{t("settings.changePhone")}</label>
+          <Separator />
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5" />
+              {t("settings.changePhone")}
+            </Label>
             <div className="flex flex-col sm:flex-row gap-3">
-              <input
+              <Input
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                className="input-field flex-1 font-mono tracking-widest"
+                className="flex-1 font-mono tracking-widest"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, "").slice(0, 15))}
                 dir="ltr"
                 disabled={savingPhone}
               />
-              <button
+              <Button
                 onClick={handleSavePhone}
                 disabled={savingPhone || !PHONE_REGEX.test(newPhone.replace(/\D/g, "")) || newPhone === profile?.phone}
-                className="btn-primary w-full sm:w-auto shrink-0"
+                className="shrink-0"
               >
                 {savingPhone ? t("common.loading") : t("common.save")}
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div>
-            <label className="label-text">{t("settings.changePassword")}</label>
+          <Separator />
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Lock className="h-3.5 w-3.5" />
+              {t("settings.changePassword")}
+            </Label>
             <div className="space-y-3">
-              <input
+              <Input
                 type="password"
-                className="input-field"
                 placeholder={t("settings.currentPassword")}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 dir="ltr"
                 disabled={savingPassword}
               />
-              <input
+              <Input
                 type="password"
-                className="input-field"
                 placeholder={t("settings.newPasswordLabel")}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 dir="ltr"
                 disabled={savingPassword}
               />
-              <button
+              <Button
                 onClick={handleSavePassword}
                 disabled={savingPassword || !currentPassword || newPassword.length < PASSWORD_MIN_LENGTH}
-                className="btn-primary w-full sm:w-auto"
               >
                 {savingPassword ? t("common.loading") : t("common.save")}
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Trip Details Section */}
-      <div className="card">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 mb-4">{t("settings.tripDetailsGroup")}</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="label-text">{t("settings.transportType")}</label>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bus className="h-5 w-5" />
+            {t("settings.tripDetailsGroup")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>{t("settings.transportType")}</Label>
             <div className="flex gap-3">
-              <button
+              <Button
                 type="button"
+                variant={transportType === "private" ? "default" : "outline"}
                 onClick={() => setTransportType("private")}
-                className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
-                  ${transportType === "private"
-                    ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                    : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  }`}
+                className="flex-1 min-h-[48px] text-base"
               >
                 {t("settings.transportPrivate")}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant={transportType === "bus" ? "default" : "outline"}
                 onClick={() => setTransportType("bus")}
-                className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
-                  ${transportType === "bus"
-                    ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                    : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  }`}
+                className="flex-1 min-h-[48px] text-base"
               >
                 {t("settings.transportBus")}
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div>
-            <label className="label-text">{t("settings.servantsNeeded")}</label>
+          <div className="space-y-2">
+            <Label>{t("settings.servantsNeeded")}</Label>
             <div className="flex gap-3">
               {([0, 1, 2] as const).map((n) => (
-                <button
+                <Button
                   key={n}
                   type="button"
+                  variant={servantsNeeded === n ? "default" : "outline"}
                   onClick={() => setServantsNeeded(n)}
-                  className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
-                    ${servantsNeeded === n
-                      ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400 shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 active:bg-slate-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    }`}
+                  className="flex-1 min-h-[48px] text-base"
                 >
                   {n}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
 
-          <div>
-            <label className="label-text">{t("settings.sector")}</label>
+          <Separator />
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5" />
+              {t("settings.sector")}
+            </Label>
             {currentSectorName && (
-              <p className="text-sm text-slate-400 dark:text-gray-500 mb-2">
+              <p className="text-sm text-muted-foreground">
                 {t("sectors.yourSector")}: <span className="font-medium text-teal-600 dark:text-teal-400">{currentSectorName}</span>
               </p>
             )}
             <div className="flex flex-col sm:flex-row gap-3">
               <select
-                className="input-field flex-1"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 flex-1"
                 value={selectedSector}
                 onChange={(e) => setSelectedSector(e.target.value)}
               >
@@ -444,175 +475,172 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
-              <button
+              <Button
                 onClick={handleSaveSector}
                 disabled={savingSector || selectedSector === (currentSectorId || "")}
-                className="btn-primary w-full sm:w-auto shrink-0"
+                className="shrink-0"
               >
                 {savingSector ? t("common.loading") : t("common.save")}
-              </button>
+              </Button>
             </div>
           </div>
 
-          <button
+          <Button
             onClick={handleSaveTransport}
             disabled={savingTransport}
-            className="btn-primary w-full sm:w-auto"
           >
             {savingTransport ? t("common.loading") : t("common.save")}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </CardContent>
+      </Card>
 
-      {/* Family Members Section */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">{t("family.title")}</h2>
-          <button onClick={startAddFamily} className="btn-primary text-sm">
-            + {t("family.add")}
-          </button>
-        </div>
-
-        {showFamilyForm && (
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-gray-800/50 mb-4 animate-slide-up">
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-              <div>
-                <label className="label-text">{t("family.name")}</label>
-                <input
-                  className="input-field"
-                  value={familyForm.full_name}
-                  onChange={(e) => setFamilyForm({ ...familyForm, full_name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="label-text">{t("family.gender")}</label>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setFamilyForm({ ...familyForm, gender: "Male" })}
-                    className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
-                      ${familyForm.gender === "Male"
-                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-400"
-                        : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                      }`}
-                  >
-                    {t("family.male")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFamilyForm({ ...familyForm, gender: "Female" })}
-                    className={`flex-1 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-150 min-h-[48px]
-                      ${familyForm.gender === "Female"
-                        ? "border-pink-500 bg-pink-50 text-pink-700 dark:border-pink-500 dark:bg-pink-950/50 dark:text-pink-400"
-                        : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                      }`}
-                  >
-                    {t("family.female")}
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 sm:col-span-2">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={familyForm.has_wheelchair}
-                  onClick={() => setFamilyForm({ ...familyForm, has_wheelchair: !familyForm.has_wheelchair })}
-                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    familyForm.has_wheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      familyForm.has_wheelchair ? "translate-x-5" : "translate-x-0"
-                    }`}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="h-5 w-5" />
+              {t("family.title")}
+            </CardTitle>
+            <Button size="sm" onClick={startAddFamily} className="gap-1">
+              <Plus className="h-4 w-4" />
+              {t("family.add")}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Dialog open={showFamilyForm} onOpenChange={(open) => {
+            setShowFamilyForm(open);
+            if (!open) setEditingFamilyId(null);
+          }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {editingFamilyId ? <Edit className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                  {editingFamilyId ? t("common.edit") : t("family.add")}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>{t("family.name")}</Label>
+                  <Input
+                    value={familyForm.full_name}
+                    onChange={(e) => setFamilyForm({ ...familyForm, full_name: e.target.value })}
                   />
-                </button>
-                <span className="text-sm text-slate-600 dark:text-gray-300">♿ {t("family.wheelchair")}</span>
-              </div>
-            </div>
-            <div className="flex gap-3 mt-3">
-              <button onClick={handleSaveFamily} disabled={savingFamily || !familyForm.full_name.trim()} className="btn-primary text-sm">
-                {savingFamily ? t("common.loading") : t("common.save")}
-              </button>
-              <button onClick={() => setShowFamilyForm(false)} className="btn-secondary text-sm">
-                {t("admin.cancel")}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {familyMembers.length === 0 ? (
-          <p className="text-sm text-slate-400 dark:text-gray-500 text-center py-4">{t("family.noMembers")}</p>
-        ) : (
-          <div className="space-y-2">
-            {familyMembers.map((member, idx) => (
-              <div key={member.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-gray-800/50">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-slate-500 dark:text-gray-400">{idx + 1}.</span>
-                  <span className="text-sm font-medium text-slate-800 dark:text-gray-100">{member.full_name}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                    member.gender === "Male" ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400" : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
-                  }`}>
-                    {member.gender === "Male" ? "♂" : "♀"}
-                  </span>
-                  {member.has_wheelchair && (
-                    <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400">♿</span>
-                  )}
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => startEditFamily(member)}
-                    className="px-2 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300 active:scale-95 transition-all duration-150"
-                  >
-                    {t("common.edit")}
-                  </button>
-                  <button
-                    onClick={() => handleRemoveFamily(member.id)}
-                    className="px-2 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 active:scale-95 transition-all duration-150"
-                  >
-                    {t("common.delete")}
-                  </button>
+                <div className="space-y-2">
+                  <Label>{t("family.gender")}</Label>
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant={familyForm.gender === "Male" ? "default" : "outline"}
+                      onClick={() => setFamilyForm({ ...familyForm, gender: "Male" })}
+                      className="flex-1 min-h-[48px]"
+                    >
+                      {t("family.male")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={familyForm.gender === "Female" ? "default" : "outline"}
+                      onClick={() => setFamilyForm({ ...familyForm, gender: "Female" })}
+                      className={cn(
+                        "flex-1 min-h-[48px]",
+                        familyForm.gender === "Female" && "bg-pink-600 hover:bg-pink-700 text-white"
+                      )}
+                    >
+                      {t("family.female")}
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={familyForm.has_wheelchair}
+                    onCheckedChange={(checked) => setFamilyForm({ ...familyForm, has_wheelchair: checked })}
+                  />
+                  <Label>{t("family.wheelchair")}</Label>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <DialogFooter className="gap-2">
+                <Button onClick={handleSaveFamily} disabled={savingFamily || !familyForm.full_name.trim()}>
+                  {savingFamily ? t("common.loading") : t("common.save")}
+                </Button>
+                <Button variant="outline" onClick={() => setShowFamilyForm(false)}>
+                  {t("admin.cancel")}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-      {/* Car Section — servants only */}
+          {familyMembers.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">{t("family.noMembers")}</p>
+          ) : (
+            <div className="space-y-2">
+              {familyMembers.map((member) => (
+                <div key={member.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs font-semibold bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400">
+                        {getInitials(member.full_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium text-foreground">{member.full_name}</span>
+                    <Badge variant="outline" className={cn(
+                      "text-xs",
+                      member.gender === "Male"
+                        ? "border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400"
+                        : "border-pink-300 text-pink-600 dark:border-pink-700 dark:text-pink-400"
+                    )}>
+                      {member.gender === "Male" ? "♂" : "♀"}
+                    </Badge>
+                    {member.has_wheelchair && (
+                      <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400">
+                        ♿
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => startEditFamily(member)}>
+                      <Edit className="h-3 w-3" />
+                      {t("common.edit")}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1" onClick={() => handleRemoveFamily(member.id)}>
+                      <Trash2 className="h-3 w-3" />
+                      {t("common.delete")}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {isServant && (
-        <div className="card">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100 mb-4">{t("cars.register")}</h2>
-          <p className="text-xs text-slate-400 dark:text-gray-500 mb-4">
-            {t("settings.carSeatsHint")}
-          </p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Car className="h-5 w-5" />
+              {t("cars.register")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              {t("settings.carSeatsHint")}
+            </p>
 
-          <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={hasCar}
-                onClick={() => setHasCar(!hasCar)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                  hasCar ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    hasCar ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-              <span className="text-base text-slate-600 dark:text-gray-300">{t("settings.hasCar")}</span>
+              <Switch
+                checked={hasCar}
+                onCheckedChange={setHasCar}
+              />
+              <Label className="text-base">{t("settings.hasCar")}</Label>
             </div>
 
             {hasCar && (
-              <div>
-                <label className="label-text">{t("settings.carSeats")}</label>
-                <input
+              <div className="space-y-2">
+                <Label>{t("settings.carSeats")}</Label>
+                <Input
                   type="number"
-                  className="input-field w-24 text-center"
+                  className="w-24 text-center"
                   value={carSeats}
                   onChange={(e) => setCarSeats(Math.max(1, parseInt(e.target.value) || 1))}
                   min="1"
@@ -622,15 +650,14 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <button
+            <Button
               onClick={handleSaveCar}
               disabled={savingCar}
-              className="btn-primary w-full sm:w-auto"
             >
               {savingCar ? t("common.loading") : t("common.save")}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

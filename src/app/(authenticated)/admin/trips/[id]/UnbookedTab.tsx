@@ -7,6 +7,14 @@ import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import type { Profile, Bus, Sector, FamilyMember } from "@/lib/types/database";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { Users, Search, Plus, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 
 type RegisterForm = {
   phone: string;
@@ -29,6 +37,10 @@ const emptyForm: RegisterForm = {
   has_wheelchair: false,
   sector_id: "",
 };
+
+function getInitials(name: string) {
+  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
 
 export default function UnbookedTab({ tripId }: { tripId: string }) {
   const { t, lang } = useTranslation();
@@ -197,27 +209,36 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   }
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">{t("admin.unbooked")}</h2>
-          <p className="text-sm text-slate-400 dark:text-gray-500">
-            {unbooked.length} {t("admin.unbooked")} ({maleCount}M, {femaleCount}F)
-          </p>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <h2 className="text-lg font-semibold">{t("admin.unbooked")}</h2>
+            <p className="text-sm text-muted-foreground">
+              {unbooked.length} {t("admin.unbooked")}
+              <Badge variant="outline" className="mx-1 text-[10px]">♂ {maleCount}</Badge>
+              <Badge variant="outline" className="text-[10px]">♀ {femaleCount}</Badge>
+            </p>
+          </div>
         </div>
-        <button onClick={() => setShowRegister(!showRegister)} className="btn-primary w-full sm:w-auto">
-          + {t("admin.registerPatient")}
-        </button>
+        <Button onClick={() => setShowRegister(!showRegister)} className="gap-2 w-full sm:w-auto">
+          <Plus className="h-4 w-4" />
+          {t("admin.registerPatient")}
+        </Button>
       </div>
 
-      {showRegister && (
-        <div className="card mb-4 animate-slide-up">
-          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">{t("admin.registerPatient")}</h3>
+      <Dialog open={showRegister} onOpenChange={setShowRegister}>
+        <DialogContent className="sm:max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{t("admin.registerPatient")}</DialogTitle>
+            <DialogDescription>{t("auth.phone")}</DialogDescription>
+          </DialogHeader>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             <div>
-              <label className="label-text">{t("auth.phone")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("auth.phone")}</label>
               <input
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="01XXXXXXXXX"
@@ -225,17 +246,17 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               />
             </div>
             <div>
-              <label className="label-text">{t("auth.fullName")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("auth.fullName")}</label>
               <input
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.full_name}
                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               />
             </div>
             <div>
-              <label className="label-text">{t("auth.gender")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("auth.gender")}</label>
               <select
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.gender}
                 onChange={(e) =>
                   setForm({ ...form, gender: e.target.value as "Male" | "Female" })
@@ -246,9 +267,9 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
               </select>
             </div>
             <div>
-              <label className="label-text">{t("admin.role")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("admin.role")}</label>
               <select
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.role}
                 onChange={(e) => {
                   const newRole = e.target.value;
@@ -267,209 +288,230 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                   role="switch"
                   aria-checked={form.has_wheelchair}
                   onClick={() => setForm({ ...form, has_wheelchair: !form.has_wheelchair })}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    form.has_wheelchair ? "bg-blue-600" : "bg-slate-200 dark:bg-gray-700"
-                  }`}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                    form.has_wheelchair ? "bg-primary" : "bg-muted"
+                  )}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
                       form.has_wheelchair ? "translate-x-5" : "translate-x-0"
-                    }`}
+                    )}
                   />
                 </button>
-                <span className="text-sm text-slate-600 dark:text-gray-300">♿ {t("admin.wheelchair")}</span>
+                <span className="text-sm text-muted-foreground">♿ {t("admin.wheelchair")}</span>
               </div>
             )}
             <div>
-              <label className="label-text">{t("sectors.select")}</label>
-              <select
-                className="input-field"
-                value={form.sector_id}
-                onChange={(e) => setForm({ ...form, sector_id: e.target.value })}
-              >
-                <option value="">{t("sectors.none")}</option>
-                {sectors.map((s) => (
-                  <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
-                ))}
-              </select>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("sectors.select")}</label>
+              <Select value={form.sector_id} onValueChange={(v) => setForm({ ...form, sector_id: v })}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder={t("sectors.none")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {sectors.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.code} - {s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <label className="label-text">{t("auth.password")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("auth.password")}</label>
               <input
                 type="password"
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 dir="ltr"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="label-text">{t("buses.chooseBus")} ({t("admin.cancel")})</label>
-              <select
-                className="input-field"
-                value={form.bus_id}
-                onChange={(e) => setForm({ ...form, bus_id: e.target.value })}
-              >
-                <option value="">---</option>
-                {buses.map((bus) => (
-                  <option key={bus.id} value={bus.id}>
-                    {bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en)}
-                  </option>
-                ))}
-              </select>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("buses.chooseBus")} ({t("admin.cancel")})</label>
+              <Select value={form.bus_id} onValueChange={(v) => setForm({ ...form, bus_id: v })}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="---" />
+                </SelectTrigger>
+                <SelectContent>
+                  {buses.map((bus) => (
+                    <SelectItem key={bus.id} value={bus.id}>
+                      {bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <button onClick={handleRegister} disabled={saving} className="btn-primary w-full sm:w-auto">
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button onClick={handleRegister} disabled={saving}>
               {saving ? t("common.loading") : t("admin.registerPatient")}
-            </button>
-            <button onClick={() => setShowRegister(false)} className="btn-secondary w-full sm:w-auto">
+            </Button>
+            <Button variant="outline" onClick={() => setShowRegister(false)}>
               {t("admin.cancel")}
-            </button>
-          </div>
-        </div>
-      )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {bookingUser && (
-        <div className="card mb-4 animate-slide-up">
-          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">{t("admin.book")}</h3>
-          <div>
-            <label className="label-text">{t("buses.chooseBus")}</label>
-            <select
-              className="input-field"
-              value={selectedBus}
-              onChange={(e) => setSelectedBus(e.target.value)}
-            >
-              {buses.map((bus) => (
-                <option key={bus.id} value={bus.id}>
-                  {bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en)}
-                </option>
-              ))}
-            </select>
-          </div>
-          {bookingFamily.length > 0 && (
-            <div className="mt-3">
-              <label className="label-text">{t("family.selectMembers")}</label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {bookingFamily.map((fm) => (
-                  <button
-                    key={fm.id}
-                    type="button"
-                    onClick={() => setSelectedFamilyIds((prev) =>
-                      prev.includes(fm.id) ? prev.filter((id) => id !== fm.id) : [...prev, fm.id]
-                    )}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all duration-150 active:scale-95 ${
-                      selectedFamilyIds.includes(fm.id)
-                        ? "border-purple-500 bg-purple-50 text-purple-700 dark:border-purple-500 dark:bg-purple-950/50 dark:text-purple-400"
-                        : "border-slate-200 bg-white text-slate-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    }`}
-                  >
-                    {fm.full_name} {fm.gender === "Male" ? "♂" : "♀"}{fm.has_wheelchair ? " ♿" : ""}
-                  </button>
+      <Dialog open={!!bookingUser} onOpenChange={(open) => { if (!open) { setBookingUser(null); setBookingFamily([]); setSelectedFamilyIds([]); } }}>
+        <DialogContent className="sm:max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{t("admin.book")}</DialogTitle>
+            <DialogDescription>{t("buses.chooseBus")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select value={selectedBus} onValueChange={setSelectedBus}>
+              <SelectTrigger className="h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {buses.map((bus) => (
+                  <SelectItem key={bus.id} value={bus.id}>
+                    {bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en)}
+                  </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            {bookingFamily.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">{t("family.selectMembers")}</label>
+                <div className="flex flex-wrap gap-2">
+                  {bookingFamily.map((fm) => (
+                    <button
+                      key={fm.id}
+                      type="button"
+                      onClick={() => setSelectedFamilyIds((prev) =>
+                        prev.includes(fm.id) ? prev.filter((id) => id !== fm.id) : [...prev, fm.id]
+                      )}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-all duration-150 active:scale-95",
+                        selectedFamilyIds.includes(fm.id)
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-muted bg-background text-muted-foreground hover:border-muted-foreground/30"
+                      )}
+                    >
+                      {fm.full_name} {fm.gender === "Male" ? "♂" : "♀"}{fm.has_wheelchair ? " ♿" : ""}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <button onClick={confirmBookForUser} className="btn-primary w-full sm:w-auto">
-              {t("admin.book")}{selectedFamilyIds.length > 0 ? ` (${1 + selectedFamilyIds.length})` : ""}
-            </button>
-            <button onClick={() => { setBookingUser(null); setBookingFamily([]); setSelectedFamilyIds([]); }} className="btn-secondary w-full sm:w-auto">
-              {t("admin.cancel")}
-            </button>
+            )}
           </div>
-        </div>
-      )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button onClick={confirmBookForUser}>
+              {t("admin.book")}{selectedFamilyIds.length > 0 ? ` (${1 + selectedFamilyIds.length})` : ""}
+            </Button>
+            <Button variant="outline" onClick={() => { setBookingUser(null); setBookingFamily([]); setSelectedFamilyIds([]); }}>
+              {t("admin.cancel")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <input
-          className="input-field flex-1 min-w-[140px] max-w-xs"
-          placeholder={t("admin.searchByName")}
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
-        <div className="flex gap-1">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 min-w-[140px] max-w-xs">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            className="flex h-9 w-full rounded-lg border border-input bg-background pr-9 pl-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            placeholder={t("admin.searchByName")}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-1 bg-muted p-1 rounded-lg">
           {(["", "Male", "Female"] as const).map((g) => (
-            <button
+            <Button
               key={g}
+              size="sm"
+              variant={genderFilter === g ? "secondary" : "ghost"}
+              className="h-8 text-xs"
               onClick={() => setGenderFilter(g)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
-                genderFilter === g
-                  ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
-                  : "bg-slate-50 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700"
-              }`}
             >
               {g === "" ? t("admin.all") : g === "Male" ? t("auth.male") : t("auth.female")}
-            </button>
+            </Button>
           ))}
         </div>
-        <select
-          className="input-field w-auto min-w-[140px]"
-          value={sectorFilter}
-          onChange={(e) => setSectorFilter(e.target.value)}
-        >
-          <option value="">{t("sectors.all")}</option>
-          {sectors.map((s) => (
-            <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
-          ))}
-        </select>
+        <Select value={sectorFilter} onValueChange={setSectorFilter}>
+          <SelectTrigger className="h-9 w-auto min-w-[140px]">
+            <Filter className="h-3.5 w-3.5 ml-2 text-muted-foreground" />
+            <SelectValue placeholder={t("sectors.all")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("sectors.all")}</SelectItem>
+            {sectors.map((s) => (
+              <SelectItem key={s.id} value={s.id}>{s.code} - {s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <p className="text-slate-400 dark:text-gray-500 text-center py-4 text-sm">{t("admin.noBookings")}</p>
+          <div className="text-center py-8">
+            <Users className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">{t("admin.noBookings")}</p>
+          </div>
         ) : (
           <>
             {paginated.map((p) => (
-              <div key={p.id} className="card">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-slate-800 dark:text-gray-100 text-sm">{p.full_name}</span>
-                    <span className="text-xs text-slate-400 dark:text-gray-500" dir="ltr">{p.phone}</span>
-                    {p.has_wheelchair && (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" title={t("admin.wheelchair")}>♿</span>
-                    )}
-                    {p.sector_id && (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400">
-                        {sectors.find((s) => s.id === p.sector_id)?.name || ""}
-                      </span>
-                    )}
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        p.gender === "Male"
-                          ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
-                          : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
-                      }`}
+              <Card key={p.id} className="transition-all hover:shadow-sm">
+                <CardContent className="p-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback className={cn("text-xs", p.gender === "Male" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" : "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300")}>
+                          {getInitials(p.full_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-medium text-sm">{p.full_name}</span>
+                        <span className="text-xs text-muted-foreground" dir="ltr">{p.phone}</span>
+                        {p.has_wheelchair && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 border-amber-300 text-amber-600 dark:text-amber-400">♿</Badge>
+                        )}
+                        {p.sector_id && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 border-teal-300 text-teal-600 dark:text-teal-400">
+                            {sectors.find((s) => s.id === p.sector_id)?.name || ""}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className={cn("text-[10px]", p.gender === "Male" ? "border-blue-300 text-blue-600 dark:text-blue-400" : "border-pink-300 text-pink-600 dark:text-pink-400")}>
+                          {p.gender === "Male" ? t("auth.male") : t("auth.female")}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => startBookForUser(p.id)}
                     >
-                      {p.gender === "Male" ? t("auth.male") : t("auth.female")}
-                    </span>
+                      <Plus className="h-3.5 w-3.5" />
+                      {t("admin.book")}
+                    </Button>
                   </div>
-                  <button
-                    onClick={() => startBookForUser(p.id)}
-                    className="btn-primary text-sm py-2 px-4 w-full sm:w-auto"
-                  >
-                    {t("admin.book")}
-                  </button>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 pt-4">
-                <button
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
                 >
-                  ←
-                </button>
-                <span className="text-sm text-slate-500 dark:text-gray-400">{page} / {totalPages}</span>
-                <button
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground min-w-[60px] text-center">{page} / {totalPages}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-all duration-150"
                 >
-                  →
-                </button>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
               </div>
             )}
           </>

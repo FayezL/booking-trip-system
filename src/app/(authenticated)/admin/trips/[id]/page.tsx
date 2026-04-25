@@ -10,6 +10,11 @@ import RoomsTab from "./RoomsTab";
 import UnbookedTab from "./UnbookedTab";
 import CarsTab from "./CarsTab";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, CalendarDays } from "lucide-react";
 import type { Trip } from "@/lib/types/database";
 
 type Tab = "overview" | "buses" | "rooms" | "cars" | "unbooked";
@@ -55,58 +60,65 @@ export default function TripDetailPage({
     return <p className="text-center py-20 text-slate-400 dark:text-gray-500">{t("common.error")}</p>;
   }
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "overview", label: t("admin.overview") },
-    { key: "buses", label: t("admin.buses") },
-    { key: "rooms", label: t("admin.rooms") },
-    { key: "cars", label: t("cars.title") },
-    { key: "unbooked", label: t("admin.unbooked") },
-  ];
-
   return (
-    <div className="animate-fade-in">
-      <button
+    <div className="animate-fade-in space-y-6">
+      <Button
+        variant="ghost"
         onClick={() => router.push("/admin/trips")}
-        className="mb-4 text-blue-600 dark:text-blue-400 font-semibold text-base hover:text-blue-700 dark:hover:text-blue-300 transition-colors inline-flex items-center gap-1"
+        className="-mr-3 mb-0"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l7-7-7-7" />
-        </svg>
+        <ArrowRight className="w-5 h-5 rtl:rotate-180" />
         {t("admin.backToTrips")}
-      </button>
+      </Button>
 
-      <h1 className="section-title mb-1">
-        {lang === "ar" ? trip.title_ar : trip.title_en}
-      </h1>
-      <p className="text-slate-400 dark:text-gray-500 mb-4 text-sm">{trip.trip_date}</p>
-
-      <div className="flex gap-1 mb-6 border-b border-slate-200 dark:border-gray-800 overflow-x-auto hide-scrollbar -mx-4 px-4" role="tablist">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            role="tab"
-            aria-selected={activeTab === tab.key}
-            aria-controls={`tabpanel-${tab.key}`}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2.5 text-base font-medium border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === tab.key
-                ? "border-blue-600 dark:border-blue-400 text-blue-700 dark:text-blue-400"
-                : "border-transparent text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/30">
+            <CalendarDays className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h1 className="section-title leading-tight">
+              {lang === "ar" ? trip.title_ar : trip.title_en}
+            </h1>
+            <p className="text-sm text-slate-400 dark:text-gray-500">{trip.trip_date}</p>
+          </div>
+          {trip.is_open ? (
+            <Badge variant="success">{t("admin.isOpen")}</Badge>
+          ) : (
+            <Badge variant="destructive">{t("admin.isClosed")}</Badge>
+          )}
+        </div>
       </div>
 
-      <div role="tabpanel" id={`tabpanel-${activeTab}`}>
+      <Card>
+        <CardContent className="p-2">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
+            <TabsList className="w-full flex overflow-x-auto hide-scrollbar">
+              <TabsTrigger value="overview">{t("admin.overview")}</TabsTrigger>
+              <TabsTrigger value="buses">{t("admin.buses")}</TabsTrigger>
+              <TabsTrigger value="rooms">{t("admin.rooms")}</TabsTrigger>
+              <TabsTrigger value="cars">{t("cars.title")}</TabsTrigger>
+              <TabsTrigger value="unbooked">{t("admin.unbooked")}</TabsTrigger>
+            </TabsList>
 
-      {activeTab === "overview" && <OverviewTab tripId={tripId} onSwitchTab={setActiveTab} />}
-      {activeTab === "buses" && <BusesTab tripId={tripId} />}
-      {activeTab === "rooms" && <RoomsTab tripId={tripId} />}
-      {activeTab === "cars" && <CarsTab tripId={tripId} />}
-      {activeTab === "unbooked" && <UnbookedTab tripId={tripId} />}
-      </div>
+            <TabsContent value="overview">
+              <OverviewTab tripId={tripId} onSwitchTab={setActiveTab} />
+            </TabsContent>
+            <TabsContent value="buses">
+              <BusesTab tripId={tripId} />
+            </TabsContent>
+            <TabsContent value="rooms">
+              <RoomsTab tripId={tripId} />
+            </TabsContent>
+            <TabsContent value="cars">
+              <CarsTab tripId={tripId} />
+            </TabsContent>
+            <TabsContent value="unbooked">
+              <UnbookedTab tripId={tripId} />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }

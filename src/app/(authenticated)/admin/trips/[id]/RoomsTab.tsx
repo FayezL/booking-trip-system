@@ -7,6 +7,13 @@ import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import type { Room, Booking, Profile } from "@/lib/types/database";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { Bed, Users, Plus, Trash2, Search } from "lucide-react";
 
 type RoomForm = {
   room_label: string;
@@ -22,6 +29,10 @@ const emptyForm: RoomForm = {
 
 type BookingWithProfile = Booking & { profiles: Profile };
 type RoomWithOccupants = Room & { occupant_count: number; occupants: { id: string; full_name: string; has_wheelchair: boolean; booking_id: string }[] };
+
+function getInitials(name: string) {
+  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
 
 export default function RoomsTab({ tripId }: { tripId: string }) {
   const { t } = useTranslation();
@@ -215,211 +226,234 @@ export default function RoomsTab({ tripId }: { tripId: string }) {
     return <LoadingSpinner text={t("common.loading")} />;
   }
 
-  const tabClass = (active: boolean) =>
-    `px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-150 ${
-      active
-        ? "bg-blue-600 text-white shadow-sm"
-        : "bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-gray-700"
-    }`;
-
-  const filterClass = (active: boolean) =>
-    `px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-      active
-        ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
-        : "bg-slate-50 dark:bg-gray-800 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700"
-    }`;
-
   const allGenderCount = unassigned.filter((b) => b.profiles.gender === genderTab).length;
 
+  function getFillClass(percent: number) {
+    if (percent >= 100) return "bg-red-500";
+    if (percent >= 80) return "bg-amber-500";
+    return "bg-blue-500";
+  }
+
+  function getCapacityVariant(percent: number): "default" | "secondary" | "destructive" {
+    if (percent >= 100) return "destructive";
+    if (percent >= 80) return "secondary";
+    return "default";
+  }
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">{t("admin.rooms")}</h2>
-        <button onClick={startCreate} className="btn-primary">
-          + {t("admin.createRoom")}
-        </button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Bed className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">{t("admin.rooms")}</h2>
+        </div>
+        <Button onClick={startCreate} size="sm" className="gap-2">
+          <Plus className="h-4 w-4" />
+          {t("admin.createRoom")}
+        </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex gap-2">
-          <button onClick={() => setGenderTab("Male")} className={tabClass(genderTab === "Male")}>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 bg-muted p-1 rounded-lg">
+          <Button size="sm" variant={genderTab === "Male" ? "default" : "ghost"} className="h-8 text-xs" onClick={() => setGenderTab("Male")}>
             {t("admin.boysTab")}
-          </button>
-          <button onClick={() => setGenderTab("Female")} className={tabClass(genderTab === "Female")}>
+          </Button>
+          <Button size="sm" variant={genderTab === "Female" ? "default" : "ghost"} className="h-8 text-xs" onClick={() => setGenderTab("Female")}>
             {t("admin.girlsTab")}
-          </button>
+          </Button>
         </div>
 
         <div className="flex gap-1">
-          <button onClick={() => setRoomFilter("all")} className={filterClass(roomFilter === "all")}>
-            {t("admin.all")}
-          </button>
-          <button onClick={() => setRoomFilter("available")} className={filterClass(roomFilter === "available")}>
-            {t("admin.areaActive")}
-          </button>
-          <button onClick={() => setRoomFilter("full")} className={filterClass(roomFilter === "full")}>
-            {t("buses.full").split("—")[0].trim()}
-          </button>
+          {(["all", "available", "full"] as const).map((f) => (
+            <Button
+              key={f}
+              size="sm"
+              variant={roomFilter === f ? "secondary" : "ghost"}
+              className="h-8 text-xs"
+              onClick={() => setRoomFilter(f)}
+            >
+              {f === "all" ? t("admin.all") : f === "available" ? t("admin.areaActive") : t("buses.full").split("—")[0].trim()}
+            </Button>
+          ))}
         </div>
 
-        <input
-          className="input-field flex-1 min-w-[140px] max-w-xs"
-          placeholder={t("admin.searchByName")}
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
+        <div className="relative flex-1 min-w-[140px] max-w-xs">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            className="flex h-9 w-full rounded-lg border border-input bg-background pr-9 pl-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            placeholder={t("admin.searchByName")}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
       </div>
 
-      {showForm && (
-        <div className="card mb-4 animate-slide-up">
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="sm:max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{editingId ? t("common.edit") : t("admin.createRoom")}</DialogTitle>
+            <DialogDescription>{t("admin.roomLabel")}</DialogDescription>
+          </DialogHeader>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
             <div>
-              <label className="label-text">{t("admin.roomLabel")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("admin.roomLabel")}</label>
               <input
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.room_label}
                 onChange={(e) => setForm({ ...form, room_label: e.target.value })}
               />
             </div>
             <div>
-              <label className="label-text">{t("admin.capacity")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("admin.capacity")}</label>
               <input
                 type="number"
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.capacity || ""}
                 onChange={(e) => setForm({ ...form, capacity: parseInt(e.target.value) || 0 })}
                 dir="ltr"
               />
             </div>
             <div>
-              <label className="label-text">{t("admin.supervisorName")}</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("admin.supervisorName")}</label>
               <input
-                className="input-field"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.supervisor_name}
                 onChange={(e) => setForm({ ...form, supervisor_name: e.target.value })}
               />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <button onClick={handleSave} disabled={saving} className="btn-primary w-full sm:w-auto">
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button onClick={handleSave} disabled={saving}>
               {saving ? t("common.loading") : t("admin.save")}
-            </button>
-            <button onClick={() => setShowForm(false)} className="btn-secondary w-full sm:w-auto">
+            </Button>
+            <Button variant="outline" onClick={() => setShowForm(false)}>
               {t("admin.cancel")}
-            </button>
-          </div>
-        </div>
-      )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         <div>
-          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">
-            {t("admin.unassigned")} ({filteredUnassigned.length}/{allGenderCount})
-          </h3>
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-base font-semibold">
+              {t("admin.unassigned")} ({filteredUnassigned.length}/{allGenderCount})
+            </h3>
+          </div>
           <div className="space-y-2">
             {filteredUnassigned.length === 0 ? (
-              <p className="text-slate-400 dark:text-gray-500 text-center py-4 text-sm">{t("admin.noUnassigned")}</p>
+              <p className="text-muted-foreground text-center py-4 text-sm">{t("admin.noUnassigned")}</p>
             ) : (
               filteredUnassigned.map((b) => (
-                <div
+                <Card
                   key={b.id}
+                  className={cn(
+                    "cursor-pointer transition-all hover:shadow-sm",
+                    selectedBooking === b.id && "ring-2 ring-primary shadow-sm"
+                  )}
                   onClick={() => setSelectedBooking(b.id)}
-                  className={`card cursor-pointer transition-all duration-150 ${
-                    selectedBooking === b.id
-                      ? "ring-2 ring-blue-500 dark:ring-blue-400 shadow-sm"
-                      : "hover:shadow-sm"
-                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1 font-medium text-slate-800 dark:text-gray-100 text-sm">
-                      {b.profiles.full_name}
-                      {b.profiles.has_wheelchair && <span title={t("admin.wheelchair")}>♿</span>}
-                    </span>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        b.profiles.gender === "Male"
-                          ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
-                          : "bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400"
-                      }`}
-                    >
-                      {b.profiles.gender === "Male" ? t("auth.male") : t("auth.female")}
-                    </span>
-                  </div>
-                </div>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className={cn("text-xs", b.profiles.gender === "Male" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" : "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300")}>
+                            {getInitials(b.profiles.full_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium text-sm">{b.profiles.full_name}</span>
+                        {b.profiles.has_wheelchair && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 border-amber-300 text-amber-600 dark:text-amber-400">♿</Badge>
+                        )}
+                      </div>
+                      <Badge variant="outline" className={cn("text-[10px]", b.profiles.gender === "Male" ? "border-blue-300 text-blue-600 dark:text-blue-400" : "border-pink-300 text-pink-600 dark:text-pink-400")}>
+                        {b.profiles.gender === "Male" ? t("auth.male") : t("auth.female")}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
               ))
             )}
           </div>
         </div>
 
         <div>
-          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-3">
-            {genderTab === "Male" ? t("admin.boysTab") : t("admin.girlsTab")} — {t("admin.rooms")} ({filteredRooms.length})
-          </h3>
+          <div className="flex items-center gap-2 mb-3">
+            <Bed className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-base font-semibold">
+              {genderTab === "Male" ? t("admin.boysTab") : t("admin.girlsTab")} — {t("admin.rooms")} ({filteredRooms.length})
+            </h3>
+          </div>
           <div className="space-y-3">
             {filteredRooms.map((room) => {
-              const canAssign =
-                selectedBooking &&
-                room.occupant_count < room.capacity;
-
+              const canAssign = selectedBooking && room.occupant_count < room.capacity;
               const percent = room.capacity > 0 ? (room.occupant_count / room.capacity) * 100 : 0;
-              const fillClass = percent >= 100 ? "danger" : percent > 80 ? "warning" : "";
 
               return (
-                <div key={room.id} className="card">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                    <span className="font-bold text-slate-800 dark:text-gray-100">{room.room_label}</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => startEdit(room)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-95 transition-all duration-150"
-                      >
-                        {t("common.edit")}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(room.id)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 active:scale-95 transition-all duration-150"
-                      >
-                        {t("common.delete")}
-                      </button>
+                <Card key={room.id}>
+                  <CardContent className="p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{room.room_label}</span>
+                        <Badge variant={getCapacityVariant(percent)} className="text-xs">
+                          {room.occupant_count}/{room.capacity}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => startEdit(room)}>
+                          {t("common.edit")}
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-red-600 hover:text-red-700 dark:text-red-400" onClick={() => handleDelete(room.id)}>
+                          <Trash2 className="h-3 w-3" />
+                          {t("common.delete")}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-sm text-slate-400 dark:text-gray-500 mb-2">
-                    {room.occupant_count}/{room.capacity} {t("admin.occupants")}
-                    {room.supervisor_name && ` — ${room.supervisor_name}`}
-                  </div>
-                  <div className="progress-bar mb-2">
-                    <div
-                      className={`progress-bar-fill ${fillClass}`}
-                      style={{ width: `${Math.min(percent, 100)}%` }}
-                    />
-                  </div>
-                  {room.occupants.length > 0 && (
-                    <div className="space-y-1">
-                      {room.occupants.map((o) => (
-                        <div key={o.id} className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-1 text-slate-500 dark:text-gray-400">
-                            {o.full_name}
-                            {o.has_wheelchair && <span title={t("admin.wheelchair")}>♿</span>}
-                          </span>
-                          <button
-                            onClick={() => handleRemoveFromRoom(o.booking_id)}
-                            className="text-xs text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
-                          >
-                            {t("admin.removeFromRoom")}
-                          </button>
-                        </div>
-                      ))}
+
+                    <div className="text-sm text-muted-foreground mb-2">
+                      {room.occupant_count}/{room.capacity} {t("admin.occupants")}
+                      {room.supervisor_name && ` — ${room.supervisor_name}`}
                     </div>
-                  )}
-                  {canAssign && (
-                    <button
-                      onClick={() => handleAssign(selectedBooking, room.id)}
-                      className="btn-primary mt-3 w-full text-sm py-2"
-                    >
-                      {t("admin.assignRoom")}
-                    </button>
-                  )}
-                </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-2">
+                      <div
+                        className={cn("h-full rounded-full transition-all duration-500", getFillClass(percent))}
+                        style={{ width: `${Math.min(percent, 100)}%` }}
+                      />
+                    </div>
+
+                    {room.occupants.length > 0 && (
+                      <div className="space-y-1.5">
+                        {room.occupants.map((o) => (
+                          <div key={o.id} className="flex items-center justify-between text-sm p-1.5 rounded-md bg-muted/50">
+                            <span className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-[9px]">{getInitials(o.full_name)}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-muted-foreground">{o.full_name}</span>
+                              {o.has_wheelchair && (
+                                <Badge variant="outline" className="text-[10px] px-1 border-amber-300 text-amber-600 dark:text-amber-400">♿</Badge>
+                              )}
+                            </span>
+                            <Button size="sm" variant="ghost" className="h-6 text-xs text-red-500 hover:text-red-600 dark:text-red-400 px-2" onClick={() => handleRemoveFromRoom(o.booking_id)}>
+                              {t("admin.removeFromRoom")}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {canAssign && (
+                      <Button
+                        onClick={() => handleAssign(selectedBooking, room.id)}
+                        className="mt-3 w-full text-sm"
+                        size="sm"
+                      >
+                        {t("admin.assignRoom")}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
