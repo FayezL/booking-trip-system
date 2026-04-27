@@ -5,18 +5,17 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import type { Trip, Bus, Room } from "@/lib/types/database";
+import type { Trip, Bus, Room, Car } from "@/lib/types/database";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileDown, FileText, Bus as BusIcon, BedDouble } from "lucide-react";
-
-type Passenger = {
-  full_name: string;
-  phone: string;
-  gender: string;
-};
+import { FileDown, FileText } from "lucide-react";
+import {
+  generateReportHTML,
+  type ReportPassenger,
+  type ReportData,
+} from "@/lib/pdf/generate-report-html";
 
 export default function ReportsPage() {
   const { t } = useTranslation();
@@ -46,7 +45,7 @@ export default function ReportsPage() {
     loadTrips();
   }, [loadTrips]);
 
-  async function generateReport(type: "bus" | "room") {
+  async function generateReport() {
     if (!selectedTrip) {
       showToast(t("admin.selectTrip"), "error");
       return;
@@ -61,69 +60,125 @@ export default function ReportsPage() {
         return;
       }
 
-      const { generateBusReportPDF, generateRoomReportPDF } = await import("@/lib/pdf/generate-report");
+      const [
+        statsRes,
+        busesRes,
+        roomsRes,
+        carsRes,
+        bookingsRes,
+      ] = await Promise.all([
+        supabase.rpc("get_all_trips_stats"),
+        supabase.from("buses").select("*").eq("trip_id", selectedTrip),
+        supabase.from("rooms").select("*").eq("trip_id", selectedTrip),
+        supabase.from("cars").select("*").eq("trip_id", selectedTrip),
+        supabase
+          .from("bookings")
+          .select(`
+            id, user_id, bus_id, room_id, car_id, family_member_id,
+            profiles!bookings_user_id_fkey (full_name, phone, gender, role, has_wheelchair, sector_id),
+            family_members (full_name, gender, has_wheelchair),
+            buses (bus_label),
+            rooms (room_label),
+            cars (car_label)
+          `)
+          .eq("trip_id", selectedTrip)
+          .is("cancelled_at", null),
+      ]);
 
-      if (type === "bus") {
-        const [busesRes, bookingsRes] = await Promise.all([
-          supabase.from("buses").select("*").eq("trip_id", selectedTrip),
-          supabase.from("bookings").select("bus_id, user_id, profiles(full_name, phone, gender)").eq("trip_id", selectedTrip).is("cancelled_at", null),
-        ]);
+      const bookings = bookingsRes.data || [];
+      const buses = (busesRes.data || []) as Bus[];
+      const rooms = (roomsRes.data || []) as Room[];
+      const cars = (carsRes.data || []) as Car[];
 
-        const busMap = new Map<string, Passenger[]>();
-        for (const b of bookingsRes.data || []) {
-          const list = busMap.get(b.bus_id) || [];
-          if (b.profiles) list.push(b.profiles as unknown as Passenger);
-          busMap.set(b.bus_id, list);
-        }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allTripStats = (statsRes.data || []) as any[];
+      const stats = allTripStats.length > 0 ? allTripStats[0] : null;
 
-        const pdfBytes = await generateBusReportPDF(
-          trip,
-          (busesRes.data || []) as Bus[],
-          async (busId) => busMap.get(busId) || []
-        );
+      const sectorIdSet = new Set<string>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bookings.forEach((b: any) => {
+        if (b.profiles?.sector_id) sectorIdSet.add(b.profiles.sector_id);
+      });
+      const sectorIds = Array.from(sectorIdSet);
 
-        downloadPDF(pdfBytes, "bus-report.pdf");
-        showToast(t("admin.busReport"), "success");
-      } else {
-        const [roomsRes, bookingsRes] = await Promise.all([
-          supabase.from("rooms").select("*").eq("trip_id", selectedTrip),
-          supabase.from("bookings").select("room_id, user_id, profiles(full_name, phone, gender)").eq("trip_id", selectedTrip).is("cancelled_at", null).not("room_id", "is", null),
-        ]);
-
-        const roomMap = new Map<string, Passenger[]>();
-        for (const b of bookingsRes.data || []) {
-          if (!b.room_id) continue;
-          const list = roomMap.get(b.room_id) || [];
-          if (b.profiles) list.push(b.profiles as unknown as Passenger);
-          roomMap.set(b.room_id, list);
-        }
-
-        const pdfBytes = await generateRoomReportPDF(
-          trip,
-          (roomsRes.data || []) as Room[],
-          async (roomId) => roomMap.get(roomId) || []
-        );
-
-        downloadPDF(pdfBytes, "room-report.pdf");
-        showToast(t("admin.roomReport"), "success");
+      const sectorMap = new Map<string, string>();
+      if (sectorIds.length > 0) {
+        const { data: sectors } = await supabase
+          .from("sectors")
+          .select("id, name")
+          .in("id", sectorIds);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (sectors || []).forEach((s: any) => sectorMap.set(s.id, s.name));
       }
-    } catch {
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const passengers: ReportPassenger[] = bookings.map((b: any) => {
+        const isFamily = !!b.family_member_id;
+        const fm = b.family_members;
+        const profile = b.profiles;
+        const busLabel = b.buses?.bus_label || "";
+        const roomLabel = b.rooms?.room_label || "";
+        const carLabel = b.cars?.car_label || "";
+
+        return {
+          full_name: isFamily ? fm?.full_name || "" : profile?.full_name || "",
+          phone: isFamily ? "" : profile?.phone || "",
+          gender: isFamily ? fm?.gender || "" : profile?.gender || "",
+          role: isFamily ? "" : profile?.role || "",
+          sector_name: isFamily ? "" : (sectorMap.get(profile?.sector_id) || ""),
+          has_wheelchair: isFamily ? fm?.has_wheelchair || false : profile?.has_wheelchair || false,
+          family_member_id: b.family_member_id,
+          user_id: b.user_id,
+          head_user_id: b.user_id,
+          bus_id: b.bus_id,
+          bus_label: busLabel,
+          room_id: b.room_id,
+          room_label: roomLabel,
+          car_id: b.car_id,
+          car_label: carLabel,
+        };
+      });
+
+      const busPassengers = new Map<string, ReportPassenger[]>();
+      buses.forEach((bus) => {
+        busPassengers.set(bus.id, passengers.filter((p) => p.bus_id === bus.id));
+      });
+
+      const roomOccupants = new Map<string, ReportPassenger[]>();
+      rooms.forEach((room) => {
+        roomOccupants.set(room.id, passengers.filter((p) => p.room_id === room.id));
+      });
+
+      const carPassengers = new Map<string, ReportPassenger[]>();
+      cars.forEach((car) => {
+        carPassengers.set(car.id, passengers.filter((p) => p.car_id === car.id));
+      });
+
+      const reportData: ReportData = {
+        trip,
+        stats,
+        buses,
+        rooms,
+        cars,
+        passengers,
+        busPassengers,
+        roomOccupants,
+        carPassengers,
+      };
+
+      const html = generateReportHTML(reportData);
+      const newWin = window.open("", "_blank");
+      if (newWin) {
+        newWin.document.write(html);
+        newWin.document.close();
+      }
+      showToast(t("admin.reportGenerated"), "success");
+    } catch (err) {
+      console.error("Report generation error:", err);
       showToast(t("common.error"), "error");
     } finally {
       setGenerating(false);
     }
-  }
-
-  function downloadPDF(bytes: Uint8Array, filename: string) {
-    const blob = new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 
   if (loading) {
@@ -141,44 +196,59 @@ export default function ReportsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <FileText className="h-5 w-5" />
-            {t("admin.reports")}
+            {t("admin.generateReport")}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label>{t("admin.selectTrip")}</Label>
-              <Select value={selectedTrip} onValueChange={setSelectedTrip}>
-                <SelectTrigger>
-                  <SelectValue placeholder="---" />
-                </SelectTrigger>
-                <SelectContent>
-                  {trips.map((trip) => (
-                    <SelectItem key={trip.id} value={trip.id}>
-                      {trip.title_ar}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {t("admin.reportDescription")}
+            </p>
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>{t("admin.selectTrip")}</Label>
+                <Select value={selectedTrip} onValueChange={setSelectedTrip}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="---" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {trips.map((trip) => (
+                      <SelectItem key={trip.id} value={trip.id}>
+                        {trip.title_ar} — {trip.trip_date}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={generateReport}
+                  disabled={generating || !selectedTrip}
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  {generating ? (
+                    <LoadingSpinner />
+                  ) : (
+                    <>
+                      <FileDown className="h-5 w-5" />
+                      {t("admin.generateReport")}
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            <div className="flex items-end">
-              <Button
-                onClick={() => generateReport("bus")}
-                disabled={generating}
-                className="w-full gap-2"
-              >
-                {generating ? <LoadingSpinner /> : <><BusIcon className="h-4 w-4" /> {t("admin.busReport")}</>}
-              </Button>
-            </div>
-            <div className="flex items-end">
-              <Button
-                onClick={() => generateReport("room")}
-                disabled={generating}
-                className="w-full gap-2"
-              >
-                {generating ? <LoadingSpinner /> : <><BedDouble className="h-4 w-4" /> {t("admin.roomReport")}</>}
-              </Button>
-            </div>
+
+            {selectedTrip && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 text-xs text-gray-500 dark:text-gray-400">
+                <span>{t("admin.reportIncludes.summary")}</span>
+                <span>{t("admin.reportIncludes.buses")}</span>
+                <span>{t("admin.reportIncludes.rooms")}</span>
+                <span>{t("admin.reportIncludes.cars")}</span>
+                <span>{t("admin.reportIncludes.wheelchair")}</span>
+                <span>{t("admin.reportIncludes.unassigned")}</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
