@@ -1121,24 +1121,31 @@ The app works perfectly but looks utilitarian — flat cards, basic colors, no v
 
 ---
 
-## Phase 12: Arabic Name Update + Custom Toggle Component (2026-04-28)
+## Phase 12: Arabic Name Update + RTL-Safe Toggle (2026-04-28)
 
-### Changes
+### Problem
 
-1. **Arabic site name**: Changed from `القديسة ديمانه` to `خدمه فيرينا` across all headers and browser metadata
-2. **Custom Toggle component**: Replaced all shadcn `Switch` and inline toggle switches with a new `Toggle` component featuring:
-   - Checkmark icon (ON state) and X icon (OFF state) inside the thumb
-   - Blue glow effect when active (`shadow-[0_0_8px_rgba(59,130,246,0.5)]`)
-   - Smooth 300ms transitions
-   - 3 sizes: `sm` (h-5 w-9), `md` (h-6 w-11), `lg` (h-7 w-12)
-   - Proper dark mode support
+1. Arabic site name needed to change from `القديسة ديمانه` to `خدمه فيرينا`
+2. Previous toggle switch used `translate-x` which breaks in RTL mode — the thumb slides in the wrong direction
+3. `lucide-react` dependency was missing, causing build failures and TypeScript errors
+
+### Solution
+
+1. **Arabic name**: Updated in Header.tsx (mobile + desktop) and layout.tsx metadata
+2. **RTL-safe Toggle**: Replaced sliding toggle with a checkbox-style toggle that uses no `translate-x`, works identically in LTR and RTL:
+   - Blue filled square with white checkmark (ON)
+   - Empty bordered square (OFF)
+   - `active:scale-90` press feedback
+   - 3 sizes: `sm` (16px), `md` (20px), `lg` (24px)
    - `focus-visible` ring for keyboard accessibility
+   - Dark mode support
+3. **Dependency fix**: Installed missing `lucide-react` package — fixed all TypeScript errors across 10+ files
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/Toggle.tsx` | New: custom toggle component with icons |
+| `src/components/Toggle.tsx` | New: RTL-safe checkbox-style toggle |
 | `src/components/Header.tsx` | Arabic name → خدمه فيرينا |
 | `src/app/layout.tsx` | Browser tab title with Arabic name |
 | `src/app/(authenticated)/settings/page.tsx` | Switch → Toggle (wheelchair + car) |
@@ -1147,3 +1154,9 @@ The app works perfectly but looks utilitarian — flat cards, basic colors, no v
 | `src/app/(authenticated)/admin/trips/[id]/UnbookedTab.tsx` | Inline toggle → Toggle component |
 | `src/app/signup/page.tsx` | Switch → Toggle (wheelchair) |
 | `src/app/login/page.tsx` | Switch → Toggle (remember me) |
+| `package.json` | Added `lucide-react` dependency |
+
+### Build Status
+
+- 0 TypeScript errors (was 50+ before `lucide-react` fix)
+- Toggle works correctly in both LTR and RTL
