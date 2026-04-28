@@ -1123,52 +1123,27 @@ The app works perfectly but looks utilitarian — flat cards, basic colors, no v
 
 ## Phase 12: Arabic Name Update + Custom Toggle Component (2026-04-28)
 
-### Problem
-
-1. The Arabic site name was "القديسة ديمانه" — user wanted it changed to "خدمه فيرينا" alongside the English "Saint Demiana"
-2. The shadcn `Switch` component and old inline toggle switches looked generic and didn't provide clear ON/OFF visual feedback
-3. RTL layout (Arabic mode) caused the toggle thumb to slide in the wrong direction
-
 ### Changes
 
 1. **Arabic site name**: Changed from `القديسة ديمانه` to `خدمه فيرينا` across all headers and browser metadata
-2. **Custom Toggle component** (`src/components/Toggle.tsx`): Replaced all shadcn `Switch` and inline toggle switches with a new RTL-safe toggle featuring:
-   - `dir="ltr"` on the button element to force correct thumb direction regardless of page RTL setting
+2. **Custom Toggle component**: Replaced all shadcn `Switch` and inline toggle switches with a new `Toggle` component featuring:
    - Checkmark icon (ON state) and X icon (OFF state) inside the thumb
    - Blue glow effect when active (`shadow-[0_0_8px_rgba(59,130,246,0.5)]`)
    - Smooth 300ms transitions
    - 3 sizes: `sm` (h-5 w-9), `md` (h-6 w-11), `lg` (h-7 w-12)
-   - Proper dark mode support (`bg-slate-300 dark:bg-gray-600` when off)
+   - Proper dark mode support
    - `focus-visible` ring for keyboard accessibility
-
-### Toggle API
-
-```tsx
-<Toggle
-  checked={value}
-  onChange={setValue}
-  disabled={false}
-  size="md"          // "sm" | "md" | "lg"
-  activeColor="bg-blue-600"  // optional custom color
-/>
-```
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/Toggle.tsx` | New: custom toggle component with icons + RTL fix |
-| `src/components/Header.tsx` | Arabic name → خدمه فيرينا (mobile + desktop headers) |
-| `src/app/layout.tsx` | Browser tab title + description with Arabic name |
+| `src/components/Toggle.tsx` | New: custom toggle component with icons |
+| `src/components/Header.tsx` | Arabic name → خدمه فيرينا |
+| `src/app/layout.tsx` | Browser tab title with Arabic name |
 | `src/app/(authenticated)/settings/page.tsx` | Switch → Toggle (wheelchair + car) |
-| `src/app/(authenticated)/admin/sectors/page.tsx` | Switch → Toggle (active/inactive in form + list) |
-| `src/app/(authenticated)/admin/users/page.tsx` | Switch → Toggle (wheelchair + car + family member) |
+| `src/app/(authenticated)/admin/sectors/page.tsx` | Switch → Toggle (active/inactive) |
+| `src/app/(authenticated)/admin/users/page.tsx` | Switch → Toggle (wheelchair + car + family) |
 | `src/app/(authenticated)/admin/trips/[id]/UnbookedTab.tsx` | Inline toggle → Toggle component |
 | `src/app/signup/page.tsx` | Switch → Toggle (wheelchair) |
 | `src/app/login/page.tsx` | Switch → Toggle (remember me) |
-| `docs/superpowers/MAINPLAN.md` | This phase documentation |
-
-### Commits
-
-- `c9b8a5c` — feat: rename Arabic site name and add Toggle component
-- `2d4eb07` — feat: replace all Switch/toggle with custom Toggle component + update MAINPLAN

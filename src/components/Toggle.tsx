@@ -22,7 +22,6 @@ export default function Toggle({ checked, onChange, disabled = false, size = "md
     <button
       type="button"
       role="switch"
-      dir="ltr"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       disabled={disabled}
