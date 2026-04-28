@@ -62,7 +62,7 @@ export default function Header({ profile }: HeaderProps) {
           className="text-lg font-bold text-blue-700 dark:text-blue-400 cursor-pointer transition-colors duration-200 hover:text-blue-800 dark:hover:text-blue-300"
           onClick={() => router.push(isAdmin ? "/admin" : "/trips")}
         >
-          Saint Demiana | القديسة ديمانه
+          Saint Demiana | خدمه فيرينا
         </h1>
         <div className="flex items-center gap-1.5">
           <LanguageToggle />
@@ -94,7 +94,7 @@ export default function Header({ profile }: HeaderProps) {
             className="text-xl font-bold text-blue-700 dark:text-blue-400 cursor-pointer hover:text-blue-800 dark:hover:text-blue-300 transition-colors duration-200"
             onClick={() => router.push(isAdmin ? "/admin" : "/trips")}
           >
-            Saint Demiana | القديسة ديمانه
+            Saint Demiana | خدمه فيرينا
           </h1>
           {!isAdmin && (
             <div className="flex gap-1">
