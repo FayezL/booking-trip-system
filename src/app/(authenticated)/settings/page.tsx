@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
+import Toggle from "@/components/Toggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -552,9 +552,9 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Switch
+                  <Toggle
                     checked={familyForm.has_wheelchair}
-                    onCheckedChange={(checked) => setFamilyForm({ ...familyForm, has_wheelchair: checked })}
+                    onChange={(v) => setFamilyForm({ ...familyForm, has_wheelchair: v })}
                   />
                   <Label>{t("family.wheelchair")}</Label>
                 </div>
@@ -628,9 +628,9 @@ export default function SettingsPage() {
             </p>
 
             <div className="flex items-center gap-3">
-              <Switch
+              <Toggle
                 checked={hasCar}
-                onCheckedChange={setHasCar}
+                onChange={setHasCar}
               />
               <Label className="text-base">{t("settings.hasCar")}</Label>
             </div>

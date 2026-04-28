@@ -10,7 +10,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import Toggle from "@/components/Toggle";
 import { Phone, Lock, User, Bus, Car, Users, Accessibility } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Sector } from "@/lib/types/database";
@@ -277,9 +277,9 @@ export default function SignupPage() {
 
             {role === "patient" && (
               <div className="flex items-center justify-center gap-3 py-2">
-                <Switch
+                <Toggle
                   checked={hasWheelchair}
-                  onCheckedChange={setHasWheelchair}
+                  onChange={setHasWheelchair}
                   disabled={loading}
                 />
                 <span className="text-base text-slate-600 dark:text-gray-300 flex items-center gap-1.5">

@@ -1118,3 +1118,32 @@ The app works perfectly but looks utilitarian — flat cards, basic colors, no v
 - Radix primitives add ~15-20KB gzipped total (tree-shaken)
 - `lucide-react` icons are individually imported and tree-shaken
 - No change to loading speed or bundle splitting strategy
+
+---
+
+## Phase 12: Arabic Name Update + Custom Toggle Component (2026-04-28)
+
+### Changes
+
+1. **Arabic site name**: Changed from `القديسة ديمانه` to `خدمه فيرينا` across all headers and browser metadata
+2. **Custom Toggle component**: Replaced all shadcn `Switch` and inline toggle switches with a new `Toggle` component featuring:
+   - Checkmark icon (ON state) and X icon (OFF state) inside the thumb
+   - Blue glow effect when active (`shadow-[0_0_8px_rgba(59,130,246,0.5)]`)
+   - Smooth 300ms transitions
+   - 3 sizes: `sm` (h-5 w-9), `md` (h-6 w-11), `lg` (h-7 w-12)
+   - Proper dark mode support
+   - `focus-visible` ring for keyboard accessibility
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/components/Toggle.tsx` | New: custom toggle component with icons |
+| `src/components/Header.tsx` | Arabic name → خدمه فيرينا |
+| `src/app/layout.tsx` | Browser tab title with Arabic name |
+| `src/app/(authenticated)/settings/page.tsx` | Switch → Toggle (wheelchair + car) |
+| `src/app/(authenticated)/admin/sectors/page.tsx` | Switch → Toggle (active/inactive) |
+| `src/app/(authenticated)/admin/users/page.tsx` | Switch → Toggle (wheelchair + car + family) |
+| `src/app/(authenticated)/admin/trips/[id]/UnbookedTab.tsx` | Inline toggle → Toggle component |
+| `src/app/signup/page.tsx` | Switch → Toggle (wheelchair) |
+| `src/app/login/page.tsx` | Switch → Toggle (remember me) |

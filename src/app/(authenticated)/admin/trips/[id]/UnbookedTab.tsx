@@ -7,6 +7,7 @@ import { useToast } from "@/components/Toast";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { logAction } from "@/lib/admin-logs";
 import type { Profile, Bus, Sector, FamilyMember } from "@/lib/types/database";
+import Toggle from "@/components/Toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -283,23 +284,10 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
             </div>
             {form.role === "patient" && (
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={form.has_wheelchair}
-                  onClick={() => setForm({ ...form, has_wheelchair: !form.has_wheelchair })}
-                  className={cn(
-                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                    form.has_wheelchair ? "bg-primary" : "bg-muted"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                      form.has_wheelchair ? "translate-x-5" : "translate-x-0"
-                    )}
-                  />
-                </button>
+                <Toggle
+                  checked={form.has_wheelchair}
+                  onChange={(v) => setForm({ ...form, has_wheelchair: v })}
+                />
                 <span className="text-sm text-muted-foreground">♿ {t("admin.wheelchair")}</span>
               </div>
             )}

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
+import Toggle from "@/components/Toggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -216,9 +216,9 @@ export default function SectorsPage() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <Switch
+              <Toggle
                 checked={form.is_active}
-                onCheckedChange={(checked) => setForm({ ...form, is_active: checked })}
+                onChange={(v) => setForm({ ...form, is_active: v })}
                 disabled={saving}
               />
               <Label className="text-sm">
@@ -258,9 +258,9 @@ export default function SectorsPage() {
                     <span className="font-medium text-foreground text-sm">
                       {sector.name}
                     </span>
-                    <Switch
+                    <Toggle
                       checked={sector.is_active}
-                      onCheckedChange={() => toggleActive(sector)}
+                      onChange={() => toggleActive(sector)}
                     />
                     <Badge
                       variant={sector.is_active ? "default" : "secondary"}

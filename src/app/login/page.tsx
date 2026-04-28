@@ -10,7 +10,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import Toggle from "@/components/Toggle";
 import { Phone, Lock, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -140,10 +140,9 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-center gap-3">
-              <Switch
-                id="rememberMe"
+              <Toggle
                 checked={rememberMe}
-                onCheckedChange={setRememberMe}
+                onChange={setRememberMe}
                 disabled={loading}
               />
               <Label htmlFor="rememberMe" className="text-base text-slate-500 dark:text-gray-400 cursor-pointer">

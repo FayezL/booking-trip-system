@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import Toggle from "@/components/Toggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -500,9 +500,9 @@ export default function UsersPage() {
             </div>
             {form.role === "patient" && (
               <div className="flex items-center gap-3 md:col-span-2">
-                <Switch
+                <Toggle
                   checked={form.has_wheelchair}
-                  onCheckedChange={(checked) => setForm({ ...form, has_wheelchair: checked })}
+                  onChange={(v) => setForm({ ...form, has_wheelchair: v })}
                 />
                 <Label>{t("admin.wheelchair")}</Label>
               </div>
@@ -701,9 +701,9 @@ export default function UsersPage() {
                     <Separator />
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 animate-fade-in">
                       <div className="flex items-center gap-3">
-                        <Switch
+                        <Toggle
                           checked={carFormHasCar}
-                          onCheckedChange={setCarFormHasCar}
+                          onChange={setCarFormHasCar}
                         />
                         <Label className="text-sm">{t("settings.hasCar")}</Label>
                       </div>
@@ -762,9 +762,10 @@ export default function UsersPage() {
                                 </SelectContent>
                               </Select>
                               <div className="flex items-center gap-2">
-                                <Switch
+                                <Toggle
                                   checked={fmForm.has_wheelchair}
-                                  onCheckedChange={(checked) => setFmForm({ ...fmForm, has_wheelchair: checked })}
+                                  onChange={(v) => setFmForm({ ...fmForm, has_wheelchair: v })}
+                                  size="sm"
                                 />
                                 <Label className="text-xs">♿</Label>
                               </div>
