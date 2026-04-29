@@ -369,7 +369,7 @@ Add these keys inside the `"admin"` section (after `"servantsNeeded"`):
 "onBus": "أتوبيس",
 "inCar": "عربية",
 "noTransport": "بدون نقل",
-"bySector": "حسب القطاعة",
+"bySector": "حسب القطاع",
 "familyMembersCount": "أفراد العائلة",
 "servantsNeededCount": "محتاجين خدمة",
 "fillRate": "نسبة الامتلاء",

@@ -24,7 +24,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   function handlePhoneChange(value: string) {
-    const digits = value.replace(/\D/g, "").slice(0, 15);
+    const digits = value.replace(/\D/g, "").slice(0, 11);
     setPhone(digits);
   }
 
@@ -108,6 +108,7 @@ export default function LoginPage() {
                   pattern="[0-9]*"
                   autoComplete="tel"
                   className="text-center text-xl tracking-widest font-mono pr-10 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm"
+                  maxLength={11}
                   value={phone}
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   placeholder="01XXXXXXXXX"

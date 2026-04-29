@@ -353,8 +353,9 @@ export default function SettingsPage() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 className="flex-1 font-mono tracking-widest"
+                maxLength={11}
                 value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, "").slice(0, 15))}
+                onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
                 dir="ltr"
                 disabled={savingPhone}
               />

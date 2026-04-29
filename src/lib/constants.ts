@@ -1,4 +1,4 @@
-export const PHONE_REGEX = /^\d{8,15}$/;
+export const PHONE_REGEX = /^\d{11}$/;
 export const PASSWORD_MIN_LENGTH = 6;
 export const TOAST_DURATION_MS = 3500;
 export const DEBOUNCE_MS = 300;

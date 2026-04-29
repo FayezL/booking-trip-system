@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { PHONE_REGEX } from "@/lib/constants";
 import { Users, Search, Plus, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 
 type RegisterForm = {
@@ -141,7 +142,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   }
 
   async function handleRegister() {
-    if (!form.phone || !/^\d{8,15}$/.test(form.phone) || !form.full_name || !form.password || form.password.length < 6) {
+    if (!form.phone || !PHONE_REGEX.test(form.phone) || !form.full_name || !form.password || form.password.length < 6) {
       showToast(t("common.error"), "error");
       return;
     }
@@ -239,10 +240,14 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
             <div>
               <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t("auth.phone")}</label>
               <input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
                 placeholder="01XXXXXXXXX"
+                maxLength={11}
                 dir="ltr"
               />
             </div>

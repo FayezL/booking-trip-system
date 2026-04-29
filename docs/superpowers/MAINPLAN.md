@@ -1,7 +1,7 @@
 # MAINPLAN.md — Booking0Trip System
 
 > Complete project reference. Everything we built, why, and how it works.
-> Last updated: 2026-04-23 (Phase 10 — Trip-Only Booking + Advanced Dashboard)
+> Last updated: 2026-04-29 (Phase 13 — Arabic Typo Fixes + Phone 11-Digit Limit)
 
 ---
 
@@ -1160,3 +1160,69 @@ The app works perfectly but looks utilitarian — flat cards, basic colors, no v
 
 - 0 TypeScript errors (was 50+ before `lucide-react` fix)
 - Toggle works correctly in both LTR and RTL
+
+---
+
+## Phase 13: Arabic Typo Fixes + Phone 11-Digit Limit (2026-04-29)
+
+### Problem
+
+1. Arabic text had a systematic typo: "القطاعة" (with ة) instead of "القطاع" (sector) across the entire app
+2. Other Arabic typos: missing letter in "ممكن تمسش" and missing hamza in "الغاء"
+3. Phone input accepted 8–15 digits, but Egyptian numbers are always exactly 11 digits (01XXXXXXXXX). Elderly users and patients could get confused by being able to type too many or too few digits
+
+### Solution
+
+1. **Arabic typo fixes** across the entire `ar.json` dictionary
+2. **Phone input limited to exactly 11 digits** across all 5 phone input locations, with proper input attributes and digit stripping
+
+### Arabic Typo Fixes
+
+| Typo | Correction | Occurrences |
+|------|-----------|-------------|
+| القطاعة | القطاع | 10 in ar.json + 1 in docs |
+| قطاعة جديدة | قطاع جديد | 1 |
+| قطاعتك | قطاعك | 1 |
+| بدون قطاعة | بدون قطاع | 1 |
+| ممكن تمسش | ممكن تمسحش | 1 (missing ح) |
+| الغاء | إلغاء | 2 (missing hamza) |
+
+### Phone 11-Digit Limit
+
+**`PHONE_REGEX`** changed from `/^\d{8,15}$/` to `/^\d{11}$/` in `src/lib/constants.ts`.
+
+All 5 phone input locations updated:
+
+| File | Changes |
+|------|---------|
+| `src/lib/constants.ts` | Regex: `\d{8,15}` → `\d{11}` |
+| `src/app/login/page.tsx` | `slice(0,11)` + `maxLength={11}` |
+| `src/app/signup/page.tsx` | `slice(0,11)` + `maxLength={11}` |
+| `src/app/(authenticated)/settings/page.tsx` | `slice(0,11)` + `maxLength={11}` |
+| `src/app/(authenticated)/admin/users/page.tsx` | Now uses shared `PHONE_REGEX`, added `type="tel"` + `inputMode="numeric"` + digit stripping + `maxLength={11}` |
+| `src/app/(authenticated)/admin/trips/[id]/UnbookedTab.tsx` | Same as above |
+
+**Admin inputs also fixed** — they previously lacked `type="tel"`, `inputMode="numeric"`, digit stripping, and used inline regex instead of the shared `PHONE_REGEX` constant.
+
+### Note
+
+Backend SQL function `update_own_phone()` still validates `^\d{8,15}$`. A new migration would be needed to enforce the 11-digit rule server-side if desired.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/lib/constants.ts` | `PHONE_REGEX` updated to exactly 11 digits |
+| `src/lib/i18n/dictionaries/ar.json` | 16 typo fixes |
+| `src/app/login/page.tsx` | Phone limit 11 + maxLength |
+| `src/app/signup/page.tsx` | Phone limit 11 + maxLength |
+| `src/app/(authenticated)/settings/page.tsx` | Phone limit 11 + maxLength |
+| `src/app/(authenticated)/admin/users/page.tsx` | Shared regex + proper input attrs + limit 11 |
+| `src/app/(authenticated)/admin/trips/[id]/UnbookedTab.tsx` | Shared regex + proper input attrs + limit 11 |
+| `docs/superpowers/plans/2026-04-22-trip-only-booking-and-dashboard.md` | Typo fix |
+
+### Build Status
+
+- 0 TypeScript errors
+- 0 ESLint warnings
+- Build passes

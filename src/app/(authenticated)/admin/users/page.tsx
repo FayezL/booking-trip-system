@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { PHONE_REGEX } from "@/lib/constants";
 import { Users, Search, Plus, Edit, Trash2, Car, Phone, ChevronLeft, ChevronRight } from "lucide-react";
 
 type UserRole = "admin" | "servant" | "patient" | "companion" | "family_assistant" | "trainee";
@@ -205,7 +206,7 @@ export default function UsersPage() {
   async function handleCreatePerson() {
     if (
       !form.phone ||
-      !/^\d{8,15}$/.test(form.phone) ||
+      !PHONE_REGEX.test(form.phone) ||
       !form.full_name ||
       !form.password ||
       form.password.length < 6
@@ -402,9 +403,13 @@ export default function UsersPage() {
             <div className="space-y-2">
               <Label>{t("auth.phone")}</Label>
               <Input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
                 placeholder="01XXXXXXXXX"
+                maxLength={11}
                 dir="ltr"
               />
             </div>
