@@ -167,9 +167,9 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center mt-6 text-base text-slate-500 dark:text-gray-400">
-            {t("auth.noAccount")}{" "}
+            {t("auth.needAccount")}{" "}
             <a href="/signup" className="text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
-              {t("auth.registerHere")}
+              {t("auth.contactAdmin")}
             </a>
           </p>
         </div>

@@ -1,7 +1,7 @@
 # MAINPLAN.md — Booking0Trip System
 
 > Complete project reference. Everything we built, why, and how it works.
-> Last updated: 2026-04-29 (Phase 13 — Arabic Typo Fixes + Phone 11-Digit Limit)
+> Last updated: 2026-05-09 (Phase 14 — Admin-Only Signup + Demo User Scripts)
 
 ---
 
@@ -10,7 +10,7 @@
 A bilingual (Arabic/English) web app for managing church trip bookings — buses, rooms, and passengers. Built for ~40 concurrent users with elderly-friendly design.
 
 **Live routes:**
-- `/login` and `/signup` — public auth (with sector selection on signup)
+- `/login` and `/signup` — public auth (signup shows info page only — accounts created by admins)
 - `/settings` — user settings (name/phone/password, sector, transport, car settings for servants)
 - `/trips` — patient-facing: browse trips, see passengers, book buses, book trip-only (no bus)
 - `/trips/[tripId]/buses` — patient: choose bus / "I'm driving" / "Book without bus" + see who's on it
@@ -1226,3 +1226,77 @@ Backend SQL function `update_own_phone()` still validates `^\d{8,15}$`. A new mi
 - 0 TypeScript errors
 - 0 ESLint warnings
 - Build passes
+
+---
+
+## Phase 14: Admin-Only Signup + Demo User Scripts (2026-05-09)
+
+### Problem
+
+1. The public signup page allows anyone to create an account and access the system — a security risk if the URL becomes public (e.g. through a LinkedIn post)
+2. No way to add demo/fake users for video recording without exposing real user data
+3. No easy way to remove demo users after recording
+
+### Solution
+
+1. **Admin-only signup**: Replace the self-signup form with a professional info page that tells visitors to contact their church admin for account creation. Accounts can only be created through the admin panel (which already uses `admin_create_user` RPC)
+2. **Demo user scripts**: Two SQL scripts — one to add 30 fake Coptic Christian users, one to delete them all after recording
+
+### Frontend Changes
+
+**Signup page** (`src/app/signup/page.tsx`) — replaced entirely:
+- Removed the entire signup form (name, phone, gender, role, sector, transport, password)
+- Now shows a professional info page with:
+  - Shield icon + "Private System" heading
+  - Explanation that account creation is managed by church administrators
+  - Blue info card with contact instructions
+  - "Back to Login" button
+- Same visual style as the rest of the app (glass-morphism card, gradient background, dark mode support)
+- Language and theme toggles still available
+
+**Login page** (`src/app/login/page.tsx`) — minor text change:
+- "Don't have an account? Register here" → "Need an account? Contact your church admin"
+- Link still goes to `/signup` but now shows the info page instead of a form
+
+**Translation files** (`ar.json` + `en.json`) — 7 new keys:
+- `auth.needAccount` — "Need an account?" / "محتاج حساب؟"
+- `auth.contactAdmin` — "Contact your church admin" / "كلم أدمن الكنيسة"
+- `auth.privateSystem` — "Private System" / "نظام خاص"
+- `auth.privateSystemDesc` — Explanation that accounts are admin-managed
+- `auth.contactAdminDesc` — Instructions to contact servant/admin for credentials
+- `auth.backToLogin` — "Back to Login" / "ارجع لتسجيل الدخول"
+
+### Demo User Scripts (SQL)
+
+**`supabase/add-demo-users.sql`**:
+- Inserts 30 fake users (15 male, 15 female) with Coptic Christian names
+- All phones start with `099` for easy identification
+- All passwords: `demo123`
+- Users assigned to various sectors across the church
+- Includes 3 wheelchair users and 2 needing servants
+- Temporarily disables auth trigger, inserts auth.users + profiles, re-enables trigger
+
+**`supabase/cleanup-demo-users.sql`**:
+- Deletes all users, profiles, bookings, and family members where phone starts with `099`
+- Safety check: aborts if no demo users exist
+- Wrapped in transaction for safety
+
+### Design Decision
+
+Admin-only signup chosen over approval-based signup for simplicity. If approval flow is needed in the future, it would require:
+- New `status` field on profiles (pending/approved/rejected)
+- Middleware checks to block unapproved users
+- Admin approval queue UI
+- This is documented here as a future consideration
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/app/signup/page.tsx` | Full rewrite: signup form → info page |
+| `src/app/login/page.tsx` | Text change on bottom link |
+| `src/lib/i18n/dictionaries/ar.json` | 7 new auth keys |
+| `src/lib/i18n/dictionaries/en.json` | 7 new auth keys |
+| `supabase/add-demo-users.sql` | New: 30 demo users |
+| `supabase/cleanup-demo-users.sql` | New: delete all demo users |
+| `docs/superpowers/MAINPLAN.md` | This phase |

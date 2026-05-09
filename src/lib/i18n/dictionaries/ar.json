@@ -37,7 +37,13 @@
     "transportPrivate": "ملاكى",
     "transportBus": "اتوبيس",
     "servantsNeeded": "عدد الخدام",
-    "transportRequired": "اختار نوع المواصلات"
+    "transportRequired": "اختار نوع المواصلات",
+    "needAccount": "محتاج حساب؟",
+    "contactAdmin": "كلم أدمن الكنيسة",
+    "privateSystem": "نظام خاص",
+    "privateSystemDesc": "النظام ده خاص بكنيسة. إنشاء الحسابات بيتم عن طريق إدارة الكنيسة.",
+    "contactAdminDesc": "كلم الخادم أو الأدمن عشان يديلك بيانات الدخول.",
+    "backToLogin": "ارجع لتسجيل الدخول"
   },
   "sectors": {
     "title": "القطاعات",

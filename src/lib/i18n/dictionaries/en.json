@@ -37,7 +37,13 @@
     "transportPrivate": "Private",
     "transportBus": "Bus",
     "servantsNeeded": "Servants Needed",
-    "transportRequired": "Please select transport type"
+    "transportRequired": "Please select transport type",
+    "needAccount": "Need an account?",
+    "contactAdmin": "Contact your church admin",
+    "privateSystem": "Private System",
+    "privateSystemDesc": "This is a private church management system. Account creation is managed by church administrators.",
+    "contactAdminDesc": "Please contact your servant or church admin to receive your login credentials.",
+    "backToLogin": "Back to Login"
   },
   "sectors": {
     "title": "Sectors",
