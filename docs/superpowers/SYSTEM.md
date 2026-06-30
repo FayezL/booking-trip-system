@@ -1,4 +1,4 @@
-# Booking0Trip System — Complete Documentation
+# Booking-Trip System — Complete Documentation
 
 > Single source of truth for the entire system. Last updated: 2026-04-07.
 
@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-**Booking0Trip** is a bilingual (Arabic/English) web app for managing church trips, bus seat bookings, and room assignments. Built for ~40 concurrent users with elderly-friendly design.
+**Booking-Trip** is a bilingual (Arabic/English) web app for managing church trips, bus seat bookings, and room assignments. Built for ~40 concurrent users with elderly-friendly design.
 
 **Stack:** Next.js 14 (App Router) + TypeScript + Tailwind CSS + Supabase (PostgreSQL, Auth, Edge Functions)
 

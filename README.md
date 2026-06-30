@@ -1,6 +1,17 @@
 # Saint Demiana — Trip & Room Management System
 
-A bilingual (Arabic/English) web application for managing church trips, bus bookings, room assignments, and car pooling. Designed for ~40 concurrent users with an elderly-friendly, mobile-first UI featuring large touch targets, high-contrast colors, and RTL (right-to-left) Arabic support.
+[![Live Demo](https://img.shields.io/badge/live-demo-22C55E?logo=vercel&logoColor=white)](https://booking-trip-system.vercel.app/login)
+[![CI](https://github.com/FayezL/booking-trip-system/actions/workflows/ci.yml/badge.svg)](https://github.com/FayezL/booking-trip-system/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-98%20passing-brightgreen)](#scripts)
+[![Users](https://img.shields.io/badge/users-200%2B%20active-blue)](#features)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-38BDF8?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+
+**Live demo:** <https://booking-trip-system.vercel.app/login>
+
+A bilingual (Arabic/English) web application for managing church trips, bus bookings, room assignments, and car pooling. Currently serving **200+ active users** with **98 passing tests**. Designed for ~40 concurrent users with an elderly-friendly, mobile-first UI featuring large touch targets, high-contrast colors, and RTL (right-to-left) Arabic support.
 
 ## Features
 
@@ -64,7 +75,7 @@ A bilingual (Arabic/English) web application for managing church trips, bus book
 
 ```bash
 git clone <repo-url>
-cd booking0trip-system
+cd booking-trip-system
 npm install
 ```
 
@@ -113,6 +124,11 @@ UPDATE public.profiles SET role = 'servant' WHERE phone = '01000000000';
 ```
 
 Login with phone `01000000000` and password `changeme123`.
+
+> ⚠️ **Change this password immediately after first login.** `changeme123` is a
+> publicly known bootstrap credential. Go to the Users page and reset it, or run
+> `SELECT public.admin_reset_password('<user-id>', '<new-strong-password>')` in
+> the Supabase SQL Editor before exposing the app to real users.
 
 ### 5. Run Development Server
 

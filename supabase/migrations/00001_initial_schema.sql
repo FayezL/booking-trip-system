@@ -1,4 +1,4 @@
--- Booking0Trip System: Single Consolidated Migration
+-- Booking-Trip System: Single Consolidated Migration
 -- Last updated: 2026-04-07
 -- This replaces all previous migration files.
 

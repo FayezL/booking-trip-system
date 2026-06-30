@@ -1,4 +1,4 @@
-# MAINPLAN.md — Booking0Trip System
+# MAINPLAN.md — Booking-Trip System
 
 > Complete project reference. Everything we built, why, and how it works.
 > Last updated: 2026-05-09 (Phase 14 — Admin-Only Signup + Demo User Scripts)
