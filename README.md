@@ -9,7 +9,9 @@
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-38BDF8?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-**Live demo:** <https://booking-trip-system.vercel.app/login>
+**Live demo:** <https://booking-trip-system.vercel.app/login> · **Demo video:** <https://www.youtube.com/watch?v=Zqo856N6XsI>
+
+[![Watch the demo](https://img.youtube.com/vi/Zqo856N6XsI/hqdefault.jpg)](https://www.youtube.com/watch?v=Zqo856N6XsI)
 
 A bilingual (Arabic/English) web application for managing church trips, bus bookings, room assignments, and car pooling. Currently serving **200+ active users** with **98 passing tests**. Designed for ~40 concurrent users with an elderly-friendly, mobile-first UI featuring large touch targets, high-contrast colors, and RTL (right-to-left) Arabic support.
 
