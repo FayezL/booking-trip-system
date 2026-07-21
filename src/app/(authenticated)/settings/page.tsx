@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useToast } from "@/components/Toast";
 import { PASSWORD_MIN_LENGTH, PHONE_REGEX } from "@/lib/constants";
+import { isDemo } from "@/lib/env";
 import type { Sector, Profile, FamilyMember } from "@/lib/types/database";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,12 +23,24 @@ type FamilyForm = {
   full_name: string;
   gender: "Male" | "Female";
   has_wheelchair: boolean;
+  phone: string;
+  role: string;
+  transport_type: "private" | "bus";
+  servants_needed: 0 | 1 | 2;
+  room_floor: string | null;
+  room_section: string | null;
 };
 
 const emptyFamilyForm: FamilyForm = {
   full_name: "",
   gender: "Male",
   has_wheelchair: false,
+  phone: "",
+  role: "patient",
+  transport_type: "bus",
+  servants_needed: 0,
+  room_floor: null,
+  room_section: null,
 };
 
 function getInitials(name: string): string {
@@ -229,11 +242,18 @@ export default function SettingsPage() {
   }
 
   function startEditFamily(member: FamilyMember) {
+    if (member.is_head) return;
     setEditingFamilyId(member.id);
     setFamilyForm({
       full_name: member.full_name,
       gender: member.gender,
       has_wheelchair: member.has_wheelchair,
+      phone: member.phone || "",
+      role: member.role || "patient",
+      transport_type: member.transport_type || "bus",
+      servants_needed: member.servants_needed ?? 0,
+      room_floor: member.room_floor || null,
+      room_section: member.room_section || null,
     });
     setShowFamilyForm(true);
   }
@@ -252,6 +272,12 @@ export default function SettingsPage() {
         p_full_name: familyForm.full_name.trim(),
         p_gender: familyForm.gender,
         p_has_wheelchair: familyForm.has_wheelchair,
+        p_phone: familyForm.phone,
+        p_role: familyForm.role,
+        p_transport_type: familyForm.transport_type,
+        p_servants_needed: familyForm.servants_needed,
+        p_room_floor: familyForm.room_floor,
+        p_room_section: familyForm.room_section,
       });
       setSavingFamily(false);
       if (error) {
@@ -269,6 +295,12 @@ export default function SettingsPage() {
         p_full_name: familyForm.full_name.trim(),
         p_gender: familyForm.gender,
         p_has_wheelchair: familyForm.has_wheelchair,
+        p_phone: familyForm.phone,
+        p_role: familyForm.role,
+        p_transport_type: familyForm.transport_type,
+        p_servants_needed: familyForm.servants_needed,
+        p_room_floor: familyForm.room_floor,
+        p_room_section: familyForm.room_section,
       });
       setSavingFamily(false);
       if (error) {
@@ -309,6 +341,14 @@ export default function SettingsPage() {
     <div className="animate-fade-in space-y-4">
       <h1 className="section-title mb-6">{t("settings.title")}</h1>
 
+      {isDemo && (
+        <Card className="border-amber-300 bg-amber-50/80 dark:border-amber-800/40 dark:bg-amber-950/30">
+          <CardContent className="py-3 text-sm text-amber-900 dark:text-amber-200">
+            <strong>Demo mode:</strong> settings are read-only — changes are disabled to keep the demo stable for all visitors. Everything resets nightly.
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -332,7 +372,7 @@ export default function SettingsPage() {
               />
               <Button
                 onClick={handleSaveName}
-                disabled={savingName || !newName.trim() || newName.trim() === profile?.full_name}
+                disabled={isDemo || savingName || !newName.trim() || newName.trim() === profile?.full_name}
                 className="shrink-0"
               >
                 {savingName ? t("common.loading") : t("common.save")}
@@ -361,7 +401,7 @@ export default function SettingsPage() {
               />
               <Button
                 onClick={handleSavePhone}
-                disabled={savingPhone || !PHONE_REGEX.test(newPhone.replace(/\D/g, "")) || newPhone === profile?.phone}
+                disabled={isDemo || savingPhone || !PHONE_REGEX.test(newPhone.replace(/\D/g, "")) || newPhone === profile?.phone}
                 className="shrink-0"
               >
                 {savingPhone ? t("common.loading") : t("common.save")}
@@ -395,7 +435,7 @@ export default function SettingsPage() {
               />
               <Button
                 onClick={handleSavePassword}
-                disabled={savingPassword || !currentPassword || newPassword.length < PASSWORD_MIN_LENGTH}
+                disabled={isDemo || savingPassword || !currentPassword || newPassword.length < PASSWORD_MIN_LENGTH}
               >
                 {savingPassword ? t("common.loading") : t("common.save")}
               </Button>
@@ -478,7 +518,7 @@ export default function SettingsPage() {
               </select>
               <Button
                 onClick={handleSaveSector}
-                disabled={savingSector || selectedSector === (currentSectorId || "")}
+                disabled={isDemo || savingSector || selectedSector === (currentSectorId || "")}
                 className="shrink-0"
               >
                 {savingSector ? t("common.loading") : t("common.save")}
@@ -488,7 +528,7 @@ export default function SettingsPage() {
 
           <Button
             onClick={handleSaveTransport}
-            disabled={savingTransport}
+            disabled={isDemo || savingTransport}
           >
             {savingTransport ? t("common.loading") : t("common.save")}
           </Button>
@@ -502,7 +542,7 @@ export default function SettingsPage() {
               <Users className="h-5 w-5" />
               {t("family.title")}
             </CardTitle>
-            <Button size="sm" onClick={startAddFamily} className="gap-1">
+            <Button size="sm" onClick={startAddFamily} disabled={isDemo} className="gap-1">
               <Plus className="h-4 w-4" />
               {t("family.add")}
             </Button>
@@ -559,9 +599,94 @@ export default function SettingsPage() {
                   />
                   <Label>{t("family.wheelchair")}</Label>
                 </div>
+                <div className="space-y-2">
+                  <Label>{t("admin.role")}</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={familyForm.role}
+                    onChange={(e) => setFamilyForm({ ...familyForm, role: e.target.value })}
+                  >
+                    <option value="patient">{t("admin.patient")}</option>
+                    <option value="servant">{t("admin.servant")}</option>
+                    <option value="companion">{t("admin.companion")}</option>
+                    <option value="family_assistant">{t("admin.familyAssistant")}</option>
+                    <option value="trainee">{t("admin.trainee")}</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("settings.transportType")}</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={familyForm.transport_type === "private" ? "default" : "outline"}
+                      onClick={() => setFamilyForm({ ...familyForm, transport_type: "private" })}
+                      className="flex-1 min-h-[40px]"
+                    >
+                      {t("settings.transportPrivate")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={familyForm.transport_type === "bus" ? "default" : "outline"}
+                      onClick={() => setFamilyForm({ ...familyForm, transport_type: "bus" })}
+                      className="flex-1 min-h-[40px]"
+                    >
+                      {t("settings.transportBus")}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("settings.servantsNeeded")}</Label>
+                  <div className="flex gap-2">
+                    {([0, 1, 2] as const).map((n) => (
+                      <Button
+                        key={n}
+                        type="button"
+                        variant={familyForm.servants_needed === n ? "default" : "outline"}
+                        onClick={() => setFamilyForm({ ...familyForm, servants_needed: n })}
+                        className="flex-1 min-h-[40px]"
+                      >
+                        {n}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("family.phone")}</Label>
+                  <Input
+                    type="tel"
+                    value={familyForm.phone}
+                    onChange={(e) => setFamilyForm({ ...familyForm, phone: e.target.value.replace(/\D/g, "").slice(0, 15) })}
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("family.roomFloor")}</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={familyForm.room_floor || ""}
+                    onChange={(e) => setFamilyForm({ ...familyForm, room_floor: e.target.value || null })}
+                  >
+                    <option value="">{t("family.none")}</option>
+                    <option value="ground">{t("family.ground")}</option>
+                    <option value="upper">{t("family.upper")}</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("family.roomSection")}</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={familyForm.room_section || ""}
+                    onChange={(e) => setFamilyForm({ ...familyForm, room_section: e.target.value || null })}
+                  >
+                    <option value="">{t("family.none")}</option>
+                    <option value="Male">{t("family.male")}</option>
+                    <option value="Female">{t("family.female")}</option>
+                    <option value="Families">{t("family.families")}</option>
+                  </select>
+                </div>
               </div>
               <DialogFooter className="gap-2">
-                <Button onClick={handleSaveFamily} disabled={savingFamily || !familyForm.full_name.trim()}>
+                <Button onClick={handleSaveFamily} disabled={isDemo || savingFamily || !familyForm.full_name.trim()}>
                   {savingFamily ? t("common.loading") : t("common.save")}
                 </Button>
                 <Button variant="outline" onClick={() => setShowFamilyForm(false)}>
@@ -584,6 +709,11 @@ export default function SettingsPage() {
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-sm font-medium text-foreground">{member.full_name}</span>
+                    {member.is_head && (
+                      <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400">
+                        {t("family.me")}
+                      </Badge>
+                    )}
                     <Badge variant="outline" className={cn(
                       "text-xs",
                       member.gender === "Male"
@@ -598,16 +728,18 @@ export default function SettingsPage() {
                       </Badge>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => startEditFamily(member)}>
-                      <Edit className="h-3 w-3" />
-                      {t("common.edit")}
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1" onClick={() => handleRemoveFamily(member.id)}>
-                      <Trash2 className="h-3 w-3" />
-                      {t("common.delete")}
-                    </Button>
-                  </div>
+                  {!member.is_head && (
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" disabled={isDemo} className="gap-1" onClick={() => startEditFamily(member)}>
+                        <Edit className="h-3 w-3" />
+                        {t("common.edit")}
+                      </Button>
+                      <Button variant="ghost" size="sm" disabled={isDemo} className="text-destructive hover:text-destructive gap-1" onClick={() => handleRemoveFamily(member.id)}>
+                        <Trash2 className="h-3 w-3" />
+                        {t("common.delete")}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -653,7 +785,7 @@ export default function SettingsPage() {
 
             <Button
               onClick={handleSaveCar}
-              disabled={savingCar}
+              disabled={isDemo || savingCar}
             >
               {savingCar ? t("common.loading") : t("common.save")}
             </Button>

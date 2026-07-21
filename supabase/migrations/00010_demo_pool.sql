@@ -19,11 +19,24 @@ AS $$
 DECLARE
   v_phone text;
 BEGIN
-  SELECT phone INTO v_phone
-  FROM public.demo_account_pool
-  ORDER BY last_assigned_at NULLS FIRST, phone
+  -- Prefer accounts with NO active booking so the visitor can book fresh.
+  SELECT p.phone INTO v_phone
+  FROM public.demo_account_pool p
+  JOIN public.profiles prof ON prof.phone = p.phone
+  LEFT JOIN public.bookings b ON b.user_id = prof.id AND b.cancelled_at IS NULL
+  WHERE b.id IS NULL
+  ORDER BY p.last_assigned_at NULLS FIRST, p.phone
   LIMIT 1
   FOR UPDATE SKIP LOCKED;
+
+  -- Fallback: every account already has a booking; return least-recently-assigned.
+  IF v_phone IS NULL THEN
+    SELECT phone INTO v_phone
+    FROM public.demo_account_pool
+    ORDER BY last_assigned_at NULLS FIRST, phone
+    LIMIT 1
+    FOR UPDATE SKIP LOCKED;
+  END IF;
 
   IF v_phone IS NULL THEN
     RAISE EXCEPTION 'No demo accounts available';
