@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "seed:demo": "node scripts/seed-demo-data.mjs",
+    "cleanup:demo": "node scripts/cleanup-demo-data.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

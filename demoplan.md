@@ -250,8 +250,8 @@ COMMIT;
 - [ ] Commit: `feat: add demo cleanup script (replaces cleanup-demo-users.sql)`.
 
 ### Task 8 — Nightly reset action
-- [ ] Create `.github/workflows/demo-reset.yml`: cron `0 3 * * *` UTC + `workflow_dispatch`; install `postgresql-client`; run `psql "$SUPABASE_DEMO_DB_URL" -f cleanup` then `-f seed`.
-- [ ] Add repo secret `SUPABASE_DEMO_DB_URL` (demo project pooled connection string).
+- [ ] Create `.github/workflows/demo-reset.yml`: cron `0 3 * * *` UTC + `workflow_dispatch`; uses Node scripts (`scripts/cleanup-demo-data.mjs` + `scripts/seed-demo-data.mjs`) via `npm ci` + `node`.
+- [ ] Add repo secrets `SUPABASE_DEMO_URL` (https URL) + `SUPABASE_DEMO_SERVICE_ROLE_KEY` (demo project's secret key).
 - [ ] Commit: `ci: nightly demo data reset`.
 
 ### Task 9 — README section
@@ -264,11 +264,16 @@ COMMIT;
 
 - [ ] Create Supabase project `booking-trip-demo` (free tier — you have 2 slots).
 - [ ] **SQL Editor → run `supabase/schema.sql`** (one consolidated file; replaces all individual migrations; idempotent; final state only). If you previously started running migrations and hit errors, **delete the project and create a fresh one** — `schema.sql` assumes a clean DB.
-- [ ] **SQL Editor → run `supabase/seed-demo-data.sql`** → should see "Demo seed complete" notice.
-- [ ] **Authentication → Email:** disable "Confirm email" (private app).
+- [ ] **Authentication → Providers → Email:** enable the provider, then turn OFF "Confirm email" (private app). Do NOT disable the Email provider itself — that breaks all sign-in.
+- [ ] At repo root, create `.env.demo.local` (gitignored — never commit):
+  ```
+  NEXT_PUBLIC_SUPABASE_URL=https://YOUR-DEMO-PROJECT.supabase.co
+  SUPABASE_SERVICE_ROLE_KEY=sb_secret_xxx
+  ```
+- [ ] **Run `npm run cleanup:demo`** (clears any half-seeded state), then **`npm run seed:demo`** → should print "✅ Demo seed complete." (Creates 100 users via Supabase admin API so `auth.identities` is populated correctly.)
 - [ ] Create 2nd Vercel project (same repo, Production branch `main`).
 - [ ] Set its env vars: `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (demo project) + `NEXT_PUBLIC_APP_ENV=demo`.
-- [ ] Add GitHub repo secret `SUPABASE_DEMO_DB_URL`.
+- [ ] Add GitHub repo secrets `SUPABASE_DEMO_URL` + `SUPABASE_DEMO_SERVICE_ROLE_KEY`.
 - [ ] Production Vercel project: set `NEXT_PUBLIC_APP_ENV=production` (so it's explicit).
 
 ---
