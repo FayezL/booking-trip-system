@@ -205,4 +205,6 @@ CREATE TRIGGER on_auth_user_created
 
 COMMIT;
 
-NOTICE 'Demo seed complete: 100 users, 2 trips, 8 buses, 10 rooms, 40 bookings.';
+DO $$ BEGIN
+  RAISE NOTICE 'Demo seed complete: 100 users, 2 trips, 8 buses, 10 rooms, 40 bookings.';
+END $$;

@@ -54,4 +54,6 @@ END $$;
 
 COMMIT;
 
-NOTICE 'Demo cleanup complete.';
+DO $$ BEGIN
+  RAISE NOTICE 'Demo cleanup complete.';
+END $$;
