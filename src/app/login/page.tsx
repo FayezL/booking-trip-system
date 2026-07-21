@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient, setSessionPersistence } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { PHONE_REGEX, PASSWORD_MIN_LENGTH } from "@/lib/constants";
+import { PHONE_REGEX, PASSWORD_MIN_LENGTH, CHURCH_EMAIL_DOMAIN } from "@/lib/constants";
+import { isDemo } from "@/lib/env";
 import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,31 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
+
+  async function handleDemoLogin() {
+    setDemoLoading(true);
+    setDemoError(null);
+    const supabase = createClient();
+    const { data, error: rpcError } = await supabase.rpc("claim_demo_account");
+    const phone = typeof data === "string" ? data : null;
+    if (rpcError || !phone) {
+      setDemoError("Demo unavailable. Use the form below.");
+      setDemoLoading(false);
+      return;
+    }
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: `${phone}${CHURCH_EMAIL_DOMAIN}`,
+      password: "demo123",
+    });
+    setDemoLoading(false);
+    if (authError) {
+      setDemoError("Demo unavailable. Use the form below.");
+      return;
+    }
+    router.push("/trips");
+  }
 
   function handlePhoneChange(value: string) {
     const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -75,6 +101,34 @@ export default function LoginPage() {
           <ThemeToggle />
           <LanguageToggle />
         </div>
+
+        {isDemo && (
+          <div className={cn(
+            "mb-4 rounded-2xl p-5 text-center",
+            "bg-amber-50/80 dark:bg-amber-950/30",
+            "backdrop-blur-xl",
+            "border border-amber-200/60 dark:border-amber-800/40",
+            "shadow-lg shadow-amber-500/5"
+          )}>
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+              Demo Environment
+            </p>
+            <p className="text-xs text-amber-700/80 dark:text-amber-300/70 mt-1">
+              No registration required
+            </p>
+            <Button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={demoLoading || loading}
+              className="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              {demoLoading ? "Starting demo…" : "Try Demo"}
+            </Button>
+            {demoError && (
+              <p className="text-xs text-red-500 mt-2">{demoError}</p>
+            )}
+          </div>
+        )}
 
         <div className={cn(
           "rounded-2xl p-8",

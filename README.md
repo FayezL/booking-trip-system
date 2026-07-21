@@ -15,6 +15,19 @@
 
 A bilingual (Arabic/English) web application for managing church trips, bus bookings, room assignments, and car pooling. Currently serving **200+ active users** with **98 passing tests**. Designed for ~40 concurrent users with an elderly-friendly, mobile-first UI featuring large touch targets, high-contrast colors, and RTL (right-to-left) Arabic support.
 
+## Live Demo
+
+The project ships in **two environments** from the same codebase, selected by the `NEXT_PUBLIC_APP_ENV` build variable:
+
+| Environment | Purpose | Database | Accounts |
+|-------------|---------|----------|----------|
+| **Production** | Real church members | Live Supabase project | Real users (private) |
+| **Demo** | Public showcase | Isolated demo Supabase project | 100 fictional users, reset nightly |
+
+The demo environment shows a yellow banner at the top and a **Try Demo** button on the login page that signs you in as a random fictional patient — no registration required. Admin features are intentionally not exposed in the demo (watch the [video tour](https://www.youtube.com/watch?v=Zqo856N6XsI) for those).
+
+Demo data is reset to a clean state every night at 03:00 UTC via the `demo-reset` GitHub Action.
+
 ## Features
 
 ### For Patients & Members

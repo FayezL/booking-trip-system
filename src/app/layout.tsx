@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { I18nProvider } from "@/lib/i18n/context";
 import { ToastProvider } from "@/components/Toast";
 import { Analytics } from "@vercel/analytics/next";
+import DemoBanner from "@/components/DemoBanner";
 
 export const metadata: Metadata = {
   title: "Saint Demiana | خدمه فيرينا - Trip Management",
@@ -18,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className="min-h-screen">
+        <DemoBanner />
         <ThemeProvider attribute="class" defaultTheme="light">
           <I18nProvider>
             <ToastProvider>
