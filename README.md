@@ -260,6 +260,10 @@ The app uses PostgreSQL via Supabase with Row Level Security (RLS) on all tables
 - **sectors** — Organizational groups for members
 - **admin_logs** — Audit trail of all admin actions
 
+##Development: 
+
+This project was developed using modern AI-assisted engineering tools (including OpenCode/LLM assistants) alongside manual architecture, debugging, testing, and deployment decisions.
+
 ## License
 
 Private — All rights reserved.
