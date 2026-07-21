@@ -1572,11 +1572,14 @@ DECLARE
   v_phone text;
 BEGIN
   -- Prefer accounts with NO active booking so the visitor can book fresh.
+  -- NOT EXISTS avoids "FOR UPDATE on nullable side of outer join" error.
   SELECT p.phone INTO v_phone
   FROM public.demo_account_pool p
-  JOIN public.profiles prof ON prof.phone = p.phone
-  LEFT JOIN public.bookings b ON b.user_id = prof.id AND b.cancelled_at IS NULL
-  WHERE b.id IS NULL
+  WHERE NOT EXISTS (
+    SELECT 1 FROM public.bookings b
+    JOIN public.profiles prof ON prof.id = b.user_id
+    WHERE prof.phone = p.phone AND b.cancelled_at IS NULL
+  )
   ORDER BY p.last_assigned_at NULLS FIRST, p.phone
   LIMIT 1
   FOR UPDATE SKIP LOCKED;
