@@ -120,7 +120,7 @@ export default function UsersPage() {
   const [managingFamilyId, setManagingFamilyId] = useState<string | null>(null);
   const [familyList, setFamilyList] = useState<FamilyMember[]>([]);
   const [showFmForm, setShowFmForm] = useState(false);
-  const [fmForm, setFmForm] = useState({ full_name: "", gender: "Male" as "Male" | "Female", has_wheelchair: false });
+  const [fmForm, setFmForm] = useState({ full_name: "", gender: "Male" as "Male" | "Female", has_wheelchair: false, phone: "", role: "patient", transport_type: "bus" as "private" | "bus", servants_needed: 0 as 0 | 1 | 2, room_floor: null as string | null, room_section: null as string | null });
   const [editingFmId, setEditingFmId] = useState<string | null>(null);
   const [savingFm, setSavingFm] = useState(false);
 
@@ -148,7 +148,7 @@ export default function UsersPage() {
       setSectors((sectorsRes.data || []) as Sector[]);
 
       const counts: Record<string, number> = {};
-      const { data: fmAll } = await supabase.from("family_members").select("head_user_id");
+      const { data: fmAll } = await supabase.from("family_members").select("head_user_id").eq("is_head", false);
       for (const fm of (fmAll || []) as { head_user_id: string }[]) {
         counts[fm.head_user_id] = (counts[fm.head_user_id] || 0) + 1;
       }
@@ -302,13 +302,24 @@ export default function UsersPage() {
 
   function startAddFm() {
     setEditingFmId(null);
-    setFmForm({ full_name: "", gender: "Male", has_wheelchair: false });
+    setFmForm({ full_name: "", gender: "Male", has_wheelchair: false, phone: "", role: "patient", transport_type: "bus", servants_needed: 0, room_floor: null, room_section: null });
     setShowFmForm(true);
   }
 
   function startEditFm(member: FamilyMember) {
+    if (member.is_head) return;
     setEditingFmId(member.id);
-    setFmForm({ full_name: member.full_name, gender: member.gender, has_wheelchair: member.has_wheelchair });
+    setFmForm({
+      full_name: member.full_name,
+      gender: member.gender,
+      has_wheelchair: member.has_wheelchair,
+      phone: member.phone || "",
+      role: member.role || "patient",
+      transport_type: member.transport_type || "bus",
+      servants_needed: member.servants_needed ?? 0,
+      room_floor: member.room_floor || null,
+      room_section: member.room_section || null,
+    });
     setShowFmForm(true);
   }
 
@@ -321,6 +332,12 @@ export default function UsersPage() {
         p_full_name: fmForm.full_name.trim(),
         p_gender: fmForm.gender,
         p_has_wheelchair: fmForm.has_wheelchair,
+        p_phone: fmForm.phone,
+        p_role: fmForm.role,
+        p_transport_type: fmForm.transport_type,
+        p_servants_needed: fmForm.servants_needed,
+        p_room_floor: fmForm.room_floor,
+        p_room_section: fmForm.room_section,
       });
       setSavingFm(false);
       if (error) { showToast(t("common.error"), "error"); return; }
@@ -331,6 +348,12 @@ export default function UsersPage() {
         p_full_name: fmForm.full_name.trim(),
         p_gender: fmForm.gender,
         p_has_wheelchair: fmForm.has_wheelchair,
+        p_phone: fmForm.phone,
+        p_role: fmForm.role,
+        p_transport_type: fmForm.transport_type,
+        p_servants_needed: fmForm.servants_needed,
+        p_room_floor: fmForm.room_floor,
+        p_room_section: fmForm.room_section,
       });
       setSavingFm(false);
       if (error) { showToast(t("common.error"), "error"); return; }
@@ -774,6 +797,37 @@ export default function UsersPage() {
                                 />
                                 <Label className="text-xs">♿</Label>
                               </div>
+                              <Select value={fmForm.role} onValueChange={(v) => setFmForm({ ...fmForm, role: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="patient">{t("admin.patient")}</SelectItem>
+                                  <SelectItem value="servant">{t("admin.servant")}</SelectItem>
+                                  <SelectItem value="companion">{t("admin.companion")}</SelectItem>
+                                  <SelectItem value="family_assistant">{t("admin.familyAssistant")}</SelectItem>
+                                  <SelectItem value="trainee">{t("admin.trainee")}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <div className="flex gap-1">
+                                <Button type="button" variant={fmForm.transport_type === "private" ? "default" : "outline"} onClick={() => setFmForm({ ...fmForm, transport_type: "private" })} className="flex-1 h-8 text-xs">{t("settings.transportPrivate")}</Button>
+                                <Button type="button" variant={fmForm.transport_type === "bus" ? "default" : "outline"} onClick={() => setFmForm({ ...fmForm, transport_type: "bus" })} className="flex-1 h-8 text-xs">{t("settings.transportBus")}</Button>
+                              </div>
+                              <div className="flex gap-1">
+                                {([0, 1, 2] as const).map((n) => (
+                                  <Button key={n} type="button" variant={fmForm.servants_needed === n ? "default" : "outline"} onClick={() => setFmForm({ ...fmForm, servants_needed: n })} className="flex-1 h-8 text-xs">{n}</Button>
+                                ))}
+                              </div>
+                              <Input type="tel" placeholder={t("family.phone")} value={fmForm.phone} onChange={(e) => setFmForm({ ...fmForm, phone: e.target.value.replace(/\D/g, "").slice(0, 15) })} dir="ltr" />
+                              <select className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs" value={fmForm.room_floor || ""} onChange={(e) => setFmForm({ ...fmForm, room_floor: e.target.value || null })}>
+                                <option value="">{t("family.roomFloor")}: -</option>
+                                <option value="ground">{t("family.ground")}</option>
+                                <option value="upper">{t("family.upper")}</option>
+                              </select>
+                              <select className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-xs" value={fmForm.room_section || ""} onChange={(e) => setFmForm({ ...fmForm, room_section: e.target.value || null })}>
+                                <option value="">{t("family.roomSection")}: -</option>
+                                <option value="Male">{t("family.male")}</option>
+                                <option value="Female">{t("family.female")}</option>
+                                <option value="Families">{t("family.families")}</option>
+                              </select>
                             </div>
                             <div className="flex gap-2 mt-3">
                               <Button size="sm" onClick={handleSaveFm} disabled={savingFm || !fmForm.full_name.trim()}>
@@ -791,11 +845,16 @@ export default function UsersPage() {
                         <p className="text-xs text-muted-foreground text-center py-2">{t("family.noMembers")}</p>
                       ) : (
                         <div className="space-y-1">
-                          {familyList.map((fm, idx) => (
+                           {familyList.map((fm, idx) => (
                             <div key={fm.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground">{idx + 1}.</span>
                                 <span className="text-sm font-medium text-foreground">{fm.full_name}</span>
+                                {fm.is_head && (
+                                  <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400">
+                                    {t("family.me")}
+                                  </Badge>
+                                )}
                                 <Badge variant="outline" className={cn(
                                   "text-xs",
                                   fm.gender === "Male" ? "border-blue-300 text-blue-500" : "border-pink-300 text-pink-500"
@@ -806,14 +865,16 @@ export default function UsersPage() {
                                   <Badge variant="outline" className="text-xs border-amber-300 text-amber-600">♿</Badge>
                                 )}
                               </div>
-                              <div className="flex gap-1">
-                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => startEditFm(fm)}>
-                                  {t("common.edit")}
-                                </Button>
-                                <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => handleRemoveFm(fm.id)}>
-                                  {t("common.delete")}
-                                </Button>
-                              </div>
+                              {!fm.is_head && (
+                                <div className="flex gap-1">
+                                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => startEditFm(fm)}>
+                                    {t("common.edit")}
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => handleRemoveFm(fm.id)}>
+                                    {t("common.delete")}
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

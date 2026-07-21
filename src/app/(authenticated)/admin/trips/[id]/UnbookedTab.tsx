@@ -64,6 +64,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
   const [selectedBus, setSelectedBus] = useState<string>("");
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<string[]>([]);
   const [bookingFamily, setBookingFamily] = useState<FamilyMember[]>([]);
+  const [bookingHeadId, setBookingHeadId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
   const PAGE_SIZE = 20;
@@ -74,12 +75,12 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       if (!user) return;
 
       const [allBookedRes, busListRes, sectorsRes] = await Promise.all([
-        supabase.from("bookings").select("user_id").eq("trip_id", tripId).is("cancelled_at", null).is("family_member_id", null),
+        supabase.from("bookings").select("user_id").eq("trip_id", tripId).is("cancelled_at", null),
         supabase.from("buses").select("*").eq("trip_id", tripId),
         supabase.rpc("get_sectors"),
       ]);
 
-      const bookedIds = (allBookedRes.data || []).map((b: { user_id: string }) => b.user_id);
+      const bookedIds = Array.from(new Set((allBookedRes.data || []).map((b: { user_id: string }) => b.user_id)));
 
       let profilesQuery = supabase
         .from("profiles")
@@ -111,8 +112,12 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
     setBookingUser(userId);
     setSelectedBus(buses.length > 0 ? buses[0].id : "");
     setSelectedFamilyIds([]);
+    setBookingHeadId(null);
     supabase.rpc("get_family_members", { p_user_id: userId }).then(({ data }: { data: unknown }) => {
-      setBookingFamily((data || []) as FamilyMember[]);
+      const members = (data || []) as FamilyMember[];
+      setBookingFamily(members);
+      const head = members.find((m) => m.is_head);
+      if (head) setBookingHeadId(head.id);
     });
   }
 
@@ -122,21 +127,31 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
       return;
     }
 
+    const allIds = bookingHeadId
+      ? [bookingHeadId, ...selectedFamilyIds.filter((id) => id !== bookingHeadId)]
+      : selectedFamilyIds;
+
+    if (allIds.length === 0) {
+      showToast(t("common.error"), "error");
+      return;
+    }
+
     const { error } = await supabase.rpc("book_bus_with_family", {
       p_user_id: bookingUser,
       p_trip_id: tripId,
       p_bus_id: selectedBus,
-      p_family_member_ids: selectedFamilyIds,
+      p_family_member_ids: allIds,
     });
 
     if (error) {
       showToast(t("common.error"), "error");
     } else {
       showToast(t("admin.book"), "success");
-      logAction("book_user", "booking", undefined, { user_id: bookingUser, family_count: selectedFamilyIds.length });
+      logAction("book_user", "booking", undefined, { user_id: bookingUser, family_count: allIds.length });
       setBookingUser(null);
       setBookingFamily([]);
       setSelectedFamilyIds([]);
+      setBookingHeadId(null);
       loadData();
     }
   }
@@ -346,7 +361,7 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!bookingUser} onOpenChange={(open) => { if (!open) { setBookingUser(null); setBookingFamily([]); setSelectedFamilyIds([]); } }}>
+      <Dialog open={!!bookingUser} onOpenChange={(open) => { if (!open) { setBookingUser(null); setBookingFamily([]); setSelectedFamilyIds([]); setBookingHeadId(null); } }}>
         <DialogContent className="sm:max-w-lg" dir="rtl">
           <DialogHeader>
             <DialogTitle>{t("admin.book")}</DialogTitle>
@@ -365,11 +380,11 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
                 ))}
               </SelectContent>
             </Select>
-            {bookingFamily.length > 0 && (
+            {bookingFamily.length > 1 && (
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">{t("family.selectMembers")}</label>
                 <div className="flex flex-wrap gap-2">
-                  {bookingFamily.map((fm) => (
+                  {bookingFamily.filter((fm) => !fm.is_head).map((fm) => (
                     <button
                       key={fm.id}
                       type="button"
@@ -391,10 +406,10 @@ export default function UnbookedTab({ tripId }: { tripId: string }) {
             )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button onClick={confirmBookForUser}>
-              {t("admin.book")}{selectedFamilyIds.length > 0 ? ` (${1 + selectedFamilyIds.length})` : ""}
+            <Button onClick={confirmBookForUser} disabled={(bookingHeadId ? 1 : 0) + selectedFamilyIds.length === 0}>
+              {t("admin.book")}{(bookingHeadId ? 1 : 0) + selectedFamilyIds.length > 1 ? ` (${(bookingHeadId ? 1 : 0) + selectedFamilyIds.length})` : ""}
             </Button>
-            <Button variant="outline" onClick={() => { setBookingUser(null); setBookingFamily([]); setSelectedFamilyIds([]); }}>
+            <Button variant="outline" onClick={() => { setBookingUser(null); setBookingFamily([]); setSelectedFamilyIds([]); setBookingHeadId(null); }}>
               {t("admin.cancel")}
             </Button>
           </DialogFooter>

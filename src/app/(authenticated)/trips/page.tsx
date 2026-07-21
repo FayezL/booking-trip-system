@@ -31,6 +31,8 @@ export default function TripsPage() {
   const [selectedFamilyByTrip, setSelectedFamilyByTrip] = useState<Record<string, Set<string>>>({});
   const [bookingTripId, setBookingTripId] = useState<string | null>(null);
 
+  const headMember = useMemo(() => familyMembers.find((fm) => fm.is_head), [familyMembers]);
+
   const loadData = useCallback(async () => {
     try {
       const {
@@ -81,8 +83,11 @@ export default function TripsPage() {
     return lang === "ar" ? trip.title_ar : trip.title_en;
   }
 
-  async function handleCancelBooking(bookingId: string) {
-    if (!confirm(t("admin.confirmCancel"))) return;
+  async function handleCancelBooking(bookingId: string, memberName?: string) {
+    const msg = memberName
+      ? `${t("admin.confirmCancel")} — ${memberName}?`
+      : t("admin.confirmCancel");
+    if (!confirm(msg)) return;
     setCancellingId(bookingId);
     const { error } = await supabase.rpc("cancel_booking", { p_booking_id: bookingId });
     setCancellingId(null);
@@ -110,8 +115,16 @@ export default function TripsPage() {
 
   async function handleBookTrip(tripId: string) {
     const selected = getSelectedForTrip(tripId);
-    const totalPeople = 1 + selected.size;
-    const msg = selected.size > 0
+    const allIds = new Set(selected);
+    if (headMember) allIds.add(headMember.id);
+
+    if (allIds.size === 0) {
+      showToast(t("common.error"), "error");
+      return;
+    }
+
+    const totalPeople = allIds.size;
+    const msg = totalPeople > 1
       ? `${t("trips.bookTripFor").replace("{count}", String(totalPeople))}?`
       : `${t("trips.bookTrip")}?`;
     if (!confirm(msg)) return;
@@ -128,7 +141,7 @@ export default function TripsPage() {
     const { error } = await bookTripOnly(supabase, {
       userId: user.id,
       tripId,
-      familyMemberIds: Array.from(selected),
+      familyMemberIds: Array.from(allIds),
     });
 
     setBookingTripId(null);
@@ -215,15 +228,17 @@ export default function TripsPage() {
                         <>
                           {familyMembers.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled
-                                className="border-blue-300 bg-blue-50/80 text-blue-700 dark:border-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
-                              >
-                                {t("family.me")}
-                              </Button>
-                              {familyMembers.map((fm) => {
+                              {headMember && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled
+                                  className="border-emerald-300 bg-emerald-50/80 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                >
+                                  {t("family.me")}
+                                </Button>
+                              )}
+                              {familyMembers.filter((fm) => !fm.is_head).map((fm) => {
                                 const selected = getSelectedForTrip(trip.id);
                                 return (
                                   <Button
@@ -243,11 +258,14 @@ export default function TripsPage() {
                                   </Button>
                                 );
                               })}
-                              {getSelectedForTrip(trip.id).size > 0 && (
-                                <Badge variant="purple" className="self-center text-xs">
-                                  {1 + getSelectedForTrip(trip.id).size}
-                                </Badge>
-                              )}
+                              {(() => {
+                                const count = getSelectedForTrip(trip.id).size + (headMember ? 1 : 0);
+                                return count > 1 ? (
+                                  <Badge variant="purple" className="self-center text-xs">
+                                    {count}
+                                  </Badge>
+                                ) : null;
+                              })()}
                             </div>
                           )}
                           <div className="flex flex-col gap-2">
@@ -372,18 +390,16 @@ export default function TripsPage() {
                         )}
                       </div>
                     </div>
-                    {!fm && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleCancelBooking(booking.id)}
-                        disabled={cancellingId !== null}
-                        className="gap-1.5"
-                      >
-                        <X className="w-4 h-4" />
-                        {cancellingId === booking.id ? t("common.loading") : t("admin.cancelBooking")}
-                      </Button>
-                    )}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleCancelBooking(booking.id, fm?.full_name)}
+                      disabled={cancellingId !== null}
+                      className="gap-1.5"
+                    >
+                      <X className="w-4 h-4" />
+                      {cancellingId === booking.id ? t("common.loading") : t("admin.cancelBooking")}
+                    </Button>
                   </div>
                 </Card>
               );

@@ -76,7 +76,7 @@ export default function ReportsPage() {
           .select(`
             id, user_id, bus_id, room_id, car_id, family_member_id,
             profiles!bookings_user_id_fkey (full_name, phone, gender, role, has_wheelchair, sector_id),
-            family_members (full_name, gender, has_wheelchair),
+            family_members (full_name, gender, has_wheelchair, phone, role),
             buses (bus_label),
             rooms (room_label),
             cars (car_label)
@@ -113,7 +113,6 @@ export default function ReportsPage() {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const passengers: ReportPassenger[] = bookings.map((b: any) => {
-        const isFamily = !!b.family_member_id;
         const fm = b.family_members;
         const profile = b.profiles;
         const busLabel = b.buses?.bus_label || "";
@@ -121,12 +120,12 @@ export default function ReportsPage() {
         const carLabel = b.cars?.car_label || "";
 
         return {
-          full_name: isFamily ? fm?.full_name || "" : profile?.full_name || "",
-          phone: isFamily ? "" : profile?.phone || "",
-          gender: isFamily ? fm?.gender || "" : profile?.gender || "",
-          role: isFamily ? "" : profile?.role || "",
-          sector_name: isFamily ? "" : (sectorMap.get(profile?.sector_id) || ""),
-          has_wheelchair: isFamily ? fm?.has_wheelchair || false : profile?.has_wheelchair || false,
+          full_name: fm?.full_name || profile?.full_name || "",
+          phone: fm?.phone || profile?.phone || "",
+          gender: fm?.gender || profile?.gender || "",
+          role: fm?.role || profile?.role || "",
+          sector_name: sectorMap.get(profile?.sector_id) || "",
+          has_wheelchair: fm?.has_wheelchair ?? profile?.has_wheelchair ?? false,
           family_member_id: b.family_member_id,
           user_id: b.user_id,
           head_user_id: b.user_id,

@@ -345,7 +345,14 @@
     "me": "أنا",
     "selectMembers": "اختار مين رايح",
     "memberAdded": "تم إضافة الفرد",
-    "memberUpdated": "تم تعديل الفرد"
+    "memberUpdated": "تم تعديل الفرد",
+    "phone": "تليفون",
+    "roomFloor": "دور الأوضة",
+    "roomSection": "قسم الأوضة",
+    "none": "بدون",
+    "ground": "أرضي",
+    "upper": "علوي",
+    "families": "عائلات"
   },
   "common": {
     "loading": "تحميل...",

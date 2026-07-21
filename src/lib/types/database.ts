@@ -91,6 +91,13 @@ export type FamilyMember = {
   full_name: string;
   gender: "Male" | "Female";
   has_wheelchair: boolean;
+  is_head: boolean;
+  phone: string;
+  role: string;
+  transport_type: "private" | "bus";
+  servants_needed: 0 | 1 | 2;
+  room_floor: string | null;
+  room_section: string | null;
   created_at: string;
 };
 
@@ -116,6 +123,11 @@ export type PassengerInfo = {
   family_member_id: string | null;
   head_user_id?: string;
   gender?: string;
+  role?: string;
+  transport_type?: string;
+  room_floor?: string | null;
+  room_section?: string | null;
+  is_head?: boolean;
 };
 
 export type AdminLog = {

@@ -345,7 +345,14 @@
     "me": "Me",
     "selectMembers": "Select who's coming",
     "memberAdded": "Member added",
-    "memberUpdated": "Member updated"
+    "memberUpdated": "Member updated",
+    "phone": "Phone",
+    "roomFloor": "Room Floor",
+    "roomSection": "Room Section",
+    "none": "None",
+    "ground": "Ground",
+    "upper": "Upper",
+    "families": "Families"
   },
   "common": {
     "loading": "Loading...",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -58,6 +58,14 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set());
 
+  const headMember = useMemo(() => familyMembers.find((fm) => fm.is_head), [familyMembers]);
+
+  const allSelectedIds = useMemo(() => {
+    const ids = new Set(selectedFamilyIds);
+    if (headMember) ids.add(headMember.id);
+    return ids;
+  }, [selectedFamilyIds, headMember]);
+
   const loadData = useCallback(async () => {
     try {
       const [tripRes, busesRes, passengersRes, { data: { user } }] = await Promise.all([
@@ -90,6 +98,12 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
         sector_name: string;
         family_member_id: string | null;
         head_user_id: string;
+        gender: string;
+        role: string;
+        transport_type: string;
+        room_floor: string | null;
+        room_section: string | null;
+        is_head: boolean;
       };
       const passengersByBus: Record<string, PassengerInfo[]> = {};
       for (const p of (passengersRes.data || []) as PassengerRow[]) {
@@ -100,6 +114,12 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
           sector_name: p.sector_name || "",
           family_member_id: p.family_member_id,
           head_user_id: p.head_user_id,
+          gender: p.gender,
+          role: p.role,
+          transport_type: p.transport_type,
+          room_floor: p.room_floor,
+          room_section: p.room_section,
+          is_head: p.is_head,
         });
         passengersByBus[p.bus_id] = list;
       }
@@ -145,9 +165,13 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   }
 
   async function handleBook(bus: BusWithCount) {
+    if (allSelectedIds.size === 0) {
+      showToast(t("common.error"), "error");
+      return;
+    }
     const displayName = bus.bus_label || (lang === "ar" ? bus.area_name_ar : bus.area_name_en);
-    const totalPeople = 1 + selectedFamilyIds.size;
-    const msg = selectedFamilyIds.size > 0
+    const totalPeople = allSelectedIds.size;
+    const msg = totalPeople > 1
       ? `${t("buses.choose")}: ${displayName}? (${totalPeople})`
       : `${t("buses.choose")}: ${displayName}?`;
     if (!confirm(msg)) return;
@@ -160,7 +184,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
       return;
     }
 
-    const memberIds = Array.from(selectedFamilyIds);
+    const memberIds = Array.from(allSelectedIds);
     const { error } = await supabase.rpc("book_bus_with_family", {
       p_user_id: user.id,
       p_trip_id: tripId,
@@ -217,8 +241,12 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
   }
 
   async function handleBookTripOnly() {
-    const totalPeople = 1 + selectedFamilyIds.size;
-    const msg = selectedFamilyIds.size > 0
+    if (allSelectedIds.size === 0) {
+      showToast(t("common.error"), "error");
+      return;
+    }
+    const totalPeople = allSelectedIds.size;
+    const msg = totalPeople > 1
       ? `${t("buses.bookWithoutBus")} (${totalPeople})?`
       : `${t("buses.bookWithoutBus")}?`;
     if (!confirm(msg)) return;
@@ -235,7 +263,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
     const { error } = await bookTripOnly(supabase, {
       userId: user.id,
       tripId,
-      familyMemberIds: Array.from(selectedFamilyIds),
+      familyMemberIds: Array.from(allSelectedIds),
     });
 
     if (error) {
@@ -357,15 +385,17 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
           </CardHeader>
           <CardContent className="pt-4">
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-                className="border-blue-300 bg-blue-50/80 text-blue-700 dark:border-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
-              >
-                {t("family.me")}
-              </Button>
-              {familyMembers.map((fm) => (
+              {headMember && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  className="border-emerald-300 bg-emerald-50/80 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                >
+                  {t("family.me")}
+                </Button>
+              )}
+              {familyMembers.filter((fm) => !fm.is_head).map((fm) => (
                 <Button
                   key={fm.id}
                   variant="outline"
@@ -389,13 +419,11 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                 </Button>
               ))}
             </div>
-            {selectedFamilyIds.size > 0 && (
-              <div className="mt-3 flex items-center gap-2">
-                <Badge variant="purple">
-                  {t("family.bookWith")}: 1 + {selectedFamilyIds.size} = {1 + selectedFamilyIds.size}
-                </Badge>
-              </div>
-            )}
+            <div className="mt-3 flex items-center gap-2">
+              <Badge variant="purple">
+                {t("family.bookWith")}: {allSelectedIds.size}
+              </Badge>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -414,7 +442,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
           <Button
             variant="default"
             onClick={handleBookTripOnly}
-            disabled={bookingBusId !== null}
+            disabled={bookingBusId !== null || allSelectedIds.size === 0}
           >
             {bookingBusId === "trip-only" ? t("common.loading") : t("trips.bookTrip")}
           </Button>
@@ -464,7 +492,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
               <div className="space-y-4">
                 {group.buses.map((bus) => {
                   const available = bus.capacity - bus.booking_count;
-                  const totalNeeded = 1 + selectedFamilyIds.size;
+                  const totalNeeded = allSelectedIds.size;
                   const isFull = available < totalNeeded;
                   const percent = Math.min((bus.booking_count / bus.capacity) * 100, 100);
                   const displayName = bus.bus_label || group.areaName;
@@ -517,7 +545,7 @@ export default function BusesPage({ params }: { params: { tripId: string } }) {
                             <Button
                               variant="default"
                               onClick={() => handleBook(bus)}
-                              disabled={bookingBusId !== null}
+                              disabled={bookingBusId !== null || allSelectedIds.size === 0}
                               className="shrink-0 self-start sm:self-auto gap-2"
                             >
                               <Check className="w-5 h-5" />
