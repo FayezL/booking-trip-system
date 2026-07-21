@@ -1,7 +1,7 @@
 # MAINPLAN.md — Booking-Trip System
 
 > Complete project reference. Everything we built, why, and how it works.
-> Last updated: 2026-05-09 (Phase 14 — Admin-Only Signup + Demo User Scripts)
+> Last updated: 2026-07-22 (Phase 15 — Isolated Demo Environment + Family Member Enhancements)
 
 ---
 
@@ -1299,4 +1299,131 @@ Admin-only signup chosen over approval-based signup for simplicity. If approval 
 | `src/lib/i18n/dictionaries/en.json` | 7 new auth keys |
 | `supabase/add-demo-users.sql` | New: 30 demo users |
 | `supabase/cleanup-demo-users.sql` | New: delete all demo users |
+| `docs/superpowers/MAINPLAN.md` | This phase |
+
+---
+
+## Phase 15: Isolated Demo Environment + Family Member Enhancements (2026-07-22)
+
+### Problem
+
+1. **Public demo sharing risk**: The app needed to be shared publicly (LinkedIn) for showcase, but production has 200+ real users with PII (names, phones, wheelchair status, room assignments). Sharing the production URL would expose this data and allow visitors to create/cancel real bookings.
+2. **Family member model was incomplete**: The codebase had uncommitted work-in-progress for treating the head user as a family member (`is_head=true`) with per-person booking. This work needed to ship to production alongside the demo launch.
+3. **`auth.identities` missing**: Direct SQL inserts into `auth.users` (the old demo seed pattern) failed on newer Supabase projects because the matching `auth.identities` row was never created — causing HTTP 500 on sign-in.
+
+### Solution
+
+A **two-environment architecture** from one codebase, selected by the `NEXT_PUBLIC_APP_ENV` build variable:
+
+```
+GitHub repo (main)
+ ├─ Vercel: booking-trip-system      → NEXT_PUBLIC_APP_ENV=production → real Supabase (200+ users)
+ └─ Vercel: booking-trip-system-demo → NEXT_PUBLIC_APP_ENV=demo       → demo Supabase (100 fictional users)
+```
+
+All demo UI is gated behind `isDemo = process.env.NEXT_PUBLIC_APP_ENV === "demo"`. Because `NEXT_PUBLIC_*` vars are inlined at build time per Vercel project, the demo code is literally stripped from the production build — there is no runtime switch. Default (unset) = production.
+
+### Architecture Decisions
+
+| Decision | Rationale |
+|---|---|
+| Separate Vercel + Supabase projects (not branches) | Vercel branch-specific env vars are Pro-only; separate projects on free tier |
+| Round-robin account claim (`claim_demo_account` RPC) | Avoids shared accounts; each visitor gets their own fictional patient via `FOR UPDATE SKIP LOCKED` |
+| Prefer unbooked accounts | 40 of 100 demo accounts have pre-seeded bookings (makes the demo look alive); `claim_demo_account` skips them first so visitors can book fresh |
+| Node.js seed scripts (not SQL) | `supabase.auth.admin.createUser()` creates `auth.users + auth.identities` together and fires the trigger — the only supported way to create users |
+| Nightly reset at 03:00 UTC | Clean state each morning for LinkedIn viewers; GitHub Actions cron + `workflow_dispatch` for manual triggers |
+| Settings read-only in demo | Prevents visitors from changing passwords (would brick the account for the next visitor) or phones (would break the pool mapping) |
+
+### Key Files
+
+**Environment gating:**
+- `src/lib/env.ts` — `APP_ENV` type + `isDemo` / `isProduction` / `isStaging` helpers
+- `src/components/DemoBanner.tsx` — yellow banner, returns `null` when `!isDemo`
+- `src/__tests__/components/demo-banner.test.tsx` — asserts null-in-production (the safety guarantee)
+
+**Demo login flow:**
+- `src/app/login/page.tsx` — `{isDemo && (...)}` "Try Demo" card; calls `claim_demo_account` RPC then `signInWithPassword`
+- `src/app/layout.tsx` — renders `<DemoBanner />` as first child of `<body>`
+
+**Settings lockdown:**
+- `src/app/(authenticated)/settings/page.tsx` — all save/edit/delete buttons `disabled={isDemo || ...}`; amber "Demo mode: read-only" banner when `isDemo`
+
+**Round-robin pool:**
+- `supabase/migrations/00010_demo_pool.sql` — `demo_account_pool` table + `claim_demo_account()` function (prefers unbooked accounts via `NOT EXISTS` subquery — `FOR UPDATE SKIP LOCKED` on the pool row only)
+
+**Consolidated schema (replaces individual migrations for fresh installs):**
+- `supabase/schema.sql` — single idempotent file: 11 tables, 33 functions, 30 RLS policies, 19 indexes, 16 sectors seeded. Created by merging migrations 00001–00101 into final-state-only form (no ALTER chains, no DROP/CREATE churn).
+
+**Seed / cleanup (Node.js, use admin API):**
+- `scripts/seed-demo-data.mjs` — creates 100 users via `supabase.auth.admin.createUser()` (trigger fires → profile + head family_member auto-created), then upserts 2 trips / 8 buses / 10 rooms / 40 bookings / pool entries. Reads `.env.demo.local` or inline env vars.
+- `scripts/cleanup-demo-data.mjs` — deletes demo trips (cascade), then `admin.deleteUser()` for each (proper teardown including `auth.identities`), truncates pool. Identifies demo data by `phone LIKE '099%'` + `title_en LIKE '[DEMO]%'`.
+
+**Nightly reset:**
+- `.github/workflows/demo-reset.yml` — cron `0 3 * * *` UTC + `workflow_dispatch`. Runs cleanup → seed. Uses `SUPABASE_DEMO_URL` + `SUPABASE_DEMO_SERVICE_ROLE_KEY` secrets (demo project only — no path to production).
+
+### Family Member Enhancements (Migration 00101 — applied to production)
+
+Migration `00101_family_member_enhancements.sql` shifted the data model so the **head user is now a `family_members` row with `is_head=true`**, unifying bookings:
+
+- **Before**: `profiles` (head) + `family_members` (added people). Booking = 1 row tied to `user_id`.
+- **After**: `profiles` + `family_members` (everyone including head). Booking = N rows tied to `family_member_id` each.
+
+Migration adds 7 columns to `family_members` (`is_head`, `phone`, `role`, `transport_type`, `servants_needed`, `room_floor`, `room_section`), seeds a head row for every existing non-admin profile (33 users in production), redefines 8+ RPCs with new signatures, and updates `handle_new_user` to auto-create the head row on signup. `cancel_booking` is now per-person (no family cascade).
+
+### Production Safety Guarantees
+
+1. Every UI change is behind `isDemo`, inlined `false` in the production build.
+2. Migration 00101 was applied to production DB before the code shipped — schema matches code.
+3. The nightly reset only knows the demo project's URL + service key (GitHub secrets) — production is unreachable from the Action.
+4. Scripts identify demo data by markers (`099%` phones, `[DEMO]%` trip titles, `a1000000-…` UUIDs) that don't exist in production.
+5. Default-on-misconfig is "demo invisible" (fail-closed), not "demo leaks into production".
+
+### Demo Account Pool Behavior
+
+- **100 fictional users**: phones `09900010001`–`09900010100`, passwords `demo123`, all role `patient`
+- **40 pre-seeded bookings** on Trip 1 (20 male + 20 female, ~16 with rooms) — makes the dashboard and bus passenger lists look alive
+- **Round-robin claim** via `claim_demo_account()` — prefers unbooked accounts first (visitors can book fresh), falls back to least-recently-assigned once all 60 unbooked accounts are taken
+- **Nightly reset** returns all accounts to unclaimed state and restores the 40 seeded bookings
+
+### Build Status
+
+- 100/100 tests passing (added `demo-banner.test.tsx` with production-null assertion)
+- Lint clean
+- Build succeeds (15 pages)
+- Both Vercel projects deploying cleanly from `main`
+
+### npm Scripts Added
+
+| Script | What it does |
+|---|---|
+| `npm run seed:demo` | Runs `scripts/seed-demo-data.mjs` (needs `.env.demo.local` with demo URL + service key) |
+| `npm run cleanup:demo` | Runs `scripts/cleanup-demo-data.mjs` (same env requirements) |
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/lib/env.ts` | New — `APP_ENV` + `isDemo` / `isProduction` helpers |
+| `src/components/DemoBanner.tsx` | New — demo-only banner |
+| `src/__tests__/components/demo-banner.test.tsx` | New — null-in-production assertion |
+| `src/app/layout.tsx` | Renders `<DemoBanner />` |
+| `src/app/login/page.tsx` | "Try Demo" card gated by `isDemo` |
+| `src/app/(authenticated)/settings/page.tsx` | Read-only when `isDemo` |
+| `scripts/seed-demo-data.mjs` | New — admin-API-based seed |
+| `scripts/cleanup-demo-data.mjs` | New — admin-API-based cleanup |
+| `supabase/schema.sql` | New — consolidated idempotent schema (1783 lines) |
+| `supabase/migrations/00010_demo_pool.sql` | New — pool table + claim RPC |
+| `supabase/migrations/00101_family_member_enhancements.sql` | New — head member model (875 lines) |
+| `.github/workflows/demo-reset.yml` | New — nightly reset Action |
+| `package.json` | Added `seed:demo` + `cleanup:demo` scripts |
+| `README.md` | Live Demo section + badges + schema.sql path |
+| `demoplan.md` | New — implementation checklist (working memory) |
+| `src/lib/types/database.ts` | Added `is_head`, `role`, `transport_type`, `servants_needed`, `room_floor`, `room_section` to `FamilyMember` + `PassengerInfo` |
+| `src/app/(authenticated)/trips/page.tsx` | Family-member-aware trip list |
+| `src/app/(authenticated)/trips/[tripId]/buses/page.tsx` | Family-member-aware bus booking |
+| `src/app/(authenticated)/admin/users/page.tsx` | Family-member-aware user management |
+| `src/app/(authenticated)/admin/trips/[id]/UnbookedTab.tsx` | Family-member fields |
+| `src/app/(authenticated)/admin/reports/page.tsx` | Family-member fields |
+| `src/lib/i18n/dictionaries/ar.json` | New family-member keys |
+| `src/lib/i18n/dictionaries/en.json` | New family-member keys |
 | `docs/superpowers/MAINPLAN.md` | This phase |

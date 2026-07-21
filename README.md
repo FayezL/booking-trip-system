@@ -1,19 +1,20 @@
 # Saint Demiana — Trip & Room Management System
 
-[![Live Demo](https://img.shields.io/badge/live-demo-22C55E?logo=vercel&logoColor=white)](https://booking-trip-system.vercel.app/login)
+[![Live Demo](https://img.shields.io/badge/live-demo-22C55E?logo=vercel&logoColor=white)](https://booking-trip-system-demo.vercel.app/login)
 [![CI](https://github.com/FayezL/booking-trip-system/actions/workflows/ci.yml/badge.svg)](https://github.com/FayezL/booking-trip-system/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-98%20passing-brightgreen)](#scripts)
+[![Nightly Reset](https://github.com/FayezL/booking-trip-system/actions/workflows/demo-reset.yml/badge.svg)](https://github.com/FayezL/booking-trip-system/actions/workflows/demo-reset.yml)
+[![Tests](https://img.shields.io/badge/tests-100%20passing-brightgreen)](#scripts)
 [![Users](https://img.shields.io/badge/users-200%2B%20active-blue)](#features)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-38BDF8?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-**Live demo:** <https://booking-trip-system.vercel.app/login> · **Demo video:** <https://www.youtube.com/watch?v=Zqo856N6XsI>
+**Live demo:** <https://booking-trip-system-demo.vercel.app/login> · **Demo video:** <https://www.youtube.com/watch?v=Zqo856N6XsI>
 
 [![Watch the demo](https://img.youtube.com/vi/Zqo856N6XsI/hqdefault.jpg)](https://www.youtube.com/watch?v=Zqo856N6XsI)
 
-A bilingual (Arabic/English) web application for managing church trips, bus bookings, room assignments, and car pooling. Currently serving **200+ active users** with **98 passing tests**. Designed for ~40 concurrent users with an elderly-friendly, mobile-first UI featuring large touch targets, high-contrast colors, and RTL (right-to-left) Arabic support.
+A bilingual (Arabic/English) web application for managing church trips, bus bookings, room assignments, and car pooling. Currently serving **200+ active users** with **100 passing tests**. Designed for ~40 concurrent users with an elderly-friendly, mobile-first UI featuring large touch targets, high-contrast colors, and RTL (right-to-left) Arabic support.
 
 ## Live Demo
 
@@ -107,20 +108,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 ### 3. Run Database Migrations
 
-Go to **SQL Editor** in your Supabase dashboard and run each file in order:
+Go to **SQL Editor** in your Supabase dashboard and run the **consolidated schema** (single file, idempotent, replaces all individual migrations):
 
 ```
-supabase/migrations/00001_initial_schema.sql
-supabase/migrations/00002_fix_cascade_and_policies.sql
-supabase/migrations/00003_add_rpc_functions.sql
-supabase/migrations/00004_add_sectors.sql
-supabase/migrations/00004_part1_infrastructure.sql
-supabase/migrations/00004_part2_functions.sql
-supabase/migrations/00006_part1_cars_schema.sql
-supabase/migrations/00006_part2_cars_functions.sql
-supabase/migrations/00007_hard_delete_user.sql
-supabase/migrations/00008_fix_user_delete_cascade.sql
+supabase/schema.sql
 ```
+
+This creates all 11 tables, 33 functions, 30 RLS policies, and seeds the 16 sectors in one shot. The individual files in `supabase/migrations/` are kept as history but you no longer need to run them one by one.
 
 ### 4. Create First Servant Account
 
