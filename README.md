@@ -16,6 +16,8 @@
 
 A bilingual (Arabic/English) web application for managing church trips, bus bookings, room assignments, and car pooling. Currently serving **200+ active users** with **100 passing tests**. Designed for ~40 concurrent users with an elderly-friendly, mobile-first UI featuring large touch targets, high-contrast colors, and RTL (right-to-left) Arabic support.
 
+📖 **[System Architecture](SYSTEM_ARCHITECTURE.md)** — diagrams of the request flow, data model, nightly reset pipeline, and production-vs-demo isolation.
+
 ## Live Demo
 
 The project ships in **two environments** from the same codebase, selected by the `NEXT_PUBLIC_APP_ENV` build variable:
